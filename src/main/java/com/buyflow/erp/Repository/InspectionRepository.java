@@ -1,3 +1,4 @@
-public class InspectionRepository {
+@Repository
+public interface InspectionRepository extends JpaRepository<Inspection, Long> {
     
 }

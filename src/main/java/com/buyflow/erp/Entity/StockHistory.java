@@ -37,5 +37,11 @@ public class StockHistory {
 
     @Column(name = "CREATED_AT")
     private LocalDateTime createdAt;
+
+    public StockHistory(Long stockId, Long changeQty) {
+        this.stockId = stockId;
+        this.changeQty = changeQty;
+        this.createdAt = LocalDateTime.now();
+    }
     
 }

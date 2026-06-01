@@ -1,3 +1,4 @@
-public class StockHistoryRepository {
+@Repository
+public interface StockHistoryRepository extends JpaRepository<StockHistory, Long> {
     
 }

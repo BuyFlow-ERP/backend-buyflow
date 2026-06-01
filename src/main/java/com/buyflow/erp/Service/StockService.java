@@ -1,10 +1,10 @@
-@Service
-@RequiredArgsConstructor
-@Transactional(readOnly = true) // 조회 최적화
 public interface StockService {
-    // 재고+이력 처리
-    //StockHistoryRepository 주입 받아서 처리...
+
+    // 전체 조회
     List<StockDto.Response> findAllStocks();
+
+    // 재고 수량 변경 및 이력 쌓기
+    void updateStockQuantity(Long stockId, Long amount);
 
 
 }

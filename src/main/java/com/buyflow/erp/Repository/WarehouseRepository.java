@@ -1,3 +1,4 @@
-public class WarehouseRepository {
+@Repository
+public interface WarehouseRepository extends JpaRepository<Warehouse, String>{
     
 }
