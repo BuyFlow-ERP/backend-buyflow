@@ -29,6 +29,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	// implementation 'org.springframework.boot:spring-boot-starter-security' <-- spring security
 	// implementation group: 'commons-io', name: 'commons-io', version: '2.11.0' <-- File 쪽.
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.apache.commons:commons-lang3:3.12.0'
 
