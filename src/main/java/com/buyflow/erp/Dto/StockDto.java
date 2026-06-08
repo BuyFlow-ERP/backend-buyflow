@@ -1,3 +1,9 @@
+package com.buyflow.erp.Dto;
+
+import java.time.LocalDateTime;
+
+import lombok.Getter;
+
 public class StockDto {
 
     // 생성(입고) 요청 들어올 때 쓰기 위함.

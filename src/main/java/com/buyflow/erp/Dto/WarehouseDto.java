@@ -1,3 +1,9 @@
+package com.buyflow.erp.Dto;
+
+import java.time.LocalDateTime;
+
+import lombok.Getter;
+
 public class WarehouseDto {
 
     @Getter

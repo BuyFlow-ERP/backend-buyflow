@@ -1,3 +1,9 @@
+package com.buyflow.erp.Dto;
+
+import java.time.LocalDate;
+
+import lombok.Getter;
+
 public class InspectionDto {
 
     @Getter
