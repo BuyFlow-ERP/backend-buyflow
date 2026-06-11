@@ -12,6 +12,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findFirstByUserNameAndEmailAndPhoneAndUseYn(String userName, String email, String phone, String useYn);
 
+    Optional<User> findFirstByLoginIdAndUserNameAndEmailAndPhoneAndUseYn(
+            String loginId,
+            String userName,
+            String email,
+            String phone,
+            String useYn
+    );
+
     boolean existsByLoginId(String loginId);
 
     List<User> findAllByOrderByCreatedAtDesc();

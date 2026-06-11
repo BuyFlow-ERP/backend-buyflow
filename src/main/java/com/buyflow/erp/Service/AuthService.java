@@ -7,6 +7,7 @@ import com.buyflow.erp.Dto.FindLoginIdResponse;
 import com.buyflow.erp.Dto.LoginRequest;
 import com.buyflow.erp.Dto.LoginResponse;
 import com.buyflow.erp.Dto.MeResponse;
+import com.buyflow.erp.Dto.ResetPasswordRequest;
 import com.buyflow.erp.Dto.SignupRequest;
 import com.buyflow.erp.Dto.UserResponse;
 import com.buyflow.erp.Entity.Role;
@@ -114,5 +115,20 @@ public class AuthService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "No matching user information was found."));
 
         return new FindLoginIdResponse(user.getLoginId());
+    }
+
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        User user = userRepository.findFirstByLoginIdAndUserNameAndEmailAndPhoneAndUseYn(
+                        request.loginId(),
+                        request.userName(),
+                        request.email(),
+                        request.phone(),
+                        "Y"
+                )
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "No matching user information was found."));
+
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        user.setUpdatedAt(LocalDateTime.now());
     }
 }
