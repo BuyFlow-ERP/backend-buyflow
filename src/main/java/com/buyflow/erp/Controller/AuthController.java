@@ -1,6 +1,8 @@
 package com.buyflow.erp.Controller;
 
 import com.buyflow.erp.Common.ApiResponse;
+import com.buyflow.erp.Dto.FindLoginIdRequest;
+import com.buyflow.erp.Dto.FindLoginIdResponse;
 import com.buyflow.erp.Dto.LoginRequest;
 import com.buyflow.erp.Dto.LoginResponse;
 import com.buyflow.erp.Dto.MeResponse;
@@ -25,17 +27,21 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ApiResponse<UserResponse> signup(@Valid @RequestBody SignupRequest request) {
-        return ApiResponse.success("회원가입 요청이 완료되었습니다.", authService.signup(request));
+        return ApiResponse.success("Signup request completed.", authService.signup(request));
     }
 
     @PostMapping("/login")
     public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ApiResponse.success("로그인 성공", authService.login(request));
+        return ApiResponse.success("Login successful.", authService.login(request));
+    }
+
+    @PostMapping("/find-login-id")
+    public ApiResponse<FindLoginIdResponse> findLoginId(@Valid @RequestBody FindLoginIdRequest request) {
+        return ApiResponse.success("Login ID found.", authService.findLoginId(request));
     }
 
     @GetMapping("/me")
     public ApiResponse<MeResponse> me(Authentication authentication) {
-        return ApiResponse.success("현재 사용자 조회 성공", authService.getMe(authentication.getName()));
+        return ApiResponse.success("Current user loaded.", authService.getMe(authentication.getName()));
     }
 }
-

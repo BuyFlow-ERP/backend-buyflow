@@ -2,6 +2,8 @@ package com.buyflow.erp.Service;
 
 import com.buyflow.erp.Common.BusinessException;
 import com.buyflow.erp.Common.ErrorCode;
+import com.buyflow.erp.Dto.FindLoginIdRequest;
+import com.buyflow.erp.Dto.FindLoginIdResponse;
 import com.buyflow.erp.Dto.LoginRequest;
 import com.buyflow.erp.Dto.LoginResponse;
 import com.buyflow.erp.Dto.MeResponse;
@@ -100,5 +102,17 @@ public class AuthService {
 
         return new MeResponse(UserResponse.from(user), roles, permissions);
     }
-}
 
+    @Transactional(readOnly = true)
+    public FindLoginIdResponse findLoginId(FindLoginIdRequest request) {
+        User user = userRepository.findFirstByUserNameAndEmailAndPhoneAndUseYn(
+                        request.userName(),
+                        request.email(),
+                        request.phone(),
+                        "Y"
+                )
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "No matching user information was found."));
+
+        return new FindLoginIdResponse(user.getLoginId());
+    }
+}
