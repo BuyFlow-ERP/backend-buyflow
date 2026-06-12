@@ -4,7 +4,10 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,9 +20,18 @@ import lombok.Setter;
 @NoArgsConstructor
 public class StockHistory {
 
-    @Id
-    @Column(name = "HISTORY_ID")
-    private Long historyId;
+@Id
+@GeneratedValue(
+        strategy = GenerationType.SEQUENCE,
+        generator = "stock_history_seq"
+)
+@SequenceGenerator(
+        name = "stock_history_seq",
+        sequenceName = "SEQ_STOCK_HISTORY",
+        allocationSize = 1
+)
+@Column(name = "HISTORY_ID")
+private Long historyId;
 
     @Column(name = "STOCK_ID", nullable = false)
     private Long stockId;
@@ -30,14 +42,14 @@ public class StockHistory {
     @Column(name = "CHANGE_QTY")
     private Long changeQty;
 
-    @Column(name = "BEFOREQTY")
-    private Long beforeQty;
+@Column(name = "BEFORE_QTY")
+private Long beforeQty;
 
-    @Column(name = "AFTERQTY")
-    private Long afterQty;
+@Column(name = "AFTER_QTY")
+private Long afterQty;
 
-    @Column(name = "RELATED_RECEIPT_ID")
-    private Long relatedReceiptId;
+@Column(name = "RELATED_RECEIPT_ITEM_ID")
+private Long relatedReceiptItemId;
 
     @Column(name = "RELATED_ORDER_ITEM_ID")
     private Long relatedOrderItemId;
@@ -47,6 +59,9 @@ public class StockHistory {
 
     @Column(name = "CREATED_AT")
     private LocalDateTime createdAt;
+
+    @Column(name = "CREATED_BY")
+private String createdBy;
 
     public StockHistory(Long stockId, Long changeQty) {
         this.stockId = stockId;

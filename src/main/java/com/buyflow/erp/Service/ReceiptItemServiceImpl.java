@@ -16,6 +16,9 @@ import com.buyflow.erp.Repository.ReceiptRepository;
 import com.buyflow.erp.Entity.PurchaseOrderItem;
 import com.buyflow.erp.Repository.PurchaseOrderItemRepository;
 
+import com.buyflow.erp.Entity.StockHistory;
+import com.buyflow.erp.Repository.StockHistoryRepository;
+
 @Service
 @RequiredArgsConstructor
 public class ReceiptItemServiceImpl
@@ -25,6 +28,7 @@ public class ReceiptItemServiceImpl
     private final StockRepository stockRepository;
     private final ReceiptItemRepository receiptItemRepository;
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
+    private final StockHistoryRepository stockHistoryRepository;
 
     @Override
     public List<ReceiptItem> getReceiptItems() {
@@ -75,6 +79,11 @@ Stock stock =
                         warehouseCode
                 )
                 .orElse(null);
+Integer beforeQty = 0;
+
+if (stock != null && stock.getQuantity() != null) {
+    beforeQty = stock.getQuantity();
+}
 
 if (stock == null) {
 
@@ -105,6 +114,51 @@ stock.setUpdatedAt(
 );
 
 stockRepository.save(stock);
+
+StockHistory history = new StockHistory();
+
+history.setStockId(
+        stock.getStockId()
+);
+
+history.setHistoryType(
+        "INBOUND"
+);
+
+history.setChangeQty(
+        item.getAcceptedQty()
+);
+
+history.setBeforeQty(
+        beforeQty.longValue()
+);
+
+history.setAfterQty(
+        stock.getQuantity().longValue()
+);
+
+history.setRelatedReceiptItemId(
+        item.getReceiptItemId()
+);
+
+history.setRelatedOrderItemId(
+        item.getOrderItemId()
+);
+
+history.setReason(
+        "입고 처리"
+);
+
+history.setCreatedAt(
+        LocalDateTime.now()
+);
+
+history.setCreatedBy(
+        item.getLoginId()
+);
+
+stockHistoryRepository.save(history);
+
 PurchaseOrderItem orderItem =
         purchaseOrderItemRepository
                 .findById(
