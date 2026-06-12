@@ -23,7 +23,7 @@ import com.buyflow.erp.Repository.StockHistoryRepository;
 @RequiredArgsConstructor
 public class ReceiptItemServiceImpl
         implements ReceiptItemService {
-    
+
     private final ReceiptRepository receiptRepository;
     private final StockRepository stockRepository;
     private final ReceiptItemRepository receiptItemRepository;
@@ -49,144 +49,172 @@ public class ReceiptItemServiceImpl
         item.setReceiptQty(request.getReceiptQty());
         item.setDefectQty(request.getDefectQty());
         Long receiptQty = request.getReceiptQty();
-Long defectQty = request.getDefectQty();
+        Long defectQty = request.getDefectQty();
 
-if (defectQty == null) {
-    defectQty = 0L;
-}
+        if (defectQty == null) {
+            defectQty = 0L;
+        }
 
-item.setAcceptedQty(
-        receiptQty - defectQty
-);
+        item.setAcceptedQty(
+                receiptQty - defectQty);
 
         item.setRemark(request.getRemark());
         item.setLoginId(request.getLoginId());
         item.setCreatedAt(LocalDateTime.now());
 
         receiptItemRepository.save(item);
-        Receipt receipt =
-        receiptRepository.findById(
-                request.getReceiptId()
-        ).orElseThrow();
+        Receipt receipt = receiptRepository.findById(
+                request.getReceiptId()).orElseThrow();
 
-String warehouseCode =
-        receipt.getWarehouseCode();
+        String warehouseCode = receipt.getWarehouseCode();
 
-Stock stock =
-        stockRepository
+        Stock stock = stockRepository
                 .findByProductIdAndWarehouseCode(
                         item.getProductId(),
-                        warehouseCode
-                )
+                        warehouseCode)
                 .orElse(null);
-Integer beforeQty = 0;
+        Integer beforeQty = 0;
 
-if (stock != null && stock.getQuantity() != null) {
-    beforeQty = stock.getQuantity();
-}
+        if (stock != null && stock.getQuantity() != null) {
+            beforeQty = stock.getQuantity();
+        }
 
-if (stock == null) {
+        if (stock == null) {
 
-    stock = new Stock();
+            stock = new Stock();
 
-    stock.setProductId(
-            item.getProductId()
-    );
+            stock.setProductId(
+                    item.getProductId());
 
-    stock.setWarehouseCode(
-            warehouseCode
-    );
+            stock.setWarehouseCode(
+                    warehouseCode);
 
-    stock.setQuantity(
-            item.getAcceptedQty().intValue()
-    );
+            stock.setQuantity(
+                    item.getAcceptedQty().intValue());
 
-} else {
+        } else {
 
-    stock.setQuantity(
-            stock.getQuantity()
-                    + item.getAcceptedQty().intValue()
-    );
-}
+            stock.setQuantity(
+                    stock.getQuantity()
+                            + item.getAcceptedQty().intValue());
+        }
 
-stock.setUpdatedAt(
-        LocalDateTime.now()
-);
+        stock.setUpdatedAt(
+                LocalDateTime.now());
 
-stockRepository.save(stock);
+        stockRepository.save(stock);
 
-StockHistory history = new StockHistory();
+        StockHistory history = new StockHistory();
 
-history.setStockId(
-        stock.getStockId()
-);
+        history.setStockId(
+                stock.getStockId());
 
-history.setHistoryType(
-        "INBOUND"
-);
+        history.setHistoryType(
+                "INBOUND");
 
-history.setChangeQty(
-        item.getAcceptedQty()
-);
+        history.setChangeQty(
+                item.getAcceptedQty());
 
-history.setBeforeQty(
-        beforeQty.longValue()
-);
+        history.setBeforeQty(
+                beforeQty.longValue());
 
-history.setAfterQty(
-        stock.getQuantity().longValue()
-);
+        history.setAfterQty(
+                stock.getQuantity().longValue());
 
-history.setRelatedReceiptItemId(
-        item.getReceiptItemId()
-);
+        history.setRelatedReceiptItemId(
+                item.getReceiptItemId());
 
-history.setRelatedOrderItemId(
-        item.getOrderItemId()
-);
+        history.setRelatedOrderItemId(
+                item.getOrderItemId());
 
-history.setReason(
-        "입고 처리"
-);
+        history.setReason(
+                "입고 처리");
 
-history.setCreatedAt(
-        LocalDateTime.now()
-);
+        history.setCreatedAt(
+                LocalDateTime.now());
 
-history.setCreatedBy(
-        item.getLoginId()
-);
+        history.setCreatedBy(
+                item.getLoginId());
 
-stockHistoryRepository.save(history);
+        stockHistoryRepository.save(history);
 
-PurchaseOrderItem orderItem =
-        purchaseOrderItemRepository
+        PurchaseOrderItem orderItem = purchaseOrderItemRepository
                 .findById(
-                        request.getOrderItemId()
-                )
+                        request.getOrderItemId())
                 .orElseThrow();
 
-Long orderedQty =
-        orderItem.getQuantity();
+        Long orderedQty = orderItem.getQuantity();
 
-Long acceptedQtySum =
-        receiptItemRepository.getAcceptedQtySum(
-                request.getOrderItemId()
-        );
+        Long acceptedQtySum = receiptItemRepository.getAcceptedQtySum(
+                request.getOrderItemId());
 
-if (acceptedQtySum >= orderedQty) {
+        if (acceptedQtySum >= orderedQty) {
 
-    receipt.setReceiptStatus(
-            "COMPLETED"
-    );
+            receipt.setReceiptStatus(
+                    "COMPLETED");
 
-} else {
+        } else {
 
-    receipt.setReceiptStatus(
-            "PARTIAL"
-    );
-}
+            receipt.setReceiptStatus(
+                    "PARTIAL");
+        }
 
-receiptRepository.save(receipt);
+        receiptRepository.save(receipt);
+    }
+
+    @Override
+    public void updateReceiptItem(
+            Long receiptItemId,
+            ReceiptItemDto.CreateRequest request) {
+
+        ReceiptItem item = receiptItemRepository
+                .findById(receiptItemId)
+                .orElseThrow();
+
+        Long oldAcceptedQty = item.getAcceptedQty();
+
+        item.setReceiptQty(
+                request.getReceiptQty());
+
+        item.setDefectQty(
+                request.getDefectQty());
+
+        Long defectQty = request.getDefectQty() == null
+                ? 0L
+                : request.getDefectQty();
+
+        item.setAcceptedQty(
+                request.getReceiptQty() - defectQty);
+
+        Long newAcceptedQty = item.getAcceptedQty();
+
+        Long qtyDiff = newAcceptedQty - oldAcceptedQty;
+
+        item.setRemark(
+                request.getRemark());
+
+        Receipt receipt = receiptRepository
+                .findById(
+                        item.getReceiptId())
+                .orElseThrow();
+
+        String warehouseCode = receipt.getWarehouseCode();
+
+        Stock stock = stockRepository
+                .findByProductIdAndWarehouseCode(
+                        item.getProductId(),
+                        warehouseCode)
+                .orElseThrow();
+
+        stock.setQuantity(
+                stock.getQuantity()
+                        + qtyDiff.intValue());
+
+        stock.setUpdatedAt(
+                LocalDateTime.now());
+
+        stockRepository.save(stock);
+
+        receiptItemRepository.save(item);
     }
 }

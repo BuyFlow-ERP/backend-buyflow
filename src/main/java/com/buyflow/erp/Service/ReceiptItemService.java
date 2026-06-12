@@ -11,4 +11,7 @@ public interface ReceiptItemService {
 
     void saveReceiptItem(
             ReceiptItemDto.CreateRequest request);
+    void updateReceiptItem(
+        Long receiptItemId,
+        ReceiptItemDto.CreateRequest request);
 }
