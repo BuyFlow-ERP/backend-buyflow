@@ -2,14 +2,21 @@ package com.buyflow.erp.Service;
 
 import com.buyflow.erp.Common.BusinessException;
 import com.buyflow.erp.Common.ErrorCode;
-import com.buyflow.erp.Dto.FindLoginIdRequest;
+import com.buyflow.erp.Common.VerificationPurpose;
+import com.buyflow.erp.Dto.FindLoginIdCodeRequest;
 import com.buyflow.erp.Dto.FindLoginIdResponse;
 import com.buyflow.erp.Dto.LoginRequest;
 import com.buyflow.erp.Dto.LoginResponse;
 import com.buyflow.erp.Dto.MeResponse;
-import com.buyflow.erp.Dto.ResetPasswordRequest;
+import com.buyflow.erp.Dto.PasswordResetCodeRequest;
+import com.buyflow.erp.Dto.PasswordResetConfirmRequest;
+import com.buyflow.erp.Dto.PasswordResetVerifyResponse;
 import com.buyflow.erp.Dto.SignupRequest;
 import com.buyflow.erp.Dto.UserResponse;
+import com.buyflow.erp.Dto.VerificationCodeResponse;
+import com.buyflow.erp.Dto.VerificationCodeVerifyRequest;
+import com.buyflow.erp.Entity.EmailVerificationCode;
+import com.buyflow.erp.Entity.PasswordResetToken;
 import com.buyflow.erp.Entity.Role;
 import com.buyflow.erp.Entity.User;
 import com.buyflow.erp.Entity.UserRole;
@@ -33,6 +40,8 @@ public class AuthService {
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
     private final RbacQueryService rbacQueryService;
+    private final VerificationCodeService verificationCodeService;
+    private final PasswordResetTokenService passwordResetTokenService;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
 
@@ -104,8 +113,8 @@ public class AuthService {
         return new MeResponse(UserResponse.from(user), roles, permissions);
     }
 
-    @Transactional(readOnly = true)
-    public FindLoginIdResponse findLoginId(FindLoginIdRequest request) {
+    @Transactional
+    public VerificationCodeResponse requestFindLoginIdCode(FindLoginIdCodeRequest request) {
         User user = userRepository.findFirstByUserNameAndEmailAndPhoneAndUseYn(
                         request.userName(),
                         request.email(),
@@ -114,11 +123,26 @@ public class AuthService {
                 )
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "No matching user information was found."));
 
+        return verificationCodeService.issue(VerificationPurpose.FIND_LOGIN_ID, user);
+    }
+
+    @Transactional
+    public FindLoginIdResponse verifyFindLoginIdCode(VerificationCodeVerifyRequest request) {
+        EmailVerificationCode verificationCode = verificationCodeService.verify(
+                VerificationPurpose.FIND_LOGIN_ID,
+                request.verificationId(),
+                request.code()
+        );
+
+        User user = userRepository.findById(verificationCode.getUserId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "User not found."));
+
+        verificationCodeService.consume(verificationCode);
         return new FindLoginIdResponse(user.getLoginId());
     }
 
     @Transactional
-    public void resetPassword(ResetPasswordRequest request) {
+    public VerificationCodeResponse requestPasswordResetCode(PasswordResetCodeRequest request) {
         User user = userRepository.findFirstByLoginIdAndUserNameAndEmailAndPhoneAndUseYn(
                         request.loginId(),
                         request.userName(),
@@ -128,7 +152,34 @@ public class AuthService {
                 )
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "No matching user information was found."));
 
+        return verificationCodeService.issue(VerificationPurpose.RESET_PASSWORD, user);
+    }
+
+    @Transactional
+    public PasswordResetVerifyResponse verifyPasswordResetCode(VerificationCodeVerifyRequest request) {
+        EmailVerificationCode verificationCode = verificationCodeService.verify(
+                VerificationPurpose.RESET_PASSWORD,
+                request.verificationId(),
+                request.code()
+        );
+
+        PasswordResetVerifyResponse response = passwordResetTokenService.issue(verificationCode.getUserId());
+        verificationCodeService.consume(verificationCode);
+        return response;
+    }
+
+    @Transactional
+    public void confirmPasswordReset(PasswordResetConfirmRequest request) {
+        PasswordResetToken resetToken = passwordResetTokenService.verify(
+                request.resetTokenId(),
+                request.resetToken()
+        );
+
+        User user = userRepository.findById(resetToken.getUserId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "User not found."));
+
         user.setPassword(passwordEncoder.encode(request.newPassword()));
         user.setUpdatedAt(LocalDateTime.now());
+        passwordResetTokenService.consume(resetToken);
     }
 }

@@ -4,7 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-public record FindLoginIdRequest(
+public record FindLoginIdCodeRequest(
         @NotBlank(message = "userName is required.")
         @Size(max = 50, message = "userName must be 50 characters or less.")
         String userName,

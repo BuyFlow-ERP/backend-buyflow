@@ -43,8 +43,8 @@ public class SecurityConfig {
                                 "/api/health",
                                 "/api/auth/login",
                                 "/api/auth/signup",
-                                "/api/auth/find-login-id",
-                                "/api/auth/reset-password",
+                                "/api/auth/find-login-id/**",
+                                "/api/auth/reset-password/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/actuator/**"
