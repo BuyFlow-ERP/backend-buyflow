@@ -35,8 +35,8 @@ dependencies {
 
 	compileOnly 'org.projectlombok:lombok'
 	// developmentOnly 'org.springframework.boot:spring-boot-devtools' <-- 필요하면 풀으시오.
-	runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
-	// runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5' <-- jwt 같은데 implement로 안걸었기에 주석.
+	runtimeOnly 'com.oracle.database.jdbc:ojdbc11-production:23.3.0.23.09'
+		// runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5' <-- jwt 같은데 implement로 안걸었기에 주석.
 	annotationProcessor 'org.projectlombok:lombok'
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'

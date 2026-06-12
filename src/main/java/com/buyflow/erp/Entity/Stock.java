@@ -4,7 +4,10 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -19,9 +22,18 @@ import lombok.Setter;
 @AllArgsConstructor
 public class Stock {
     
-    @Id
-    @Column(name = "STOCK_ID")
-    private Long stockId;
+@Id
+@GeneratedValue(
+        strategy = GenerationType.SEQUENCE,
+        generator = "stock_seq"
+)
+@SequenceGenerator(
+        name = "stock_seq",
+        sequenceName = "SEQ_STOCK",
+        allocationSize = 1
+)
+@Column(name = "STOCK_ID")
+private Long stockId;
 
     @Column(name = "PRODUCT_ID", nullable = false)
     private Long productId;
