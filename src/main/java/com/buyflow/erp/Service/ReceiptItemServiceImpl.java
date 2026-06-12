@@ -2,6 +2,7 @@ package com.buyflow.erp.Service;
 
 import com.buyflow.erp.Dto.ReceiptItemDto;
 import com.buyflow.erp.Entity.ReceiptItem;
+import com.buyflow.erp.Repository.PurchaseOrderItemRepository;
 import com.buyflow.erp.Repository.ReceiptItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,8 @@ import com.buyflow.erp.Entity.Stock;
 import com.buyflow.erp.Entity.Receipt;
 import com.buyflow.erp.Repository.StockRepository;
 import com.buyflow.erp.Repository.ReceiptRepository;
+import com.buyflow.erp.Entity.PurchaseOrderItem;
+import com.buyflow.erp.Repository.PurchaseOrderItemRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +24,7 @@ public class ReceiptItemServiceImpl
     private final ReceiptRepository receiptRepository;
     private final StockRepository stockRepository;
     private final ReceiptItemRepository receiptItemRepository;
+    private final PurchaseOrderItemRepository purchaseOrderItemRepository;
 
     @Override
     public List<ReceiptItem> getReceiptItems() {
@@ -101,5 +105,34 @@ stock.setUpdatedAt(
 );
 
 stockRepository.save(stock);
+PurchaseOrderItem orderItem =
+        purchaseOrderItemRepository
+                .findById(
+                        request.getOrderItemId()
+                )
+                .orElseThrow();
+
+Long orderedQty =
+        orderItem.getQuantity();
+
+Long acceptedQtySum =
+        receiptItemRepository.getAcceptedQtySum(
+                request.getOrderItemId()
+        );
+
+if (acceptedQtySum >= orderedQty) {
+
+    receipt.setReceiptStatus(
+            "COMPLETED"
+    );
+
+} else {
+
+    receipt.setReceiptStatus(
+            "PARTIAL"
+    );
+}
+
+receiptRepository.save(receipt);
     }
 }
