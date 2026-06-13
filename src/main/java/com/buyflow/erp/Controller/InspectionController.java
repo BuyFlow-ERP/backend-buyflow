@@ -20,8 +20,24 @@ public class InspectionController {
     private final InspectionService inspectionService;
 
     @GetMapping
-    public ResponseEntity<List<InspectionDto.ListResponse>> getInspectionList() {
-        List<InspectionDto.ListResponse> list = inspectionService.findAllInspections();
-        return ResponseEntity.ok(list);
+    public List<Inspection> getInspections() {
+        return inspectionsService.getInspections();
     }
+
+    @GetMapping("/{inspectionId}")
+    public Inspection getInspections(
+        @PathVariable Long inspectionId) {
+
+            return inspectionService.getInspection(inspectionId);
+        }
+
+    @PostMapping
+    public ResponseEntity<String> saveInspection(
+        @RequestBody InspectionDto.CreateRequest request) {
+
+            inspectionService.saveInspection(request);
+
+            return ResponseEntity.ok("검수 완료");
+        }
+    
 }

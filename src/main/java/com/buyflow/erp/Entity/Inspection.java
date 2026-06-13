@@ -19,14 +19,24 @@ import lombok.Setter;
 public class Inspection {
 
     @Id
+    @GeneratedValue(
+        strategy = GenerationType.SEQUENCE,
+        generator = "inspection_seq"
+    )
+    @SequenceGenerator(
+        name = "inspection_seq",
+        sequenceName = "SEQ_INSPECTION",
+        allocationSize = 1
+    )
     @Column(name = "INSPECTION_ID")
     private Long inspectionId;
 
-    @Column(name = "RECEIPT_TIEM_ID", nullable = false)
+    @Column(name = "RECEIPT_ITEM_ID")
     private Long receiptItemId;
 
-    @Column(name = "USER_ID", nullable = false)
-    private Long userId;
+    @ManyToOne
+    @JoinColumn(name = "USER_ID")
+    private Users user;
 
     @Column(name = "INSPECTION_DATE")
     private LocalDate inspectionDate; // Date type => LocalDate로 매핑
@@ -48,9 +58,6 @@ public class Inspection {
 
     @Column(name = "CREATED_AT")
     private LocalDateTime createdAt; // TimeStamp 매핑
-
-    @Column(name = "LOGIN_ID", length = 50)
-    private String loginId;
 
 
     

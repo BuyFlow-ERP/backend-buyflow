@@ -6,6 +6,10 @@ import com.buyflow.erp.Dto.InspectionDto;
 
 public interface InspectionService {
 
-    List<InspectionDto.ListResponse> findAllInspections();
+    List<Inspection> getInspections();
+
+    Inspection getInspection(Long inspectionId);
+
+    void saveInspection(InspectionDto.CreateRequest request);
     
 }

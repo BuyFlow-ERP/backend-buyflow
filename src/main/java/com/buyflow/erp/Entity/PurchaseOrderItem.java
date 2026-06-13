@@ -23,15 +23,15 @@ public class PurchaseOrderItem {
     @Column(name = "ORDER_ITEM_ID")
     private Long orderItemId;
 
-    @Column(name = "ORDER_ID")
+    @Column(name = "ORDER_ID", nullable = false)
     private Long orderId;
 
-    @Column(name = "PRODUCT_ID")
+    @Column(name = "PRODUCT_ID", nullable = false)
     private Long productId;
 
-    @Column(name = "QUANTITY")
+    @Column(name = "QUANTITY"m nullable = false)
     private Long quantity;
 
-    @Column(name = "UNIT_PRICE")
+    @Column(name = "UNIT_PRICE", precision = 12, scale = 2, nullable = false)
     private Double unitPrice;
 }
