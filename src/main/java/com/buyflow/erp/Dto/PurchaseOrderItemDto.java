@@ -5,6 +5,11 @@ import lombok.Setter;
 
 public class PurchaseOrderItemDto {
 
+    private Long orderItemId;
+    private Long productId;
+    private Integer quantity;
+    private BigDecimal unitPrice;
+
     @Getter
     @Setter
     public static class CreateRequest {

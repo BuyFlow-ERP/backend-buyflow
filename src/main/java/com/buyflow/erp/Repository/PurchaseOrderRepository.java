@@ -6,7 +6,7 @@ public class PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Long> 
 
     List<PurchaseOrder> findByOrderStatus(String status);
 
-    @Query("SELECT p FROM PurchaseOrder p LEFT JOIN FETCH p.items WHERE p.orderId = :id")
+    @Query("SELECT p FROM PurchaseOrder p LEFT JOIN FETCH p.items WHERE p.orderId = :orderId")
     
-    Optional<PurchaseOrder> findByIdWithItems(@Param("id") Long id);
+    Optional<PurchaseOrder> findByIdWithItems(@Param("orderId") Long orderId);
 }

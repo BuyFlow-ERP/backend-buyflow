@@ -9,7 +9,7 @@ private final PurchaseOrderRepository orderRepository;
     private final ProductRepository productRepository; // 품목 검증용 (필요시)
 
     @Override
-    public PurchaseOrder createOrder(PurchaseOrderCreateRequest request) {
+    public PurchaseOrder createOrder(PurchaseOrderRequest request) {
         PurchaseOrder order = PurchaseOrder.builder()
                 .supplierId(request.getSupplierId())
                 .createdBy(request.getCreatedBy())
@@ -45,7 +45,7 @@ private final PurchaseOrderRepository orderRepository;
 
     @Override
     @Transactional(readOnly = true)
-    public PurchaseOrder getOrderWithItems(Long orderId) {
+    public PurchaseOrderResponse getOrderWithItems(Long orderId) {
         return orderRepository.findByIdWithItems(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("발주를 찾을 수 없습니다. ID: " + orderId));
     }
@@ -59,7 +59,7 @@ private final PurchaseOrderRepository orderRepository;
     }
 
     @Override
-    public PurchaseOrder updateOrder(Long orderId, PurchaseOrderUpdateRequest request) {
+    public PurchaseOrder updateOrder(Long orderId, PurchaseOrderRequest request) {
         PurchaseOrder order = getOrderWithItems(orderId);
 
         // 기본 정보 업데이트
