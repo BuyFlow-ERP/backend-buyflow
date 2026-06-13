@@ -2,9 +2,18 @@ package com.buyflow.erp.Entity;
 
 import java.time.LocalDateTime;
 
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import com.buyflow.erp.Dto.WarehouseDto;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,6 +24,7 @@ import lombok.Setter;
 @Setter
 @Table(name = "WAREHOUSE")
 @NoArgsConstructor
+@EntityListeners(AuditingEntityListener.class)
 public class Warehouse {
     
     @Id
@@ -24,14 +34,14 @@ public class Warehouse {
     @Column(name = "WAREHOUSE_NAME", length = 100)
     private String warehouseName;
  
-    @Column(name = "LOCATION", length = 200)
-    private String location;
+    @Column(name = "ZIPCODE", length = 10)
+    private String zipcode;
 
     @Column(name = "ADDRESS", length = 300)
     private String address;
-
-    @Column(name = "MANAGER", length = 100)
-    private String manager;
+    
+    @Column(name = "DETAIL_ADDRESS", length = 200)
+    private String detailAddress;
  
     @Column(name = "CONTACT", length = 50)
     private String contact;
@@ -39,9 +49,18 @@ public class Warehouse {
     @Column(name = "USE_YN", length = 1)
     private String useYn = "Y";
  
-    @Column(name = "CREATED_AT")
+    @CreatedDate
+    @Column(name = "CREATED_AT", updatable = false)
     private LocalDateTime createdAt;
  
+    @LastModifiedDate
     @Column(name = "UPDATED_AT")
     private LocalDateTime updatedAt;
+    
+    @Column(name = "TYPE", length = 50)
+    private String type;
+    
+    @ManyToOne(fetch = fetchType.LAZY)
+    @JoinColumn(name = "USER_ID")
+    private Users user;
 }

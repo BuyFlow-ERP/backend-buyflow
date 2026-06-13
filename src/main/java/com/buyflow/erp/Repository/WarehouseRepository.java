@@ -7,5 +7,7 @@ import com.buyflow.erp.Entity.Warehouse;
 
 @Repository
 public interface WarehouseRepository extends JpaRepository<Warehouse, String>{
+	
+	boolean existsByWarehouseCode(String warehouseCode);
     
 }
