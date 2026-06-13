@@ -1,5 +1,9 @@
 package com.buyflow.erp.Dto;
 
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class PurchaseOrderResponse {
 
     private Long orderId;

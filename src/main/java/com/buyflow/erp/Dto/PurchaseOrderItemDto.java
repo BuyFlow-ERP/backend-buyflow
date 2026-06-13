@@ -3,6 +3,11 @@ package com.buyflow.erp.Dto;
 import lombok.Getter;
 import lombok.Setter;
 
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Setter
 public class PurchaseOrderItemDto {
 
     private Long orderItemId;
@@ -10,8 +15,6 @@ public class PurchaseOrderItemDto {
     private Integer quantity;
     private BigDecimal unitPrice;
 
-    @Getter
-    @Setter
     public static class CreateRequest {
 
         private Long orderId;
