@@ -8,6 +8,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Table(name = "PURCHASE_ORDER_ITEM")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class PurchaseOrderItem {
 
     @Id
@@ -29,7 +32,7 @@ public class PurchaseOrderItem {
     @Column(name = "PRODUCT_ID", nullable = false)
     private Long productId;
 
-    @Column(name = "QUANTITY"m nullable = false)
+    @Column(name = "QUANTITY", nullable = false)
     private Long quantity;
 
     @Column(name = "UNIT_PRICE", precision = 12, scale = 2, nullable = false)

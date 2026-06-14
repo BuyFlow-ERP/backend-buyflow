@@ -25,7 +25,7 @@ public class PurchaseOrder {
     private Long createdBy;
 
     @Column(name = "TOTAL_AMOUNT", precision = 12, scale = 2)
-    private BigDecimal totalAmount;
+    private Double totalAmount;
 
     @Column(name = "ORDER_STATUS", length = 50)
     private String orderStatus;

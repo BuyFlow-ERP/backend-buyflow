@@ -1,6 +1,6 @@
 package com.buyflow.erp.Repository;
 
-public class PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Long> {
+public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Long> {
 
     List<PurchaseOrder> findBySupplierId(Long supplierId);
 

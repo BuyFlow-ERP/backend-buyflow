@@ -1,5 +1,14 @@
 package com.buyflow.erp.Controller;
 
+import com.buyflow.erp.Dto.PurchaseOrderDto;
+import com.buyflow.erp.Service.PurchaseOrderService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@CrossOrigin(origins = "http://localhost:3000") // React 연동을 위한 크로스 오리진 설정
 @RestController
 @RequestMapping("/orders")
 @RequiredArgsConstructor
@@ -7,51 +16,41 @@ public class PurchaseOrderController {
 
     private final PurchaseOrderService service;
 
-    // @GetMapping("/{orderId}")
-    // public ResponseEntity<PurchaseOrder> get(@PathVariable Long orderId) {
-    //     return ResponseEntity.ok(service.getOrderWithItems(orderId));
-    // }
-
-    // @PostMapping
-    // public ResponseEntity<PurchaseOrder> create(@RequestBody PurchaseOrderCreateRequest request) {
-    //     return ResponseEntity.ok(service.createOrder(request));
-    // }
-
-    // @PutMapping("/{orderId}")
-    // public ResponseEntity<PurchaseOrder> update(@PathVariable Long orderId, @RequestBody PurchaseOrderUpdateRequest request) {
-    //     return ResponseEntity.ok(service.updateOrder(orderId, request));
-    // }
-
-    // @DeleteMapping("/{orderId}")
-    // public ResponseEntity<Void> delete(@PathVariable Long orderId) {
-    //     service.deleteOrder(orderId);
-    //     return ResponseEntity.noContent().build();
-    // }
+    // 1. 발주 단건 상세 조회
     @GetMapping("/{orderId}")
-    public ResponseEntity<PurchaseOrderResponse> getOrder(@PathVariable Long orderId) {   // 메서드명 변경 + Response
-        PurchaseOrderResponse response = service.getOrderWithItems(orderId);   // DTO 반환
+    public ResponseEntity<PurchaseOrderDto.Response> getOrder(@PathVariable Long orderId) {
+        PurchaseOrderDto.Response response = service.getOrderWithItems(orderId);
         return ResponseEntity.ok(response);
     }
 
+    // 2. 발주 목록 조회
+    @GetMapping
+    public ResponseEntity<List<PurchaseOrderDto.Response>> getOrderList() {
+        List<PurchaseOrderDto.Response> list = service.getOrderList();
+        return ResponseEntity.ok(list);
+    }
+
+    // 3. 발주 등록
     @PostMapping
-    public ResponseEntity<PurchaseOrderResponse> createOrder(@RequestBody PurchaseOrderRequest request) {  // Request 통합
-        PurchaseOrder savedOrder = service.createOrder(request);
-        PurchaseOrderResponse response = PurchaseOrderResponse.from(savedOrder);   // Entity → DTO 변환
+    public ResponseEntity<PurchaseOrderDto.Response> createOrder(@RequestBody PurchaseOrderDto.Request request) {
+        // 서비스 내부에서 변환 작업까지 끝낸 DTO를 받아와 바로 리턴합니다.
+        PurchaseOrderDto.Response response = service.createOrder(request);
         return ResponseEntity.ok(response);
     }
 
+    // 4. 발주 수정
     @PutMapping("/{orderId}")
-    public ResponseEntity<PurchaseOrderResponse> updateOrder(   // 메서드명 변경 + Response
+    public ResponseEntity<PurchaseOrderDto.Response> updateOrder(
             @PathVariable Long orderId,
-            @RequestBody PurchaseOrderRequest request) {        // UpdateRequest → Request
+            @RequestBody PurchaseOrderDto.Request request) {
 
-        PurchaseOrder updatedOrder = service.updateOrder(orderId, request);
-        PurchaseOrderResponse response = PurchaseOrderResponse.from(updatedOrder);
+        PurchaseOrderDto.Response response = service.updateOrder(orderId, request);
         return ResponseEntity.ok(response);
     }
 
+    // 5. 발주 삭제
     @DeleteMapping("/{orderId}")
-    public ResponseEntity<Void> deleteOrder(@PathVariable Long orderId) {   // 메서드명 변경
+    public ResponseEntity<Void> deleteOrder(@PathVariable Long orderId) {
         service.deleteOrder(orderId);
         return ResponseEntity.noContent().build();
     }
