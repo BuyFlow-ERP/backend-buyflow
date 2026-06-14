@@ -9,6 +9,15 @@ public class WarehouseDto {
 
     @Getter
     @Setter
+    public static class SearchCondition {
+        private String warehouseName;
+        private String type;
+        private String useYn;
+        private String createdAt;
+    }
+
+    @Getter
+    @Setter
     public static class HouseList {
         private String warehouseCode;
         private String warehouseName;

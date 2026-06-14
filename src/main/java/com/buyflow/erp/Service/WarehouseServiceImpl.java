@@ -30,23 +30,20 @@ public class WarehouseServiceImpl implements WarehouseService {
     
     
     @Override
-    public List<WarehouseDto.HouseList> searchWarehouses(String type, String warehouseName) {
-        List<Warehouse> warehouses;
+	public List<WarehouseDto.HouseList> searchWarehouses(WarehouseDto.SearchCondition condition) {
+    
+    	// 빈 문자열("")이나 화면에서 넘어온 "전체"라는 텍스트를 null로 바꿔서 쿼리에 전달합니다.
+    	String name = (condition.getWarehouseName() == null || condition.getWarehouseName().isEmpty()) ? null : condition.getWarehouseName();
+    	String type = (condition.getType() == null || condition.getType().isEmpty() || condition.getType().equals("전체")) ? null : condition.getType();
+    	String useYn = (condition.getUseYn() == null || condition.getUseYn().isEmpty() || condition.getUseYn().equals("전체")) ? null : condition.getUseYn();
 
-        if (!type.isEmpty() && !warehouseName.isEmpty()) {
-            warehouses = warehouseRepository.findByWarehouseCodeContainingAndWarehouseNameContaining(type, warehouseName);
-        } else if (!type.isEmpty()) {
-            warehouses = warehouseRepository.findByWarehouseCodeContaining(type);
-        } else if (!warehouseName.isEmpty()) {
-            warehouses = warehouseRepository.findByWarehouseNameContaining(warehouseName);
-        } else {
-            warehouses = warehouseRepository.findAll();
-        }
+    	// 만능 쿼리 메서드 딱 하나만 호출!
+    	List<Warehouse> warehouses = warehouseRepository.searchByFlexibleCondition(name, type, useYn);
 
-        return warehouses.stream()
-                .map(this::convertToResponseDto)
-                .collect(Collectors.toList());
-    }
+    	return warehouses.stream()
+        	.map(this::convertToResponseDto)
+            .collect(Collectors.toList());
+	}
     
     @Override
     public WarehouseDto.Detail getWarehouse(String warehouseCode) {

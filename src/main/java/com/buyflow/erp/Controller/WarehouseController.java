@@ -28,12 +28,11 @@ public class WarehouseController {
     // 목록 조회
     @GetMapping
     public ResponseEntity<List<WarehouseDto.HouseList>> getWarehouseList(
-            @RequestParam(required = false, defaultValue = "") String type,
-            @RequestParam(required = false, defaultValue = "") String name) {
-                
-        List<WarehouseDto.HouseList> list = warehouseService.searchWarehouses(type, name);
+        WarehouseDto.SearchCondition condition) { // 파라미터가 자동으로 DTO 객체 안에 쏙 들어갑니다.
+    
+        List<WarehouseDto.HouseList> list = warehouseService.searchWarehouses(condition);
         return ResponseEntity.ok(list);
-    }
+}
     
     // 단건 조회
     @GetMapping("/{warehouseCode}")
