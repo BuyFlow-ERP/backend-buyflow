@@ -60,7 +60,7 @@ public class Warehouse {
     @Column(name = "TYPE", length = 50)
     private String type;
     
-    @ManyToOne(fetch = fetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "USER_ID")
     private Users user;
 }

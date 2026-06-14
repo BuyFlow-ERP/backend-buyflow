@@ -27,13 +27,16 @@ public class WarehouseController {
 
     // 목록 조회
     @GetMapping
-    public ResponseEntity<List<WarehouseDto.HouseList>> getWarehouseList() {
-        List<WarehouseDto.HouseList> list = warehouseService.findAllWarehouses();
+    public ResponseEntity<List<WarehouseDto.HouseList>> getWarehouseList(
+            @RequestParam(required = false, defaultValue = "") String type,
+            @RequestParam(required = false, defaultValue = "") String name) {
+                
+        List<WarehouseDto.HouseList> list = warehouseService.searchWarehouses(type, name);
         return ResponseEntity.ok(list);
     }
     
     // 단건 조회
-    @GetMapping("/warehouse/{warehouseCode}")
+    @GetMapping("/{warehouseCode}")
     public ResponseEntity<WarehouseDto.Detail> getWarehouse(
     		@PathVariable String warehouseCode) {
     	return ResponseEntity.ok(warehouseService.getWarehouse(warehouseCode));
@@ -43,9 +46,7 @@ public class WarehouseController {
     @PostMapping
     public ResponseEntity<Void> createWarehouse(
     		@RequestBody WarehouseDto.Create request) {
-    	
     	warehouseService.createWarehouse(request);
-    	
     	return ResponseEntity.status(HttpStatus.CREATED).build();
     }
     
@@ -55,15 +56,13 @@ public class WarehouseController {
     		@PathVariable String warehouseCode, 
     		@RequestBody WarehouseDto.Update request) {
     	warehouseService.updateWarehouse(warehouseCode, request);
-    	
     	return ResponseEntity.noContent().build();
     }
     
     // 창고 삭제
-    @DeleteMapping("/warehouse/{warehouseCode}")
+    @DeleteMapping("/{warehouseCode}")
     public ResponseEntity<Void> deleteWarehouse(@PathVariable String warehouseCode) {
-    	warehouseService.deleteWarehouse(WarehouseCode);
-    	
+    	warehouseService.deleteWarehouse(warehouseCode);
     	return ResponseEntity.noContent().build();
     }
 }

@@ -9,5 +9,11 @@ import com.buyflow.erp.Entity.Warehouse;
 public interface WarehouseRepository extends JpaRepository<Warehouse, String>{
 	
 	boolean existsByWarehouseCode(String warehouseCode);
+
+	List<Warehouse> findByWarehouseTypeContaining(String type);
+
+	List<Warehouse> findByWarehouseNameContaining(String warehouseName);
+
+	List<Warehouse> findByWarehouseTypeContainingAndWarehouseNameContaining(String type, String warehouseName);
     
 }

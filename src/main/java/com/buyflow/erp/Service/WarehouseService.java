@@ -8,6 +8,8 @@ public interface WarehouseService {
 	
     List<WarehouseDto.HouseList> findAllWarehouses();
 
+	List<WarehouseDto.HouseList> searchWarehouses(String type, String warehouseName);
+
 	WarehouseDto.Detail getWarehouse(String warehouseCode);
 	
 	void createWarehouse(WarehouseDto.Create request);
