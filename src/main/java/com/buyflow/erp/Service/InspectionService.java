@@ -7,7 +7,7 @@ import com.buyflow.erp.Entity.Inspection;
 
 public interface InspectionService {
 
-    List<Inspection> getInspections();
+    PageResponse<InspectionDto.ListResponse> getInspections(InspectionDto.SearchCondition condition);
 
     Inspection getInspection(Long inspectionId);
 

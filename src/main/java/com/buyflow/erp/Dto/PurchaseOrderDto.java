@@ -20,6 +20,17 @@ public class PurchaseOrderDto {
 	@Setter
 	@NoArgsConstructor
 	@AllArgsConstructor
+	public static class SearchCondition {
+		private Long supplierId;
+		private String orderStatus;
+		private int page = 0;
+		private int size = 10;
+	}
+
+	@Getter
+	@Setter
+	@NoArgsConstructor
+	@AllArgsConstructor
 	@Builder
 	public static class Request {
 

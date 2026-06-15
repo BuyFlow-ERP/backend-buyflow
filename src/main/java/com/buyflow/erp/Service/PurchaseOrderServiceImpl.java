@@ -107,10 +107,32 @@ List<PurchaseOrderItem> items = orderItemRepository.findByPurchaseOrder_OrderId(
     // 3. 발주 목록 조회
     @Override
     @Transactional(readOnly = true)
-    public List<PurchaseOrderDto.Response> getOrderList() {
-        return orderRepository.findAll().stream()
-        		.map(PurchaseOrderDto.Response::from)
-        		.toList();
+    public PageResponse<PurchaseOrderDto.Response> getOrderList(PurchaseOrderDto.SearchCondition condition) {
+        int safePage = Math.max(condition.getPage(), 0);
+        int safeSize = Math.max(condition.getSize(), 1);
+        Pageable pageable = PageRequest.of(safePage, safeSize);
+
+        String status = (condtion.getOrderStatus() == null || condition.getOrderStatus().isEmpty() || condition.getOrderStatus().equals("전체")) ? null : condition.getOrderStatus();
+
+        Page<PurchaseOrder> orderPage = orderRepository.searchOrders(
+                condition.getSupplierId(),
+                status,
+                pageable
+        );
+
+        List<PurchaseOrderDto.Response> dtoList = orderPage.getContent().stream()
+                        .map(PurchaseOrderDto.Response::from)
+                        .toList();
+        
+        return new PageResponse<>(
+                dtoList,
+                new PageResponse.Pagination(
+                    orderPage.getNumber() + 1,
+                    orderPage.getSize(),
+                    orderPage.getTotalElements(),
+                    orderPage.getTotalPages()
+                )
+        );
 //                .map(order -> {
 //                    List<PurchaseOrderItem> items = orderItemRepository.findByOrderId(order.getOrderId());
 //                    List<PurchaseOrderItemDto> itemDtos = items.stream()

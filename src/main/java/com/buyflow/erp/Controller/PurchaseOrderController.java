@@ -25,9 +25,11 @@ public class PurchaseOrderController {
 
     // 2. 발주 목록 조회
     @GetMapping
-    public ResponseEntity<List<PurchaseOrderDto.Response>> getOrderList() {
-        List<PurchaseOrderDto.Response> list = service.getOrderList();
-        return ResponseEntity.ok(list);
+    public ResponseEntity<PageResponse<PurchaseOrderDto.Response>> getOrderList(
+        PurchaseOrderDto.SearchCondition condition) {
+        
+        PageResponse<PurchaseOrderDto.Response> response = service.getOrderList(condition);
+        return ResponseEntity.ok(response);
     }
 
     // 3. 발주 등록

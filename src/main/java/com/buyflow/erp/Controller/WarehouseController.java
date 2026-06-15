@@ -31,7 +31,7 @@ public class WarehouseController {
     public ResponseEntity<List<WarehouseDto.HouseList>> getWarehouseList(
         WarehouseDto.SearchCondition condition) { // 파라미터가 자동으로 DTO 객체 안에 쏙 들어갑니다.
     
-        List<WarehouseDto.HouseList> list = warehouseService.searchWarehouses(condition);
+        PageResponse<WarehouseDto.HouseList> result = warehouseService.searchWarehouses(condition);
         return ResponseEntity.ok(list);
 }
     

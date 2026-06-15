@@ -9,4 +9,14 @@ import com.buyflow.erp.Entity.Inspection;
 public interface InspectionRepository extends JpaRepository<Inspection, Long> {
     
     boolean existsByReceiptItemId(Long receiptItemId);
+
+    @Query("SELECT i FROM Inspection i WHERE " + 
+            "(:receiptItemId IS NULL OR i.receiptItemId = :receiptItemId) AND " +
+            "(:result IS NULL OR i.inspectionResult = :result) " +
+            "ORDER BY i.inspectionId DESC")
+    Page<Inspection> searchInspections(
+            @Param("receiptItemId") Long receiptItemId,
+            @Param("result") String result,
+            Pageable pageable
+    );
 }

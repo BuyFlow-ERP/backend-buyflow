@@ -44,8 +44,17 @@ public class InspectionDto {
 		
 		private String inspectionResult;
 		private String notes;
-		
+	}
 
+	@Getter
+	@Setter
+	@NoArgsConstructor
+	@AllArgsConstructor
+	public static class SearchCondition {
+		private Long receiptItemId;
+		private String inspectionResult;
+		private int page = 0;
+		private int size = 10;
 	}
 
 }

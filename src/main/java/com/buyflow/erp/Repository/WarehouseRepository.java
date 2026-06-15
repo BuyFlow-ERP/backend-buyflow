@@ -22,6 +22,7 @@ public interface WarehouseRepository extends JpaRepository<Warehouse, String>{
             @Param("name") String name, 
             @Param("type") String type, 
             @Param("useYn") String useYn
+            Pageable pageable;
     	);
     
 }

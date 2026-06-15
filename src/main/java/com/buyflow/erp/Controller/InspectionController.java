@@ -24,8 +24,9 @@ public class InspectionController {
     private final InspectionService inspectionService;
 
     @GetMapping
-    public List<Inspection> getInspections() {
-        return inspectionService.getInspections();
+    public ResponseEntity<PageResponse<InspectionDto.ListResponse>> getInspections(
+        InspectionDto.SearchCondition condition) {
+            return ResponseEntity.ok(inspectionService.getInspections(condition));
     }
 
     @GetMapping("/{inspectionId}")

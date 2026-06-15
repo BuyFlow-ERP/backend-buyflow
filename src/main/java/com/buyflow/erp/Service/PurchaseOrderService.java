@@ -13,7 +13,7 @@ public interface PurchaseOrderService {
 	PurchaseOrderDto.Response getOrderWithItems(Long orderId);
 
 	// 발주 목록 조회
-	List<PurchaseOrderDto.Response> getOrderList();
+	PageResponse<PurchaseOrderDto.Response> getOrderList(PurchaseOrderDto.SearchCondition condition);
 
 	// 수정: 수정(Update) 후 최신 데이터를 Response DTO로 반환합니다.
 	PurchaseOrderDto.Response updateOrder(Long orderId, PurchaseOrderDto.Request request);

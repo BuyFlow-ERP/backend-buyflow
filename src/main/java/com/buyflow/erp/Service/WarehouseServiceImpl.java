@@ -30,19 +30,37 @@ public class WarehouseServiceImpl implements WarehouseService {
     
     
     @Override
-	public List<WarehouseDto.HouseList> searchWarehouses(WarehouseDto.SearchCondition condition) {
+	public PageResponse<WarehouseDto.HouseList> searchWarehouses(WarehouseDto.SearchCondition condition) {
+        // 안전한 페이지 번호와 사이즈 가공
+        int safePage = Math.max(condition.getPage(), 0);
+        int safeSize = Math.max(condition.getSize(), 1);
+
+        // 스프링이 제공하는 PageRequest 객체 생성
+        Pageable pageable = PageRequest.of(safePage, safeSize);
     
     	// 빈 문자열("")이나 화면에서 넘어온 "전체"라는 텍스트를 null로 바꿔서 쿼리에 전달합니다.
     	String name = (condition.getWarehouseName() == null || condition.getWarehouseName().isEmpty()) ? null : condition.getWarehouseName();
     	String type = (condition.getType() == null || condition.getType().isEmpty() || condition.getType().equals("전체")) ? null : condition.getType();
     	String useYn = (condition.getUseYn() == null || condition.getUseYn().isEmpty() || condition.getUseYn().equals("전체")) ? null : condition.getUseYn();
 
-    	// 만능 쿼리 메서드 딱 하나만 호출!
-    	List<Warehouse> warehouses = warehouseRepository.searchByFlexibleCondition(name, type, useYn);
+        // 레포지토리 호출
+        Page<Warehouse> warehousePage = warehouseRepository.searchByFlexibleCondition(name, type, useYn, pageable);
 
-    	return warehouses.stream()
-        	.map(this::convertToResponseDto)
-            .collect(Collectors.toList());
+    	// 엔티티를 DTO 목록으로 변환
+    	List<WarehouseDto.HouseList> dtoList = warehousePage.getContent().stream()
+        	    .map(this::convertToResponseDto)
+                .collect(Collectors.toList());
+
+        // 기존 프로젝트 규격인 PageResponse 포맷에 맞춰 조립하여 반환
+        return new PageResponse<>(
+                dtoList,
+                new PageResponse.Pagination(
+                        warehousePage.getNumber() + 1, 
+                        warehousePage.getSize(), 
+                        warehousePage.getTotalElements(), 
+                        warehousePage.getTotalPages()
+                )
+        );   
 	}
     
     @Override

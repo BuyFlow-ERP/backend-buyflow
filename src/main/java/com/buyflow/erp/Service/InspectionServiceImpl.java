@@ -39,8 +39,41 @@ public class InspectionServiceImpl implements InspectionService {
     
     @Override
     @Transactional(readOnly = true)
-    public List<Inspection> getInspections() {
-        return inspectionRepository.findAll();
+    public PageResponse<InspectionDto.ListResponse> getInspections(InspectionDto.SearchCondition condition) {
+      int safePage = Math.max(condition.getPage(), 0);
+      int safeSize = Math.max(condition.getSize(), 1);
+      Pageable pageable = PageRequest.of(safePage, safeSize);
+
+      String result = (condition.getInspectionResult() == null || condition.getInspectionResult().isEmpty() || condition.getInspectionResult().equals("전체")) ? null : condition.getInspectionResult();
+
+      Page<Inspection> inspectionPage = inspectionRepository.searchInspections(
+            condition.getReceiptItemId(),
+            result,
+            pageable
+      );
+
+      List<InspectionDto.ListResponse> dtoList = inspectionPage.getContent().stream()
+                  .map(inspection -> new InspectionDto.ListResponse(
+                        inspection.getInspectionId(),
+                        inspection.getInspectionDate(),
+                        inspection.getInspectionType(),
+                        inspection.getInspectionResult(),
+                        inspection.getReceiptItemId(),
+                        inspection.getUser() != null ? inspection.getUser().getUserId() : null,
+                        inspection.getQuantity(),
+                        inspection.getDefectQuantity()
+                  ))
+                  .collect(Collectors.toList());
+
+        return new PageResponse<>(
+                  dtoList,
+                  new PageResponse.Pagination(
+                        inspectionPage.getNumber() + 1,
+                        inspectionPage.getSize(),
+                        inspectionPage.getTotalElements(),
+                        inspectionPage.getTotalPages()
+                  )
+        );
     }
     
     @Override
