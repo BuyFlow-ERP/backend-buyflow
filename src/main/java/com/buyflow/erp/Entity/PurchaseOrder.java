@@ -43,7 +43,7 @@ public class PurchaseOrder {
     @Column(name = "CREATED_BY")
     private Long createdBy;
 
-    @Column(name = "TOTAL_AMOUNT", precision = 12, scale = 2)
+    @Column(name = "TOTAL_AMOUNT")
     private Double totalAmount;
 
     @Column(name = "ORDER_STATUS", length = 50)
