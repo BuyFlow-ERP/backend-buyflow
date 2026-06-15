@@ -39,6 +39,6 @@ public class PurchaseOrderItem {
     @Column(name = "QUANTITY", nullable = false)
     private Long quantity;
 
-    @Column(name = "UNIT_PRICE", precision = 12, scale = 2, nullable = false)
+    @Column(name = "UNIT_PRICE", nullable = false)
     private Double unitPrice;
 }

@@ -79,7 +79,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 .orElseThrow(() -> new EntityNotFoundException("발주를 찾을 수 없습니다. ID: " + orderId));
         
         // 연관관계가 없으므로 아이템 테이블에서 orderId로 직접 조회해 와야 합니다.
-        List<PurchaseOrderItem> items = orderItemRepository.findByOrderId(orderId);
+List<PurchaseOrderItem> items = orderItemRepository.findByPurchaseOrder_OrderId(orderId);
         
         return PurchaseOrderDto.Response.from(order);
         // 조회된 아이템들을 Response DTO 형식으로 변환
@@ -150,7 +150,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         }
 
         // 기존 아이템 전체 삭제
-        orderItemRepository.deleteByOrderId(orderId);
+ orderItemRepository.deleteByPurchaseOrder_OrderId(orderId);
 
         Double total = 0.0;
         List<PurchaseOrderItem> itemsToSave = new ArrayList<>();
@@ -187,7 +187,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         }
         
         // 아이템 먼저 지우고 발주서 삭제
-        orderItemRepository.deleteByOrderId(orderId);
+        orderItemRepository.deleteByPurchaseOrder_OrderId(orderId);
         orderRepository.delete(order);
     }
 }
