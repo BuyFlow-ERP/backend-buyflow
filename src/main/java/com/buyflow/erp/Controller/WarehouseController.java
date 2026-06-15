@@ -22,7 +22,7 @@ import lombok.RequiredArgsConstructor;
 @CrossOrigin(origins= "http://localhost:3000")
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/warehouses")
+@RequestMapping("/warehouses")
 public class WarehouseController {
     private final WarehouseService warehouseService;
 
