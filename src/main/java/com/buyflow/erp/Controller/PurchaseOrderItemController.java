@@ -11,7 +11,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/purchase-order-items")
+@RequestMapping("/api/purchase-order-items")
 public class PurchaseOrderItemController {
 
     private final PurchaseOrderItemService purchaseOrderItemService;
@@ -22,7 +22,7 @@ public class PurchaseOrderItemController {
         return purchaseOrderItemService.getOrderItems();
     }
     @PostMapping
-public ResponseEntity<String> saveOrderItem(
+    public ResponseEntity<String> saveOrderItem(
         @RequestBody PurchaseOrderItemDto.CreateRequest request) {
 
     purchaseOrderItemService.saveOrderItem(request);
