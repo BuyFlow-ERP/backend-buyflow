@@ -62,7 +62,7 @@ public class WarehouseServiceImpl implements WarehouseService {
         detail.setUpdatedAt(warehouse.getUpdatedAt());
         detail.setType(warehouse.getType());
         if (warehouse.getUser() != null) {
-            detail.setManagerName(warehouse.getUser().getUsername()); // 필드명은 상황에 맞게 수정
+            detail.setManagerName(warehouse.getUser().getUserName()); // 필드명은 상황에 맞게 수정
         }
         return detail;
     }
@@ -133,7 +133,7 @@ public class WarehouseServiceImpl implements WarehouseService {
         rs.setCreatedAt(warehouse.getCreatedAt());
         rs.setUpdatedAt(warehouse.getUpdatedAt());
         if (warehouse.getUser() != null) {
-            rs.setManagerName(warehouse.getUser().getUsername()); // 필요시 엔티티 이름 필드 매핑
+            rs.setManagerName(warehouse.getUser().getUserName()); // 필요시 엔티티 이름 필드 매핑
         }
         return rs;
     }

@@ -1,20 +1,18 @@
 package com.buyflow.erp.Dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-@Setter
 public class PurchaseOrderItemDto {
 
-    private Long orderItemId;
-    private Long productId;
-    private Integer quantity;
-    private BigDecimal unitPrice;
-
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Setter
     public static class CreateRequest {
 
         private Long orderId;

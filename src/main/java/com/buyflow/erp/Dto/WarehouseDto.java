@@ -2,13 +2,17 @@ package com.buyflow.erp.Dto;
 
 import java.time.LocalDateTime;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 public class WarehouseDto {
 
-    @Getter
-    @Setter
+	@Getter
+	@Setter
+	@NoArgsConstructor
+	@AllArgsConstructor
     public static class SearchCondition {
         private String warehouseName;
         private String type;
@@ -16,8 +20,10 @@ public class WarehouseDto {
         private String createdAt;
     }
 
-    @Getter
-    @Setter
+	@Getter
+	@Setter
+	@NoArgsConstructor
+	@AllArgsConstructor
     public static class HouseList {
         private String warehouseCode;
         private String warehouseName;
@@ -32,8 +38,10 @@ public class WarehouseDto {
         private String type;
     }
     
-    @Getter
-    @Setter
+	@Getter
+	@Setter
+	@NoArgsConstructor
+	@AllArgsConstructor
     public static class Detail {
         private String warehouseCode;
         private String warehouseName;
@@ -48,8 +56,10 @@ public class WarehouseDto {
         private String type;
     }
     
-    @Getter
-    @Setter
+	@Getter
+	@Setter
+	@NoArgsConstructor
+	@AllArgsConstructor
     public static class Create {
         private String warehouseCode;
         private String warehouseName;
@@ -63,8 +73,10 @@ public class WarehouseDto {
         private String type;
     }
     
-    @Getter
-    @Setter
+	@Getter
+	@Setter
+	@NoArgsConstructor
+	@AllArgsConstructor
     public static class Update {
     	private String warehouseName;
     	private String zipcode;

@@ -1,5 +1,24 @@
 package com.buyflow.erp.Entity;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 @Entity
 @Table(name = "PURCHASE_ORDER")
 @Getter
@@ -34,11 +53,12 @@ public class PurchaseOrder {
     private LocalDateTime dueDate;
 
     @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<PurchaseOrderItem> items = new ArrayList<>();
 
     // 편의 메서드
     public void addItem(PurchaseOrderItem item) {
-        items.add(item);
+        this.items.add(item);
         item.setPurchaseOrder(this);
     }
 }

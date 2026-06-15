@@ -1,7 +1,6 @@
 package com.buyflow.erp.Service;
 
-import com.buyflow.erp.Dto.PurchaseOrderRequest;
-import com.buyflow.erp.Dto.PurchaseOrderResponse;
+import com.buyflow.erp.Dto.PurchaseOrderDto;
 import com.buyflow.erp.Dto.PurchaseOrderItemDto;
 import com.buyflow.erp.Entity.PurchaseOrder;
 import com.buyflow.erp.Entity.PurchaseOrderItem;
@@ -28,7 +27,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final PurchaseOrderItemRepository orderItemRepository; 
 
     @Override
-    public PurchaseOrder createOrder(PurchaseOrderRequest request) {
+    public PurchaseOrderDto.Response createOrder(PurchaseOrderDto.Request request) {
         // 1. 부모인 발주서 엔티티를 먼저 빌드 (금액은 우선 0원 처리)
         PurchaseOrder order = PurchaseOrder.builder()
                 .supplierId(request.getSupplierId())
@@ -36,7 +35,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 .createdAt(LocalDateTime.now())
                 .orderStatus("PENDING")
                 .dueDate(request.getDueDate())
-                .totalAmount(BigDecimal.ZERO)
+                .totalAmount(0.0)
                 .build();
 
         // 발주서를 먼저 영속화(DB 저장)하여 고유 번호(ORDER_ID)를 받아옵니다.
@@ -44,92 +43,105 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
         Double total = 0.0;
         List<PurchaseOrderItem> itemsToSave = new ArrayList<>();
-
-        // 2. 다른 분이 만든 PurchaseOrderItem 형식에 맞춰 데이터 생성
-        for (PurchaseOrderItemDto itemReq : request.getItems()) {
+        
+        // 1-2. 화면에서 넘어온 내부 static Item DTO를 꺼내어 엔티티로 변환.
+        for (PurchaseOrderDto.Item itemReq : request.getItems()) {
             PurchaseOrderItem item = PurchaseOrderItem.builder()
-                    .orderId(savedOrder.getOrderId()) // 영속화된 발주서 ID를 매핑!
+                    .purchaseOrder(savedOrder) // 영속화된 발주서 ID를 매핑!
                     .productId(itemReq.getProductId())
                     .quantity(itemReq.getQuantity())   // Long 타입
                     .unitPrice(itemReq.getUnitPrice()) // Double 타입
                     .build();
-
-            itemsToSave.add(item);
-
+            
+            itemsToSave.add(item); // 빈 리스트에 차곡차곡 담기.
+            
             // Double 타입 금액 합산 계산
             total += itemReq.getUnitPrice() * itemReq.getQuantity();
-        }
+        } 
 
-        // 3. 생성된 아이템 리스트 일괄 저장
+        // 1-3. 생성된 아이템 리스트 일괄 저장
         orderItemRepository.saveAll(itemsToSave);
 
-        // 4. 총 금액 업데이트 후 최종 반영
-        savedOrder.setTotalAmount(BigDecimal.valueOf(total));
-        return orderRepository.save(savedOrder);
+        // 1-4. 총 금액 업데이트 후 최종 반영
+        savedOrder.setTotalAmount(total);
+        PurchaseOrder finalSavedOrder = orderRepository.save(savedOrder);
+        
+        // 리턴값은 새로 정돈한 DTO의 만능 변환기(.from)를 써서 반환
+        // 연관관계가 없으므로 엔티티와 저장한 자식 리스트(itemsToSave)를 같이 던져줌.
+        return PurchaseOrderDto.Response.from(finalSavedOrder);
     }
-
+    
+    // 2. 발주 단건 상세 조회
     @Override
     @Transactional(readOnly = true)
-    public PurchaseOrderResponse getOrderWithItems(Long orderId) {
+    public PurchaseOrderDto.Response getOrderWithItems(Long orderId) {
         PurchaseOrder order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("발주를 찾을 수 없습니다. ID: " + orderId));
         
         // 연관관계가 없으므로 아이템 테이블에서 orderId로 직접 조회해 와야 합니다.
         List<PurchaseOrderItem> items = orderItemRepository.findByOrderId(orderId);
         
+        return PurchaseOrderDto.Response.from(order);
         // 조회된 아이템들을 Response DTO 형식으로 변환
-        List<PurchaseOrderItemDto> itemDtos = items.stream()
-                .map(item -> PurchaseOrderItemDto.builder()
-                        .orderItemId(item.getOrderItemId())
-                        .productId(item.getProductId())
-                        .quantity(item.getQuantity())
-                        .unitPrice(item.getUnitPrice())
-                        .build())
-                .toList();
-
-        return PurchaseOrderResponse.builder()
-                .orderId(order.getOrderId())
-                .supplierId(order.getSupplierId())
-                .createdBy(order.getCreatedBy())
-                .createdAt(order.getCreatedAt())
-                .orderStatus(order.getOrderStatus())
-                .dueDate(order.getDueDate())
-                .totalAmount(order.getTotalAmount())
-                .items(itemDtos)
-                .build();
+//        List<PurchaseOrderItemDto> itemDtos = items.stream()
+//                .map(item -> PurchaseOrderItemDto.builder()
+//                        .orderItemId(item.getOrderItemId())
+//                        .productId(item.getProductId())
+//                        .quantity(item.getQuantity())
+//                        .unitPrice(item.getUnitPrice())
+//                        .build())
+//                .toList();
+//
+//        return PurchaseOrderResponse.builder()
+//                .orderId(order.getOrderId())
+//                .supplierId(order.getSupplierId())
+//                .createdBy(order.getCreatedBy())
+//                .createdAt(order.getCreatedAt())
+//                .orderStatus(order.getOrderStatus())
+//                .dueDate(order.getDueDate())
+//                .totalAmount(order.getTotalAmount())
+//                .items(itemDtos)
+//                .build();
     }
 
+    // 3. 발주 목록 조회
     @Override
     @Transactional(readOnly = true)
-    public List<PurchaseOrderResponse> getOrderList() {
+    public List<PurchaseOrderDto.Response> getOrderList() {
         return orderRepository.findAll().stream()
-                .map(order -> {
-                    List<PurchaseOrderItem> items = orderItemRepository.findByOrderId(order.getOrderId());
-                    List<PurchaseOrderItemDto> itemDtos = items.stream()
-                            .map(item -> PurchaseOrderItemDto.builder()
-                                    .orderItemId(item.getOrderItemId())
-                                    .productId(item.getProductId())
-                                    .quantity(item.getQuantity())
-                                    .unitPrice(item.getUnitPrice())
-                                    .build())
-                            .toList();
-                            
-                    return PurchaseOrderResponse.builder()
-                            .orderId(order.getOrderId())
-                            .supplierId(order.getSupplierId())
-                            .orderStatus(order.getOrderStatus())
-                            .totalAmount(order.getTotalAmount())
-                            .items(itemDtos)
-                            .build();
-                })
-                .toList();
+        		.map(PurchaseOrderDto.Response::from)
+        		.toList();
+//                .map(order -> {
+//                    List<PurchaseOrderItem> items = orderItemRepository.findByOrderId(order.getOrderId());
+//                    List<PurchaseOrderItemDto> itemDtos = items.stream()
+//                            .map(item -> PurchaseOrderItemDto.builder()
+//                                    .orderItemId(item.getOrderItemId())
+//                                    .productId(item.getProductId())
+//                                    .quantity(item.getQuantity())
+//                                    .unitPrice(item.getUnitPrice())
+//                                    .build())
+//                            .toList();
+//                            
+//                    return PurchaseOrderResponse.builder()
+//                            .orderId(order.getOrderId())
+//                            .supplierId(order.getSupplierId())
+//                            .orderStatus(order.getOrderStatus())
+//                            .totalAmount(order.getTotalAmount())
+//                            .items(itemDtos)
+//                            .build();
+//                })
+//                .toList();
     }
 
+    // 4. 발주 수정
     @Override
-    public PurchaseOrder updateOrder(Long orderId, PurchaseOrderRequest request) {
+    public PurchaseOrderDto.Response updateOrder(Long orderId, PurchaseOrderDto.Request request) {
         PurchaseOrder order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("발주를 찾을 수 없습니다. ID: " + orderId));
 
+        if ("APPROVED".equals(order.getOrderStatus())) {
+        	throw new RuntimeException("이미 승인 완료된 발주는 수정할 수 없습니다.");
+        }
         if (request.getOrderStatus() != null) {
             order.setOrderStatus(request.getOrderStatus());
         }
@@ -137,15 +149,15 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             order.setDueDate(request.getDueDate());
         }
 
-        // 기존 아이템 삭제 로직 (연관관계가 없으므로 해당 orderId인 아이템을 직접 지움)
+        // 기존 아이템 전체 삭제
         orderItemRepository.deleteByOrderId(orderId);
 
         Double total = 0.0;
         List<PurchaseOrderItem> itemsToSave = new ArrayList<>();
 
-        for (PurchaseOrderItemDto itemReq : request.getItems()) {
+        for (PurchaseOrderDto.Item itemReq : request.getItems()) {
             PurchaseOrderItem item = PurchaseOrderItem.builder()
-                    .orderId(order.getOrderId())
+                    .purchaseOrder(order)
                     .productId(itemReq.getProductId())
                     .quantity(itemReq.getQuantity())
                     .unitPrice(itemReq.getUnitPrice())
@@ -156,16 +168,24 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         }
 
         orderItemRepository.saveAll(itemsToSave);
-        order.setTotalAmount(BigDecimal.valueOf(total));
+        order.setTotalAmount(total);
         
-        return orderRepository.save(order);
+        PurchaseOrder updatedOrder = orderRepository.save(order);
+        
+        // 수정 완료 후에도 똑같이 변환기를 거쳐 DTO로 리턴.
+        return PurchaseOrderDto.Response.from(updatedOrder);
     }
 
+    //5. 발주 삭제
     @Override
     public void deleteOrder(Long orderId) {
         PurchaseOrder order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("발주를 찾을 수 없습니다. ID: " + orderId));
 
+        if ("APPROVED".equals(order.getOrderStatus())) {
+        	throw new RuntimeException("이미 승인 완료된 발주는 삭제할 수 없습니다.");
+        }
+        
         // 아이템 먼저 지우고 발주서 삭제
         orderItemRepository.deleteByOrderId(orderId);
         orderRepository.delete(order);

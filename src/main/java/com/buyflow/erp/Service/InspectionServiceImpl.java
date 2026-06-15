@@ -1,5 +1,6 @@
 package com.buyflow.erp.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -9,9 +10,19 @@ import org.springframework.transaction.annotation.Transactional;
 import com.buyflow.erp.Dto.InspectionDto;
 import com.buyflow.erp.Dto.StockDto;
 import com.buyflow.erp.Entity.Inspection;
+import com.buyflow.erp.Entity.Receipt;
+import com.buyflow.erp.Entity.ReceiptItem;
 import com.buyflow.erp.Entity.Stock;
+import com.buyflow.erp.Entity.StockHistory;
+import com.buyflow.erp.Entity.Users;
 import com.buyflow.erp.Repository.InspectionRepository;
+import com.buyflow.erp.Repository.ReceiptItemRepository;
+import com.buyflow.erp.Repository.ReceiptRepository;
+import com.buyflow.erp.Repository.StockHistoryRepository;
+import com.buyflow.erp.Repository.StockRepository;
+import com.buyflow.erp.Repository.UserRepository;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -24,12 +35,19 @@ public class InspectionServiceImpl implements InspectionService {
 
     private final StockRepository stockRepository;
     private final StockHistoryRepository stockHistoryRepository;
-    private final userRepository userRepository;
+    private final UserRepository userRepository;
     
     @Override
     @Transactional(readOnly = true)
     public List<Inspection> getInspections() {
         return inspectionRepository.findAll();
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public Inspection getInspection(Long inspectionId) {
+    	return inspectionRepository.findById(inspectionId)
+    			.orElseThrow(() -> new EntityNotFoundException("해당 검수 내역을 찾을 수 없습니다. ID: "+ inspectionId));
     }
     
     @Override
@@ -39,6 +57,10 @@ public class InspectionServiceImpl implements InspectionService {
          if(inspectionRepository.existsByReceiptItemId(request.getReceiptItemId())) {
             throw new RuntimeException("이미 검수 완료된 입고입니다.");
          }
+         
+         //defectQuantity 혹은 defectQty중 어떤 것을 보내든 null이 아닌 값을 안전하게 주기
+         Long finalDefectQty = request.getDefectQuantity() != null ? request.getDefectQuantity() : 
+        	 					(request.getDefectQty() != null ? request.getDefectQty() : 0L);
          
          // 검수 정보 빌드 및 저장
          Inspection inspection = new Inspection();
@@ -51,7 +73,9 @@ public class InspectionServiceImpl implements InspectionService {
          inspection.setInspectionDate(request.getInspectionDate());
          inspection.setInspectionType(request.getInspectionType());
          inspection.setQuantity(request.getQuantity());
-         inspection.setDefectQuantity(request.getDefectQuantity());
+         
+         inspection.setDefectQuantity(finalDefectQty);
+         
          inspection.setInspectionResult(request.getInspectionResult());
          inspection.setNotes(request.getNotes());
          inspection.setCreatedAt(LocalDateTime.now());
@@ -59,7 +83,7 @@ public class InspectionServiceImpl implements InspectionService {
          inspectionRepository.save(inspection);
 
          // 입고 데이터 및 창고 코드 조회
-         ReceipItem receiptItem = receiptItemRepository.findById(request.getReceiptItemId())
+         ReceiptItem receiptItem = receiptItemRepository.findById(request.getReceiptItemId())
                .orElseThrow(() -> new RuntimeException("입고 상세 내역을 찾을 수 없습니다."));
          Receipt receipt = receiptRepository.findById(receiptItem.getReceiptId())
                .orElseThrow(() -> new RuntimeException("입고 마스터 정보를 찾을 수 없습니다."));
@@ -70,16 +94,16 @@ public class InspectionServiceImpl implements InspectionService {
                .orElseThrow(() -> new RuntimeException("해당 품목의 창고 재고가 존재하지 않습니다."));
 
          Long beforeQty = stock.getQuantity().longValue();
-         Long defectQty = request.getDefectQuantity() == null ? 0L : request.getDefectQuantity();
+//         Long defectQty = request.getDefectQuantity() == null ? 0L : request.getDefectQuantity();
          // Long acceptedQty = request.getQuantity() - defectQty;
 
          // 검수 단계에서 추가적인 불량이 발견되면 그만큼 재고를 깍는 것이 맞음.
-         if(defectQty > 0) {
-            if(stock.getQuantity() < defectQty) {
+         if(finalDefectQty > 0) {
+            if(stock.getQuantity() < finalDefectQty) {
                throw new RuntimeException("추가 불량 수량이 현재 재고보다 많습니다.");
             }
 
-            stock.setQuantity(stock.getQuantity() - defectQty.intValue());
+            stock.setQuantity(stock.getQuantity() - finalDefectQty.intValue());
             stock.setUpdatedAt(LocalDateTime.now());
             stockRepository.save(stock);
          }
@@ -88,16 +112,16 @@ public class InspectionServiceImpl implements InspectionService {
          StockHistory history = new StockHistory();
          history.setStockId(stock.getStockId());
          history.setHistoryType("INSPECTION_DEFECT");
-         history.setChangeQty(defectQty);
+         history.setChangeQty(finalDefectQty);
          history.setBeforeQty(beforeQty);
          history.setAfterQty(stock.getQuantity().longValue());
          history.setRelatedReceiptItemId(receiptItem.getReceiptItemId());
          history.setReason("검수 불량 차감(" + request.getNotes() + ")");
          // hisotry.setReason("검수 완료");
          history.setCreatedAt(LocalDateTime.now());
-         history.setCreatedBy(request.getUserId());
+         history.setCreatedBy(user.getUserName());
          
-         StockHistoryRepository.save(history);
+         stockHistoryRepository.save(history);
    }
 
 }

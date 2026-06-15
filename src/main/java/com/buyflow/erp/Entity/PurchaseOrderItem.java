@@ -1,7 +1,10 @@
 package com.buyflow.erp.Entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
@@ -26,8 +29,9 @@ public class PurchaseOrderItem {
     @Column(name = "ORDER_ITEM_ID")
     private Long orderItemId;
 
-    @Column(name = "ORDER_ID", nullable = false)
-    private Long orderId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ORDER_ID", nullable = false)
+    private PurchaseOrder purchaseOrder;
 
     @Column(name = "PRODUCT_ID", nullable = false)
     private Long productId;
