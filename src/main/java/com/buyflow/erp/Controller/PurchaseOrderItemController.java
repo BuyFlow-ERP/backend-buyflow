@@ -11,7 +11,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/purchase-order-items")
+@RequestMapping("/purchase-order-items")
 public class PurchaseOrderItemController {
 
     private final PurchaseOrderItemService purchaseOrderItemService;
