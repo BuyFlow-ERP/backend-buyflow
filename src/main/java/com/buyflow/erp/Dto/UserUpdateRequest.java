@@ -1,18 +1,9 @@
 package com.buyflow.erp.Dto;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-public record SignupRequest(
-        @NotBlank(message = "로그인 ID를 입력하세요.")
-        @Size(max = 50, message = "로그인 ID는 50자 이하로 입력하세요.")
-        String loginId,
-
-        @NotBlank(message = "비밀번호를 입력하세요.")
-        @Size(min = 8, max = 100, message = "비밀번호는 8자 이상 100자 이하로 입력하세요.")
-        String password,
-
-        @NotBlank(message = "사용자명을 입력하세요.")
+public record UserUpdateRequest(
         @Size(max = 50, message = "사용자명은 50자 이하로 입력하세요.")
         String userName,
 
@@ -26,6 +17,9 @@ public record SignupRequest(
         String departmentName,
 
         @Size(max = 50, message = "직책명은 50자 이하로 입력하세요.")
-        String positionName
+        String positionName,
+
+        @Pattern(regexp = "USER|ADMIN", message = "직급 코드는 USER 또는 ADMIN만 사용할 수 있습니다.")
+        String jobRank
 ) {
 }

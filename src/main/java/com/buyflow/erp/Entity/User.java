@@ -43,6 +43,15 @@ public class User {
     @Column(name = "PHONE", length = 20)
     private String phone;
 
+    @Column(name = "DEPARTMENT_NAME", length = 100)
+    private String departmentName;
+
+    @Column(name = "POSITION_NAME", length = 50)
+    private String positionName;
+
+    @Column(name = "JOB_RANK", length = 20)
+    private String jobRank = "USER";
+
     @Column(name = "STATUS", length = 20, nullable = false)
     private String status = "PENDING";
 
@@ -58,4 +67,3 @@ public class User {
     @Column(name = "UPDATED_AT", nullable = false)
     private LocalDateTime updatedAt;
 }
-

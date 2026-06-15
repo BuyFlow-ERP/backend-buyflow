@@ -59,6 +59,9 @@ public class AuthService {
         user.setUserName(request.userName());
         user.setEmail(request.email());
         user.setPhone(request.phone());
+        user.setDepartmentName(request.departmentName());
+        user.setPositionName(request.positionName());
+        user.setJobRank("USER");
         user.setStatus("PENDING");
         user.setUseYn("Y");
         user.setCreatedAt(now);
