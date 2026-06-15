@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/inspections")
+@RequestMapping("/api/inspections")
 public class InspectionController {
 
     private final InspectionService inspectionService;
