@@ -66,4 +66,38 @@ public class PurchaseRequestDto {
             long ordered
     ) {
     }
+
+    public record CreateRequest(
+            String requestNumber,
+            Long requestorId,
+            String requester,
+            String department,
+            String requestDate,
+            String expectedDate,
+            String title,
+            String urgency,
+            String priority,
+            String status,
+            String reason,
+            List<CreateItemRequest> items
+    ) {
+    }
+
+    public record CreateItemRequest(
+            Long productId,
+            Integer requestQuantity,
+            Integer quantity,
+            Integer estimatedUnitPrice,
+            Integer unitPrice,
+            String remark
+    ) {
+        public Integer requestQuantity() {
+            return requestQuantity != null ? requestQuantity : quantity;
+        }
+
+        public Integer estimatedUnitPrice() {
+            return estimatedUnitPrice != null ? estimatedUnitPrice : unitPrice;
+        }
+    }
+
 }
