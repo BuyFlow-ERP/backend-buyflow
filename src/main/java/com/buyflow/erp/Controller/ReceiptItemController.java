@@ -13,7 +13,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/receipt-items")
+@RequestMapping("/receipt-items")
 public class ReceiptItemController {
 
     private final ReceiptItemService receiptItemService;

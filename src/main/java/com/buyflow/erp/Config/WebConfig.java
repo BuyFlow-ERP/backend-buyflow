@@ -1,25 +1,17 @@
-// spring 설정 코드 집어넣는 곳.
-// 아래 코드는 구동 안해봄 예로 작성 해본 것 -> CORS 설정 
-// @Configuration
-// public class WebConfig {
-    
-//     @Bean
-//     public WebMvcConfigu corsCongifigu() {
+package com.buyflow.erp.Config;
 
-//         return new WebMvcConfigu() {
-//             @Override
-//             public void addCorsMappings(CorsRegistry corsRegistry) {
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-//                 corsRegistry.addMapping("/**")
-//                     .allowedOrigins("http://localhost:8080");
-//             }
-//         }
-//     }
-// }
+@Configuration
+public class WebConfig implements WebMvcConfigurer {
 
-// JWT 인증 
-// @Configuration
-// @EnableWebSecurity
-// public class SecurityConfig {
-
-// }
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOrigins("http://localhost:3000")
+                .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+                .allowedHeaders("*");
+    }
+}

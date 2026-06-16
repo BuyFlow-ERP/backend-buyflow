@@ -6,7 +6,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-
 import lombok.Getter;
 import lombok.Setter;
 
@@ -27,10 +26,10 @@ public class PurchaseRequestItem {
     private Long productId;
 
     @Column(name = "REQUEST_QUANTITY")
-    private int requestQuantity;
+    private Integer requestQuantity;
 
     @Column(name = "ESTIMATED_UNIT_PRICE")
-    private int estimatedUnitPrice;
+    private Integer estimatedUnitPrice;
 
     @Column(name = "REMARK")
     private String remark;

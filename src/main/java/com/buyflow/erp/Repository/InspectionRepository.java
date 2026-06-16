@@ -8,4 +8,5 @@ import com.buyflow.erp.Entity.Inspection;
 @Repository
 public interface InspectionRepository extends JpaRepository<Inspection, Long> {
     
+    boolean existsByReceiptItemId(Long receiptItemId);
 }
