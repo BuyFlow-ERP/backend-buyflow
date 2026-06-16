@@ -128,12 +128,20 @@ public class ApprovalServiceImpl implements ApprovalService {
         ApprovalHistory approval = findApproval(approvalId);
         PurchaseRequest request = findRequest(approval.getRequestId());
 
-        request.setRequestStatus("CANCEL_REQUESTED");
-        request.setUpdatedAt(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+
+        approval.setApprovalStatus("CANCELED");
+        approval.setCommentText("요청 취소");
+        approval.setApprovedAt(now);
+
+        request.setRequestStatus("CANCELED");
+        request.setUpdatedAt(now);
+
+        approvalHistoryRepository.save(approval);
         purchaseRequestRepository.save(request);
 
         return toDetailResponse(approval, request);
-    }
+}
 
     private ApprovalHistoryDto.ListResponse toListResponse(ApprovalHistory approval) {
         PurchaseRequest request = purchaseRequestRepository.findById(approval.getRequestId()).orElse(null);
