@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.buyflow.erp.Dto.InspectionDto;
+import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Entity.Inspection;
 import com.buyflow.erp.Service.InspectionService;
 
@@ -24,8 +25,9 @@ public class InspectionController {
     private final InspectionService inspectionService;
 
     @GetMapping
-    public List<Inspection> getInspections() {
-        return inspectionService.getInspections();
+    public ResponseEntity<PageResponse<InspectionDto.ListResponse>> getInspections(
+        InspectionDto.SearchCondition condition) {
+            return ResponseEntity.ok(inspectionService.getInspections(condition));
     }
 
     @GetMapping("/{inspectionId}")
@@ -43,5 +45,15 @@ public class InspectionController {
 
             return ResponseEntity.ok("검수 완료");
         }
+    
+    @PostMapping("/{receipId}/result")
+    public ResponseEntity<String> saveInspectionResult(
+    		@PathVariable Long receiptId,
+    		@RequestBody InspectionDto.ResultRequest request) {
+    	
+    	inspectionService.saveInspectionResult(receiptId, request);
+    	
+    	return ResponseEntity.ok("검수 완료");
+    }
     
 }

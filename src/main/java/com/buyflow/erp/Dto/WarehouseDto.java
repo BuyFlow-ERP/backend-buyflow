@@ -18,6 +18,11 @@ public class WarehouseDto {
         private String type;
         private String useYn;
         private String createdAt;
+        private String managerName;
+
+        // 페이징
+        private int page = 0;
+        private int size = 10;
     }
 
 	@Getter

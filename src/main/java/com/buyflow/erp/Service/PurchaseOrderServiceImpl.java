@@ -1,13 +1,22 @@
 package com.buyflow.erp.Service;
 
+import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Dto.PurchaseOrderDto;
 import com.buyflow.erp.Dto.PurchaseOrderItemDto;
 import com.buyflow.erp.Entity.PurchaseOrder;
 import com.buyflow.erp.Entity.PurchaseOrderItem;
+import com.buyflow.erp.Entity.Supplier;
+import com.buyflow.erp.Entity.Users;
 import com.buyflow.erp.Repository.PurchaseOrderRepository;
+import com.buyflow.erp.Repository.SupplierRepository;
+import com.buyflow.erp.Repository.UserRepository;
 import com.buyflow.erp.Repository.PurchaseOrderItemRepository; // 아이템 저장을 위해 필요 시 주입
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,16 +31,23 @@ import java.util.stream.Collectors;
 @Transactional
 public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
+	private final SupplierRepository supplierRepository;
+	private final UserRepository userRepository;
     private final PurchaseOrderRepository orderRepository;
     // 만약 아이템을 별도로 save 해야 한다면 JpaRepository<PurchaseOrderItem, Long>를 상속받은 레포지토리를 주입받으세요.
     private final PurchaseOrderItemRepository orderItemRepository; 
 
     @Override
     public PurchaseOrderDto.Response createOrder(PurchaseOrderDto.Request request) {
+    	Supplier supplier = supplierRepository.findById(request.getSupplierId())
+    			.orElseThrow(() -> new EntityNotFoundException("공급업체가 존재하지 않습니다. ID: " + request.getSupplierId()));
+    	
+    	Users user = userRepository.findById(request.getCreatedBy())
+    			.orElseThrow(() -> new EntityNotFoundException("사용자가 존재하지 않습니다. ID: " + request.getCreatedBy()));
         // 1. 부모인 발주서 엔티티를 먼저 빌드 (금액은 우선 0원 처리)
         PurchaseOrder order = PurchaseOrder.builder()
-                .supplierId(request.getSupplierId())
-                .createdBy(request.getCreatedBy())
+                .supplier(supplier)
+                .user(user)
                 .createdAt(LocalDateTime.now())
                 .orderStatus("PENDING")
                 .dueDate(request.getDueDate())
@@ -79,7 +95,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 .orElseThrow(() -> new EntityNotFoundException("발주를 찾을 수 없습니다. ID: " + orderId));
         
         // 연관관계가 없으므로 아이템 테이블에서 orderId로 직접 조회해 와야 합니다.
-List<PurchaseOrderItem> items = orderItemRepository.findByPurchaseOrder_OrderId(orderId);
+        List<PurchaseOrderItem> items = orderItemRepository.findByPurchaseOrder_OrderId(orderId);
         
         return PurchaseOrderDto.Response.from(order);
         // 조회된 아이템들을 Response DTO 형식으로 변환
@@ -107,10 +123,37 @@ List<PurchaseOrderItem> items = orderItemRepository.findByPurchaseOrder_OrderId(
     // 3. 발주 목록 조회
     @Override
     @Transactional(readOnly = true)
-    public List<PurchaseOrderDto.Response> getOrderList() {
-        return orderRepository.findAll().stream()
-        		.map(PurchaseOrderDto.Response::from)
-        		.toList();
+    public PageResponse<PurchaseOrderDto.Response> getOrderList(PurchaseOrderDto.SearchCondition condition) {
+        int safePage = Math.max(condition.getPage(), 0);
+        int safeSize = Math.max(condition.getSize(), 1);
+        Pageable pageable = PageRequest.of(safePage, safeSize);
+        
+        String orderNo = (condition.getOrderNo() == null || condition.getOrderNo().isEmpty()) ? null : condition.getOrderNo();
+        String supplierName = (condition.getSupplierName() == null || condition.getSupplierName().isEmpty() || condition.getSupplierName().equals("전체 공급업체")) ? null : condition.getSupplierName();
+        String userName = (condition.getUserName() == null || condition.getUserName().isEmpty()) ? null : condition.getUserName();
+        String status = (condition.getOrderStatus() == null || condition.getOrderStatus().isEmpty() || condition.getOrderStatus().equals("전체")) ? null : condition.getOrderStatus();
+
+        Page<PurchaseOrder> orderPage = orderRepository.searchOrdersAdvanced(
+                orderNo,
+                supplierName,
+                userName,
+                status,
+                pageable
+        );
+
+        List<PurchaseOrderDto.Response> dtoList = orderPage.getContent().stream()
+                        .map(PurchaseOrderDto.Response::from)
+                        .toList();
+        
+        return new PageResponse<>(
+                dtoList,
+                new PageResponse.Pagination(
+                    orderPage.getNumber() + 1,
+                    orderPage.getSize(),
+                    orderPage.getTotalElements(),
+                    orderPage.getTotalPages()
+                )
+        );
 //                .map(order -> {
 //                    List<PurchaseOrderItem> items = orderItemRepository.findByOrderId(order.getOrderId());
 //                    List<PurchaseOrderItemDto> itemDtos = items.stream()
@@ -142,11 +185,18 @@ List<PurchaseOrderItem> items = orderItemRepository.findByPurchaseOrder_OrderId(
         if ("APPROVED".equals(order.getOrderStatus())) {
         	throw new RuntimeException("이미 승인 완료된 발주는 수정할 수 없습니다.");
         }
+        
         if (request.getOrderStatus() != null) {
             order.setOrderStatus(request.getOrderStatus());
         }
         if (request.getDueDate() != null) {
             order.setDueDate(request.getDueDate());
+        }
+        
+        if (request.getSupplierId() != null) {
+        	Supplier supplier = supplierRepository.findById(request.getSupplierId())
+        			.orElseThrow(() -> new EntityNotFoundException("공급업체 없음"));
+        	order.setSupplier(supplier);
         }
 
         // 기존 아이템 전체 삭제
