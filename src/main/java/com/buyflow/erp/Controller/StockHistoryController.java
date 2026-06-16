@@ -3,6 +3,7 @@ package com.buyflow.erp.Controller;
 import java.util.List;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -22,5 +23,13 @@ public class StockHistoryController {
     public List<StockHistory> getStockHistory() {
 
         return stockHistoryService.getStockHistory();
+    }
+
+    @GetMapping("/type/{historyType}")
+    public List<StockHistory> getStockHistoryByType(
+            @PathVariable String historyType) {
+
+        return stockHistoryService
+                .getStockHistoryByType(historyType);
     }
 }

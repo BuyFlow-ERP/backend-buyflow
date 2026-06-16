@@ -14,13 +14,21 @@ import lombok.RequiredArgsConstructor;
 public class StockHistoryServiceImpl
         implements StockHistoryService {
 
-    private final StockHistoryRepository
-            stockHistoryRepository;
+    private final StockHistoryRepository stockHistoryRepository;
 
-@Override
-public List<StockHistory> getStockHistory() {
+    @Override
+    public List<StockHistory> getStockHistory() {
 
-    return stockHistoryRepository
-            .findAllByOrderByHistoryIdDesc();
-}
+        return stockHistoryRepository
+                .findAllByOrderByHistoryIdDesc();
     }
+
+    @Override
+    public List<StockHistory> getStockHistoryByType(
+            String historyType) {
+
+        return stockHistoryRepository
+                .findByHistoryTypeOrderByHistoryIdDesc(
+                        historyType);
+    }
+}
