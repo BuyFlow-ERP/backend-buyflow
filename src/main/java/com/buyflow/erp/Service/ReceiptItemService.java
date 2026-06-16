@@ -18,4 +18,7 @@ public interface ReceiptItemService {
 
         void cancelReceiptItem(
                         Long receiptItemId);
+
+        List<ReceiptItem> getReceiptItemsByStatus(
+                        String receiptItemStatus);
 }

@@ -37,6 +37,15 @@ public class ReceiptItemServiceImpl
         }
 
         @Override
+        public List<ReceiptItem> getReceiptItemsByStatus(
+                        String receiptItemStatus) {
+
+                return receiptItemRepository
+                                .findByReceiptItemStatus(
+                                                receiptItemStatus);
+        }
+
+        @Override
         public void saveReceiptItem(
                         ReceiptItemDto.CreateRequest request) {
 

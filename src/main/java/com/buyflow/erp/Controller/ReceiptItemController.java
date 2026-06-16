@@ -55,4 +55,13 @@ public class ReceiptItemController {
         return ResponseEntity.ok(
                 "취소 완료");
     }
+
+    @GetMapping("/status/{receiptItemStatus}")
+    public List<ReceiptItem> getReceiptItemsByStatus(
+            @PathVariable String receiptItemStatus) {
+
+        return receiptItemService
+                .getReceiptItemsByStatus(
+                        receiptItemStatus);
+    }
 }

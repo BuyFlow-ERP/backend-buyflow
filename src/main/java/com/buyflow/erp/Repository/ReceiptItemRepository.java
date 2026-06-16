@@ -4,6 +4,7 @@ import com.buyflow.erp.Entity.ReceiptItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import java.util.List;
 
 public interface ReceiptItemRepository
                 extends JpaRepository<ReceiptItem, Long> {
@@ -16,4 +17,7 @@ public interface ReceiptItemRepository
                         """)
         Long getAcceptedQtySum(
                         @Param("orderItemId") Long orderItemId);
+
+        List<ReceiptItem> findByReceiptItemStatus(
+                        String receiptItemStatus);
 }
