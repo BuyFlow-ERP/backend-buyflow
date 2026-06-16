@@ -35,5 +35,5 @@ public class ApprovalHistory {
     private LocalDateTime approvedAt;
 
     @Column(name = "APPROVAL_STEP")
-    private int approvalStep;
+    private Integer approvalStep;
 }

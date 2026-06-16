@@ -16,7 +16,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("React 주소")
+@RequestMapping("/stocks")
 public class StockController {
     // /api/v1/stocks/history 같은 주소로 StockHistory 기능도 같이 다룰 예정...
     private final StockService stockService;
