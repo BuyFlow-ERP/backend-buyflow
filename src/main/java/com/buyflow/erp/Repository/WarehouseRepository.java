@@ -1,7 +1,7 @@
 package com.buyflow.erp.Repository;
 
-import java.util.List;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 import com.buyflow.erp.Entity.Warehouse;
 
 @Repository
-public interface WarehouseRepository extends JpaRepository<Warehouse, String>{
+public interface WarehouseRepository extends JpaRepository<Warehouse, String> {
 	
 	boolean existsByWarehouseCode(String warehouseCode);
 
@@ -18,11 +18,11 @@ public interface WarehouseRepository extends JpaRepository<Warehouse, String>{
            "(:name IS NULL OR w.warehouseName LIKE CONCAT('%', CONCAT(:name, '%'))) AND " +
            "(:type IS NULL OR w.type = :type) AND " +
            "(:useYn IS NULL OR w.useYn = :useYn)")
-    	List<Warehouse> searchByFlexibleCondition(
+    	Page<Warehouse> searchByFlexibleCondition(
             @Param("name") String name, 
             @Param("type") String type, 
-            @Param("useYn") String useYn
-            Pageable pageable;
+            @Param("useYn") String useYn,
+            Pageable pageable
     	);
     
 }

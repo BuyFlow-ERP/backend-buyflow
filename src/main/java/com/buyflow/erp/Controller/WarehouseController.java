@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Dto.WarehouseDto;
 import com.buyflow.erp.Service.WarehouseService;
 
@@ -28,11 +29,11 @@ public class WarehouseController {
 
     // 목록 조회
     @GetMapping
-    public ResponseEntity<List<WarehouseDto.HouseList>> getWarehouseList(
+    public ResponseEntity<PageResponse<WarehouseDto.HouseList>> getWarehouseList(
         WarehouseDto.SearchCondition condition) { // 파라미터가 자동으로 DTO 객체 안에 쏙 들어갑니다.
     
         PageResponse<WarehouseDto.HouseList> result = warehouseService.searchWarehouses(condition);
-        return ResponseEntity.ok(list);
+        return ResponseEntity.ok(result);
 }
     
     // 단건 조회

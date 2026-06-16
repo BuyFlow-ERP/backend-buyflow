@@ -1,5 +1,6 @@
 package com.buyflow.erp.Service;
 
+import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Dto.PurchaseOrderDto;
 import com.buyflow.erp.Dto.PurchaseOrderItemDto;
 import com.buyflow.erp.Entity.PurchaseOrder;
@@ -8,6 +9,10 @@ import com.buyflow.erp.Repository.PurchaseOrderRepository;
 import com.buyflow.erp.Repository.PurchaseOrderItemRepository; // 아이템 저장을 위해 필요 시 주입
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -112,7 +117,7 @@ List<PurchaseOrderItem> items = orderItemRepository.findByPurchaseOrder_OrderId(
         int safeSize = Math.max(condition.getSize(), 1);
         Pageable pageable = PageRequest.of(safePage, safeSize);
 
-        String status = (condtion.getOrderStatus() == null || condition.getOrderStatus().isEmpty() || condition.getOrderStatus().equals("전체")) ? null : condition.getOrderStatus();
+        String status = (condition.getOrderStatus() == null || condition.getOrderStatus().isEmpty() || condition.getOrderStatus().equals("전체")) ? null : condition.getOrderStatus();
 
         Page<PurchaseOrder> orderPage = orderRepository.searchOrders(
                 condition.getSupplierId(),

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.buyflow.erp.Dto.InspectionDto;
+import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Entity.Inspection;
 import com.buyflow.erp.Service.InspectionService;
 
