@@ -14,4 +14,6 @@ public interface InspectionService {
 
     void saveInspection(InspectionDto.CreateRequest request);
     
+    void saveInspectionResult(Long receiptId, InspectionDto.ResultRequest request);
+    
 }

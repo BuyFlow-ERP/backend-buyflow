@@ -46,4 +46,14 @@ public class InspectionController {
             return ResponseEntity.ok("검수 완료");
         }
     
+    @PostMapping("/{receipId}/result")
+    public ResponseEntity<String> saveInspectionResult(
+    		@PathVariable Long receiptId,
+    		@RequestBody InspectionDto.ResultRequest request) {
+    	
+    	inspectionService.saveInspectionResult(receiptId, request);
+    	
+    	return ResponseEntity.ok("검수 완료");
+    }
+    
 }
