@@ -74,6 +74,7 @@ public class InspectionServiceImpl implements InspectionService {
 	}
 
 	@Override
+	@Transactional
 	public void saveInspection(InspectionDto.CreateRequest request) {
 		
 		if (request.getReceiptItemId() == null) {
@@ -175,6 +176,7 @@ public class InspectionServiceImpl implements InspectionService {
 	}
 	
 	@Override
+	@Transactional
 	public void saveInspectionResult(Long receiptId, InspectionDto.ResultRequest request) {
 		if (request.getItems() == null || request.getItems().isEmpty()) {
 			throw new RuntimeException("검수할 품목이 없습니다.");
