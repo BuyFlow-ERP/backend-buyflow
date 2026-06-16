@@ -6,15 +6,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ReceiptItemRepository
-        extends JpaRepository<ReceiptItem, Long> {
+                extends JpaRepository<ReceiptItem, Long> {
 
-    @Query("""
-           select coalesce(sum(r.acceptedQty), 0)
-           from ReceiptItem r
-           where r.orderItemId = :orderItemId
-           """)
-    Long getAcceptedQtySum(
-            @Param("orderItemId")
-            Long orderItemId
-    );
+        @Query("""
+                        select coalesce(sum(r.acceptedQty), 0)
+                        from ReceiptItem r
+                        where r.orderItemId = :orderItemId
+                        and r.receiptItemStatus = 'ACTIVE'
+                        """)
+        Long getAcceptedQtySum(
+                        @Param("orderItemId") Long orderItemId);
 }

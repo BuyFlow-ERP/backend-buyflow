@@ -61,6 +61,8 @@ public class ReceiptItemServiceImpl
                 item.setRemark(request.getRemark());
                 item.setLoginId(request.getLoginId());
                 item.setCreatedAt(LocalDateTime.now());
+                item.setReceiptItemStatus(
+                                "ACTIVE");
 
                 receiptItemRepository.save(item);
                 Receipt receipt = receiptRepository.findById(
@@ -276,5 +278,109 @@ public class ReceiptItemServiceImpl
                 }
 
                 receiptRepository.save(receipt);
+        }
+
+        @Override
+        public void cancelReceiptItem(
+                        Long receiptItemId) {
+
+                ReceiptItem item = receiptItemRepository
+                                .findById(receiptItemId)
+                                .orElseThrow();
+
+                if ("CANCELLED".equals(
+                                item.getReceiptItemStatus())) {
+                        return;
+                }
+
+                Receipt receipt = receiptRepository
+                                .findById(item.getReceiptId())
+                                .orElseThrow();
+
+                String warehouseCode = receipt.getWarehouseCode();
+
+                Stock stock = stockRepository
+                                .findByProductIdAndWarehouseCode(
+                                                item.getProductId(),
+                                                warehouseCode)
+                                .orElseThrow();
+
+                Long acceptedQty = item.getAcceptedQty();
+
+                Long beforeQty = stock.getQuantity().longValue();
+
+                stock.setQuantity(
+                                stock.getQuantity()
+                                                - acceptedQty.intValue());
+
+                stock.setUpdatedAt(
+                                LocalDateTime.now());
+
+                stockRepository.save(stock);
+
+                StockHistory history = new StockHistory();
+
+                history.setStockId(
+                                stock.getStockId());
+
+                history.setHistoryType(
+                                "CANCEL");
+
+                history.setChangeQty(
+                                -acceptedQty);
+
+                history.setBeforeQty(
+                                beforeQty);
+
+                history.setAfterQty(
+                                stock.getQuantity().longValue());
+
+                history.setRelatedReceiptItemId(
+                                item.getReceiptItemId());
+
+                history.setRelatedOrderItemId(
+                                item.getOrderItemId());
+
+                history.setReason(
+                                "입고 취소");
+
+                history.setCreatedAt(
+                                LocalDateTime.now());
+
+                history.setCreatedBy(
+                                item.getLoginId());
+
+                stockHistoryRepository.save(
+                                history);
+
+                item.setReceiptItemStatus(
+                                "CANCELLED");
+
+                receiptItemRepository.save(
+                                item);
+
+                PurchaseOrderItem orderItem = purchaseOrderItemRepository
+                                .findById(
+                                                item.getOrderItemId())
+                                .orElseThrow();
+
+                Long orderedQty = orderItem.getQuantity();
+
+                Long acceptedQtySum = receiptItemRepository.getAcceptedQtySum(
+                                item.getOrderItemId());
+
+                if (acceptedQtySum >= orderedQty) {
+
+                        receipt.setReceiptStatus(
+                                        "COMPLETED");
+
+                } else {
+
+                        receipt.setReceiptStatus(
+                                        "PARTIAL");
+                }
+
+                receiptRepository.save(
+                                receipt);
         }
 }
