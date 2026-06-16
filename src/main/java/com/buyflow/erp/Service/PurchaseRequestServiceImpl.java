@@ -2,10 +2,12 @@ package com.buyflow.erp.Service;
 
 import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Dto.PurchaseRequestDto;
+import com.buyflow.erp.Entity.ApprovalHistory;
 import com.buyflow.erp.Entity.Product;
 import com.buyflow.erp.Entity.PurchaseRequest;
 import com.buyflow.erp.Entity.PurchaseRequestItem;
 import com.buyflow.erp.Entity.Users;
+import com.buyflow.erp.Repository.ApprovalHistoryRepository;
 import com.buyflow.erp.Repository.ProductRepository;
 import com.buyflow.erp.Repository.PurchaseRequestItemRepository;
 import com.buyflow.erp.Repository.PurchaseRequestRepository;
@@ -39,6 +41,7 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
     private final PurchaseRequestItemRepository purchaseRequestItemRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final ApprovalHistoryRepository approvalHistoryRepository;
 
     @Override
     public PageResponse<PurchaseRequestDto.ListResponse> getPurchaseRequests(
@@ -155,7 +158,7 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
         request.setDueDate(parseDate(dto.expectedDate()));
         request.setCreatedAt(now);
         request.setUpdatedAt(now);
-        request.setRequestStatus(isBlank(dto.status()) ? "PENDING" : dto.status());
+        request.setRequestStatus(normalizeRequestStatus(dto.status()));
         request.setDeletedYn("N");
 
         List<PurchaseRequestItem> items = new ArrayList<>();
@@ -179,11 +182,25 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
             items.add(item);
         }
 
-        request.setTotalAmount(totalAmount);
-        purchaseRequestRepository.save(request);
-        purchaseRequestItemRepository.saveAll(items);
+    request.setTotalAmount(totalAmount);
+    purchaseRequestRepository.save(request);
+    purchaseRequestItemRepository.saveAll(items);
 
-        return getPurchaseRequestDetail(requestId);
+    if ("PENDING_APPROVAL".equals(request.getRequestStatus())) {
+    ApprovalHistory approvalHistory = new ApprovalHistory();
+
+    approvalHistory.setApprovalId(nextApprovalId());
+    approvalHistory.setRequestId(requestId);
+    approvalHistory.setApproverId(101L);
+    approvalHistory.setApprovalStatus("PENDING_APPROVAL");
+    approvalHistory.setCommentText("구매 요청 승인 대기");
+    approvalHistory.setApprovedAt(null);
+    approvalHistory.setApprovalStep(1);
+
+    approvalHistoryRepository.save(approvalHistory);
+}
+
+    return getPurchaseRequestDetail(requestId);
     }
 
     private PurchaseRequestDto.ListResponse toListResponse(PurchaseRequest request) {
@@ -337,7 +354,33 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
                 .orElse(0L) + 1;
     }
 
+    private long nextApprovalId() {
+        return approvalHistoryRepository.findAll()
+                .stream()
+                .map(ApprovalHistory::getApprovalId)
+                .filter(Objects::nonNull)
+                .max(Comparator.naturalOrder())
+                .orElse(920000L) + 1;
+}
+
     private String createRequestNumber(long requestId) {
         return "PR-" + LocalDate.now().getYear() + "-" + String.format("%04d", requestId);
     }
+
+    private String normalizeRequestStatus(String status) {
+    if (isBlank(status)) {
+        return "PENDING_APPROVAL";
+    }
+
+    return switch (status.trim().toUpperCase()) {
+        case "DRAFT" -> "DRAFT";
+        case "PENDING", "PENDING_APPROVAL", "WAITING", "REQUESTED" -> "PENDING_APPROVAL";
+        case "APPROVED" -> "APPROVED";
+        case "REJECTED" -> "REJECTED";
+        case "ORDERED" -> "ORDERED";
+        case "CANCELED", "CANCELLED", "CANCEL_REQUESTED" -> "CANCELED";
+        default -> "PENDING_APPROVAL";
+    };
 }
+}
+
