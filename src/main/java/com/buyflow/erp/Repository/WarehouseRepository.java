@@ -17,11 +17,13 @@ public interface WarehouseRepository extends JpaRepository<Warehouse, String> {
 	@Query("SELECT w FROM Warehouse w WHERE " +
            "(:name IS NULL OR w.warehouseName LIKE CONCAT('%', CONCAT(:name, '%'))) AND " +
            "(:type IS NULL OR w.type = :type) AND " +
-           "(:useYn IS NULL OR w.useYn = :useYn)")
+           "(:useYn IS NULL OR w.useYn = :useYn) AND " +
+           "(:managerName IS NULL OR u.userName LIKE CONCAT('%', CONCAT(:managerName, '%')))")
     	Page<Warehouse> searchByFlexibleCondition(
             @Param("name") String name, 
             @Param("type") String type, 
             @Param("useYn") String useYn,
+            @Param("managerName") String managerName,
             Pageable pageable
     	);
     

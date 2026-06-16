@@ -48,9 +48,10 @@ public class WarehouseServiceImpl implements WarehouseService {
     	String name = (condition.getWarehouseName() == null || condition.getWarehouseName().isEmpty()) ? null : condition.getWarehouseName();
     	String type = (condition.getType() == null || condition.getType().isEmpty() || condition.getType().equals("전체")) ? null : condition.getType();
     	String useYn = (condition.getUseYn() == null || condition.getUseYn().isEmpty() || condition.getUseYn().equals("전체")) ? null : condition.getUseYn();
-
+    	String managerName = (condition.getManagerName() == null || condition.getManagerName().isEmpty()) ? null : condition.getManagerName();
+    	
         // 레포지토리 호출
-        Page<Warehouse> warehousePage = warehouseRepository.searchByFlexibleCondition(name, type, useYn, pageable);
+        Page<Warehouse> warehousePage = warehouseRepository.searchByFlexibleCondition(name, type, useYn, managerName, pageable);
 
     	// 엔티티를 DTO 목록으로 변환
     	List<WarehouseDto.HouseList> dtoList = warehousePage.getContent().stream()
