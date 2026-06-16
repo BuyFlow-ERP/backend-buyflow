@@ -31,4 +31,13 @@ public class StockHistoryServiceImpl
                 .findByHistoryTypeOrderByHistoryIdDesc(
                         historyType);
     }
+
+    @Override
+    public StockHistory getStockHistory(
+            Long historyId) {
+
+        return stockHistoryRepository
+                .findById(historyId)
+                .orElseThrow();
+    }
 }

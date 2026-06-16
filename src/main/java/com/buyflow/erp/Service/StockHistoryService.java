@@ -7,6 +7,10 @@ import com.buyflow.erp.Entity.StockHistory;
 public interface StockHistoryService {
 
     List<StockHistory> getStockHistory();
+
     List<StockHistory> getStockHistoryByType(
-        String historyType);
+            String historyType);
+
+    StockHistory getStockHistory(
+            Long historyId);
 }

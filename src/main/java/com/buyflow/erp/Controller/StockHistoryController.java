@@ -32,4 +32,13 @@ public class StockHistoryController {
         return stockHistoryService
                 .getStockHistoryByType(historyType);
     }
+
+    @GetMapping("/{historyId}")
+    public StockHistory getStockHistory(
+            @PathVariable Long historyId) {
+
+        return stockHistoryService
+                .getStockHistory(
+                        historyId);
+    }
 }
