@@ -9,6 +9,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.buyflow.erp.Dto.StockDto;
 import com.buyflow.erp.Entity.Stock;
 import com.buyflow.erp.Repository.StockRepository;
+import com.buyflow.erp.Entity.Product;
+import com.buyflow.erp.Entity.Warehouse;
+import com.buyflow.erp.Repository.ProductRepository;
+import com.buyflow.erp.Repository.StockHistoryRepository;
+import com.buyflow.erp.Repository.WarehouseRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -18,9 +23,9 @@ import lombok.RequiredArgsConstructor;
 public class StockServiceImpl implements StockService {
 
     private final StockRepository stockRepository;
-    // private final StockHistoryRepository stockHistoryRepository;
-    // private final ProductRepository productRepository;
-    // private final WarehouseRepository warehouseRepository;
+    private final StockHistoryRepository stockHistoryRepository;
+    private final ProductRepository productRepository;
+    private final WarehouseRepository warehouseRepository;
 
     @Override
     public List<StockDto.Response> findAllStocks() {
@@ -99,6 +104,26 @@ public class StockServiceImpl implements StockService {
 
         rs.setUpdatedAt(
                 stock.getUpdatedAt());
+
+        Product product = productRepository.findById(
+                stock.getProductId())
+                .orElse(null);
+
+        if (product != null) {
+
+            rs.setProductName(
+                    product.getProductName());
+        }
+
+        Warehouse warehouse = warehouseRepository.findById(
+                stock.getWarehouseCode())
+                .orElse(null);
+
+        if (warehouse != null) {
+
+            rs.setWarehouseName(
+                    warehouse.getWarehouseName());
+        }
 
         return rs;
     }
