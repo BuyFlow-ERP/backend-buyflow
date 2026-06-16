@@ -21,10 +21,15 @@ public class PurchaseOrderDto {
 	@NoArgsConstructor
 	@AllArgsConstructor
 	public static class SearchCondition {
-		private Long supplierId;
 		private String orderStatus;
+		private String orderNo;
+		private String requestNo;
+		private String supplierName;
+		private String userName;
+		
 		private int page = 0;
 		private int size = 10;
+
 	}
 
 	@Getter
@@ -61,9 +66,10 @@ public class PurchaseOrderDto {
 	@AllArgsConstructor
 	@Builder
 	public static class Response {
-
 		private Long orderId;
 		private Long supplierId;
+		private String supplierName;
+		private String userName;
 		private Long createdBy;
 		private LocalDateTime createdAt;
 		private String orderStatus;
@@ -84,8 +90,10 @@ public class PurchaseOrderDto {
 
 			return Response.builder()
 					.orderId(order.getOrderId())
-					.supplierId(order.getSupplierId())
-					.createdBy(order.getCreatedBy())
+					.supplierId(order.getSupplier() != null ? order.getSupplier().getSupplierId() : null)
+					.supplierName(order.getSupplier() != null ? order.getSupplier().getSupplierName() : "-")
+					.createdBy(order.getUser() != null ? order.getUser().getUserId() : null)
+					.userName(order.getUser() != null ? order.getUser().getUserName() : "-")
 					.createdAt(order.getCreatedAt())
 					.orderStatus(order.getOrderStatus())
 					.dueDate(order.getDueDate())

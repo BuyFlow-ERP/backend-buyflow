@@ -19,12 +19,18 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
     @Query("SELECT p FROM PurchaseOrder p LEFT JOIN FETCH p.items WHERE p.orderId = :orderId")
     Optional<PurchaseOrder> findByIdWithItems(@Param("orderId") Long orderId);
 
-    @Query("SELECT p FROM PurchaseOrder p WHERE " +
-            "(:supplierId IS NULL OR p.supplierId = :supplierId) AND " +
-            "(:status IS NULL OR p.orderStatus = :status) " +
+    @Query("SELECT DISTINCT p FROM PurchaseOrder p " +
+    		"LEFT JOIN p.supplier s " +
+    		"LEFT JOIN p.user u " +
+    		"WHERE (:orderNo IS NULL OR CAST(p.orderId AS string) LIKE CONCAT('%', CONCAT(:orderNo, '%'))) AND " +
+            "AND (:supplierName IS NULL OR s.supplierName LIKE CONCAT('%', CONCAT(:supplierName, '%'))) " +
+    		"AND (:userName IS NULL OR u.userName LIKE CONCAT('%', CONCAT(:userName, '%'))) " +
+            "AND (:status IS NULL OR p.orderStatus = :status) " +
             "ORDER BY p.orderId DESC")
-    Page<PurchaseOrder> searchOrders(
-            @Param("supplierId") Long supplierId,
+    Page<PurchaseOrder> searchOrdersAdvanced(
+    		@Param("orderNo") String orderNo,
+    		@Param("supplierName") String supplierName,
+            @Param("userName") String userName,
             @Param("status") String status,
             Pageable pageable
     );
