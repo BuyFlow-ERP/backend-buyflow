@@ -133,7 +133,7 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
         departments.add("전체 부서");
         departments.add("-");
 
-        Set<String> statuses = new LinkedHashSet<>(List.of("전체", "임시 저장", "승인 대기", "승인 완료", "반려", "발주 완료"));
+        Set<String> statuses = new LinkedHashSet<>(List.of("전체", "승인 대기", "승인 완료", "반려", "발주 완료"));
         Set<String> priorities = new LinkedHashSet<>(List.of("전체", "일반", "긴급"));
 
         return Map.of(
