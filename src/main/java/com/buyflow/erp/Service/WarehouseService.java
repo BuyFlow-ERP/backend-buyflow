@@ -13,9 +13,9 @@ public interface WarehouseService {
 
 	WarehouseDto.Detail getWarehouse(String warehouseCode);
 	
-	void createWarehouse(WarehouseDto.Create request);
+	WarehouseDto.Create createWarehouse(WarehouseDto.Create request);
 
 	void deleteWarehouse(String warehouseCode);
 	
-	void updateWarehouse(String warehouseCode, WarehouseDto.Update request);
+	WarehouseDto.Detail updateWarehouse(String warehouseCode, WarehouseDto.Update request);
 }

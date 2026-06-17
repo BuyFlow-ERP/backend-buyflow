@@ -37,30 +37,30 @@ public class WarehouseController {
     // 단건 조회
     @GetMapping("/{warehouseCode}")
     public ResponseEntity<WarehouseDto.Detail> getWarehouse(
-    		@PathVariable String warehouseCode) {
+    		@PathVariable("warehouseCode") String warehouseCode) {
     	return ResponseEntity.ok(warehouseService.getWarehouse(warehouseCode));
     }
     
     // 창고 등록
     @PostMapping
-    public ResponseEntity<Void> createWarehouse(
+    public ResponseEntity<WarehouseDto.Create> createWarehouse(
     		@RequestBody WarehouseDto.Create request) {
-    	warehouseService.createWarehouse(request);
-    	return ResponseEntity.status(HttpStatus.CREATED).build();
+    	WarehouseDto.Create result = warehouseService.createWarehouse(request);
+    	return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
     
     // 창고 수정
     @PatchMapping("/{warehouseCode}")
-    public ResponseEntity<Void> updateWarehouse(
-    		@PathVariable String warehouseCode, 
+    public ResponseEntity<WarehouseDto.Detail> updateWarehouse(
+    		@PathVariable("warehouseCode") String warehouseCode, 
     		@RequestBody WarehouseDto.Update request) {
-    	warehouseService.updateWarehouse(warehouseCode, request);
-    	return ResponseEntity.noContent().build();
+    	WarehouseDto.Detail result = warehouseService.updateWarehouse(warehouseCode, request);
+    	return ResponseEntity.ok(result);
     }
     
     // 창고 삭제
     @DeleteMapping("/{warehouseCode}")
-    public ResponseEntity<Void> deleteWarehouse(@PathVariable String warehouseCode) {
+    public ResponseEntity<Void> deleteWarehouse(@PathVariable("warehouseCode") String warehouseCode) {
     	warehouseService.deleteWarehouse(warehouseCode);
     	return ResponseEntity.noContent().build();
     }
