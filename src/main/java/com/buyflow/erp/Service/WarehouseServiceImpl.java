@@ -107,8 +107,8 @@ public class WarehouseServiceImpl implements WarehouseService {
         warehouse.setType(request.getType());
         
         // request.getUserId()가 올바르게 동작합니다 (DTO에 추가했기 때문)
-        if (request.getUserId() != null) {
-            Users user = userRepository.findById(request.getUserId())
+        if (request.getUserId() != null && !request.getUserId().isEmpty()) {
+            Users user = userRepository.findByLoginId(request.getUserId())
                     .orElseThrow(() -> new RuntimeException("사용자가 존재하지 않습니다."));
             warehouse.setUser(user);
         }
@@ -135,13 +135,12 @@ public class WarehouseServiceImpl implements WarehouseService {
         if (request.getUseYn() != null) warehouse.setUseYn(request.getUseYn());
         if (request.getType() != null) warehouse.setType(request.getType());
         
-        if (request.getUserId() != null) {
-            Users user = userRepository.findById(request.getUserId())
+        if (request.getUserId() != null && !request.getUserId().trim().isEmpty()) {
+            Users user = userRepository.findByLoginId(request.getUserId())
                     .orElseThrow(() -> new RuntimeException("사용자가 존재하지 않습니다."));
             warehouse.setUser(user);
         }
-        Warehouse updatedWarehouse = warehouseRepository.save(warehouse);
-        
+        Warehouse updatedWarehouse = warehouseRepository.save(warehouse);        
         return getWarehouse(updatedWarehouse.getWarehouseCode());
     }
 

@@ -33,4 +33,7 @@ public class Users {
 	
 	@Column(name = "USER_NAME")
 	private String userName;
+	
+	@Column(name = "LOGIN_ID")
+	private String loginId;
 }

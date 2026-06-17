@@ -32,12 +32,25 @@ public class WarehouseController {
     
         PageResponse<WarehouseDto.HouseList> result = warehouseService.searchWarehouses(condition);
         return ResponseEntity.ok(result);
-}
+    }
+    
+
+    @GetMapping("/filter-options") 
+    public ResponseEntity<java.util.Map<String, java.util.List<String>>> getFilterOptions() {
+        
+        java.util.Map<String, java.util.List<String>> options = new java.util.HashMap<>();
+        
+        // 1. 프론트엔드 WarehouseSearchForm.jsx에서 사용하는 셀렉트 박스 옵션 규격을 맞춰줍니다.
+        options.put("warehouseTypes", java.util.Arrays.asList("전체", "물류창고", "냉장창고", "냉동창고", "일반창고"));
+        options.put("activeStatuses", java.util.Arrays.asList("전체", "사용 중", "사용 중지"));
+        
+        return ResponseEntity.ok(options);
+    }
     
     // 단건 조회
     @GetMapping("/{warehouseCode}")
     public ResponseEntity<WarehouseDto.Detail> getWarehouse(
-    		@PathVariable("warehouseCode") String warehouseCode) {
+    		@PathVariable(name = "warehouseCode") String warehouseCode) {
     	return ResponseEntity.ok(warehouseService.getWarehouse(warehouseCode));
     }
     
@@ -52,7 +65,7 @@ public class WarehouseController {
     // 창고 수정
     @PatchMapping("/{warehouseCode}")
     public ResponseEntity<WarehouseDto.Detail> updateWarehouse(
-    		@PathVariable("warehouseCode") String warehouseCode, 
+    		@PathVariable(name = "warehouseCode") String warehouseCode, 
     		@RequestBody WarehouseDto.Update request) {
     	WarehouseDto.Detail result = warehouseService.updateWarehouse(warehouseCode, request);
     	return ResponseEntity.ok(result);
@@ -60,7 +73,7 @@ public class WarehouseController {
     
     // 창고 삭제
     @DeleteMapping("/{warehouseCode}")
-    public ResponseEntity<Void> deleteWarehouse(@PathVariable("warehouseCode") String warehouseCode) {
+    public ResponseEntity<Void> deleteWarehouse(@PathVariable(name = "warehouseCode") String warehouseCode) {
     	warehouseService.deleteWarehouse(warehouseCode);
     	return ResponseEntity.noContent().build();
     }
