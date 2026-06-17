@@ -46,7 +46,8 @@ public class PurchaseRequestDto {
             int requestQuantity,
             String unit,
             int estimatedUnitPrice,
-            int estimatedAmount
+            int estimatedAmount,
+            String remark
     ) {
     }
 
