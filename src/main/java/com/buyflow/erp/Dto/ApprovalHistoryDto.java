@@ -71,8 +71,7 @@ public class ApprovalHistoryDto {
             int quantity,
             String unit,
             int expectedUnitPrice,
-            int expectedAmount,
-            String remark
+            int expectedAmount
     ) {
     }
 

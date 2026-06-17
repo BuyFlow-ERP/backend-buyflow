@@ -219,18 +219,17 @@ public class ApprovalServiceImpl implements ApprovalService {
                     int quantity = item.getRequestQuantity() != null ? item.getRequestQuantity() : 0;
                     int unitPrice = item.getEstimatedUnitPrice() != null ? item.getEstimatedUnitPrice() : 0;
 
-    return new ApprovalHistoryDto.ApprovalItemResponse(
-        item.getRequestItemId(),
-        item.getProductId(),
-        product != null ? nullToEmpty(product.getProductNo()) : "",
-        product != null ? nullToEmpty(product.getProductName()) : "",
-        product != null ? nullToEmpty(product.getCategoryName()) : "",
-        product != null ? nullToEmpty(product.getSpec()) : "",
-        quantity,
-        product != null ? nullToEmpty(product.getUnit()) : "",
-        unitPrice,
-        quantity * unitPrice,
-        nullToEmpty(item.getRemark())
+                    return new ApprovalHistoryDto.ApprovalItemResponse(
+                            item.getRequestItemId(),
+                            item.getProductId(),
+                            product != null ? nullToEmpty(product.getProductNo()) : "",
+                            product != null ? nullToEmpty(product.getProductName()) : "",
+                            product != null ? nullToEmpty(product.getCategoryName()) : "",
+                            product != null ? nullToEmpty(product.getSpec()) : "",
+                            quantity,
+                            product != null ? nullToEmpty(product.getUnit()) : "",
+                            unitPrice,
+                            quantity * unitPrice
                     );
                 })
                 .toList();
