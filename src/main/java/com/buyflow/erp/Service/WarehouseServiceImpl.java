@@ -1,5 +1,6 @@
 package com.buyflow.erp.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -11,11 +12,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Dto.WarehouseDto;
+import com.buyflow.erp.Entity.Users;
 import com.buyflow.erp.Entity.Warehouse;
 import com.buyflow.erp.Exception.ResourceNotFoundException;
-import com.buyflow.erp.Entity.Users; 
+import com.buyflow.erp.Repository.UserRepository;
 import com.buyflow.erp.Repository.WarehouseRepository;
-import com.buyflow.erp.Repository.UserRepository; 
+
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -105,6 +107,8 @@ public class WarehouseServiceImpl implements WarehouseService {
         warehouse.setContact(request.getContact());
         warehouse.setUseYn(request.getUseYn());
         warehouse.setType(request.getType());
+        warehouse.setCreatedAt(LocalDateTime.now());
+        warehouse.setUpdatedAt(LocalDateTime.now());
         
         // request.getUserId()가 올바르게 동작합니다 (DTO에 추가했기 때문)
         if (request.getUserId() != null && !request.getUserId().isEmpty()) {
@@ -140,6 +144,7 @@ public class WarehouseServiceImpl implements WarehouseService {
                     .orElseThrow(() -> new RuntimeException("사용자가 존재하지 않습니다."));
             warehouse.setUser(user);
         }
+        warehouse.setUpdatedAt(LocalDateTime.now());
         Warehouse updatedWarehouse = warehouseRepository.save(warehouse);        
         return getWarehouse(updatedWarehouse.getWarehouseCode());
     }
