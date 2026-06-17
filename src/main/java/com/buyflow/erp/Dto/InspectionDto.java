@@ -87,5 +87,12 @@ public class InspectionDto {
 		private String defectReason;
 		private String disposition;
 	}
+	
+	public record SummaryResponse(
+			long totalCount,
+			long pendingCount,
+			long passCount,
+			long defectCount
+	) {}
 
 }

@@ -1,5 +1,10 @@
 package com.buyflow.erp.Controller;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -36,13 +41,13 @@ public class WarehouseController {
     
 
     @GetMapping("/filter-options") 
-    public ResponseEntity<java.util.Map<String, java.util.List<String>>> getFilterOptions() {
+    public ResponseEntity<Map<String, List<String>>> getFilterOptions() {
         
-        java.util.Map<String, java.util.List<String>> options = new java.util.HashMap<>();
+        Map<String, List<String>> options = new HashMap<>();
         
         // 1. 프론트엔드 WarehouseSearchForm.jsx에서 사용하는 셀렉트 박스 옵션 규격을 맞춰줍니다.
-        options.put("warehouseTypes", java.util.Arrays.asList("전체", "물류창고", "냉장창고", "냉동창고", "일반창고"));
-        options.put("activeStatuses", java.util.Arrays.asList("전체", "사용 중", "사용 중지"));
+        options.put("warehouseTypes", Arrays.asList("전체", "물류창고", "냉장창고", "냉동창고", "일반창고"));
+        options.put("activeStatuses", Arrays.asList("전체", "사용 중", "사용 중지"));
         
         return ResponseEntity.ok(options);
     }
