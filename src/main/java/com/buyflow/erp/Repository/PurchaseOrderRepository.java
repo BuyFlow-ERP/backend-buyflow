@@ -13,20 +13,20 @@ import com.buyflow.erp.Entity.PurchaseOrder;
 
 public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Long> {
 
-    List<PurchaseOrder> findBySupplierId(Long supplierId);
+    List<PurchaseOrder> findBySupplier_SupplierId(Long supplierId);
     List<PurchaseOrder> findByOrderStatus(String status);
 
     @Query("SELECT p FROM PurchaseOrder p LEFT JOIN FETCH p.items WHERE p.orderId = :orderId")
     Optional<PurchaseOrder> findByIdWithItems(@Param("orderId") Long orderId);
 
     @Query("SELECT DISTINCT p FROM PurchaseOrder p " +
-    		"LEFT JOIN p.supplier s " +
-    		"LEFT JOIN p.user u " +
-    		"WHERE (:orderNo IS NULL OR CAST(p.orderId AS string) LIKE CONCAT('%', CONCAT(:orderNo, '%'))) AND " +
-            "AND (:supplierName IS NULL OR s.supplierName LIKE CONCAT('%', CONCAT(:supplierName, '%'))) " +
-    		"AND (:userName IS NULL OR u.userName LIKE CONCAT('%', CONCAT(:userName, '%'))) " +
-            "AND (:status IS NULL OR p.orderStatus = :status) " +
-            "ORDER BY p.orderId DESC")
+            "LEFT JOIN p.supplier s " +
+            "LEFT JOIN p.user u " +
+            "WHERE (:orderNo IS NULL OR CONCAT(p.orderId, '') LIKE CONCAT('%', CONCAT(:orderNo, '%'))) " +
+              "AND (:supplierName IS NULL OR s.supplierName LIKE CONCAT('%', CONCAT(:supplierName, '%'))) " +
+            "AND (:userName IS NULL OR u.userName LIKE CONCAT('%', CONCAT(:userName, '%'))) " +
+              "AND (:status IS NULL OR p.orderStatus = :status) " +
+              "ORDER BY p.orderId DESC")
     Page<PurchaseOrder> searchOrdersAdvanced(
     		@Param("orderNo") String orderNo,
     		@Param("supplierName") String supplierName,

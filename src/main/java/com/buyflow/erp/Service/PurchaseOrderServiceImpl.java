@@ -44,7 +44,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     	
     	Users user = userRepository.findById(request.getCreatedBy())
     			.orElseThrow(() -> new EntityNotFoundException("사용자가 존재하지 않습니다. ID: " + request.getCreatedBy()));
-        // 1. 부모인 발주서 엔티티를 먼저 빌드 (금액은 우선 0원 처리)
+        
+    	// 1. 부모인 발주서 엔티티를 먼저 빌드 (금액은 우선 0원 처리)
         PurchaseOrder order = PurchaseOrder.builder()
                 .supplier(supplier)
                 .user(user)
@@ -54,70 +55,41 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 .totalAmount(0.0)
                 .build();
 
-        // 발주서를 먼저 영속화(DB 저장)하여 고유 번호(ORDER_ID)를 받아옵니다.
-        PurchaseOrder savedOrder = orderRepository.save(order);
-
-        Double total = 0.0;
-        List<PurchaseOrderItem> itemsToSave = new ArrayList<>();
+//        List<PurchaseOrderItem> itemsToSave = new ArrayList<>();
         
         // 1-2. 화면에서 넘어온 내부 static Item DTO를 꺼내어 엔티티로 변환.
+        Double total = 0.0;
         for (PurchaseOrderDto.Item itemReq : request.getItems()) {
             PurchaseOrderItem item = PurchaseOrderItem.builder()
-                    .purchaseOrder(savedOrder) // 영속화된 발주서 ID를 매핑!
                     .productId(itemReq.getProductId())
                     .quantity(itemReq.getQuantity())   // Long 타입
                     .unitPrice(itemReq.getUnitPrice()) // Double 타입
                     .build();
             
-            itemsToSave.add(item); // 빈 리스트에 차곡차곡 담기.
-            
-            // Double 타입 금액 합산 계산
+            order.addItem(item); // 빈 리스트에 차곡차곡 담기.
             total += itemReq.getUnitPrice() * itemReq.getQuantity();
         } 
 
-        // 1-3. 생성된 아이템 리스트 일괄 저장
-        orderItemRepository.saveAll(itemsToSave);
-
         // 1-4. 총 금액 업데이트 후 최종 반영
-        savedOrder.setTotalAmount(total);
-        PurchaseOrder finalSavedOrder = orderRepository.save(savedOrder);
+        order.setTotalAmount(total);
         
         // 리턴값은 새로 정돈한 DTO의 만능 변환기(.from)를 써서 반환
         // 연관관계가 없으므로 엔티티와 저장한 자식 리스트(itemsToSave)를 같이 던져줌.
-        return PurchaseOrderDto.Response.from(finalSavedOrder);
+        // 발주서를 먼저 영속화(DB 저장)하여 고유 번호(ORDER_ID)를 받아옵니다.
+        PurchaseOrder savedOrder = orderRepository.save(order);
+        
+        return PurchaseOrderDto.Response.from(savedOrder);
     }
     
     // 2. 발주 단건 상세 조회
     @Override
     @Transactional(readOnly = true)
     public PurchaseOrderDto.Response getOrderWithItems(Long orderId) {
-        PurchaseOrder order = orderRepository.findById(orderId)
+    	// N+1
+        PurchaseOrder order = orderRepository.findByIdWithItems(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("발주를 찾을 수 없습니다. ID: " + orderId));
         
-        // 연관관계가 없으므로 아이템 테이블에서 orderId로 직접 조회해 와야 합니다.
-        List<PurchaseOrderItem> items = orderItemRepository.findByPurchaseOrder_OrderId(orderId);
-        
         return PurchaseOrderDto.Response.from(order);
-        // 조회된 아이템들을 Response DTO 형식으로 변환
-//        List<PurchaseOrderItemDto> itemDtos = items.stream()
-//                .map(item -> PurchaseOrderItemDto.builder()
-//                        .orderItemId(item.getOrderItemId())
-//                        .productId(item.getProductId())
-//                        .quantity(item.getQuantity())
-//                        .unitPrice(item.getUnitPrice())
-//                        .build())
-//                .toList();
-//
-//        return PurchaseOrderResponse.builder()
-//                .orderId(order.getOrderId())
-//                .supplierId(order.getSupplierId())
-//                .createdBy(order.getCreatedBy())
-//                .createdAt(order.getCreatedAt())
-//                .orderStatus(order.getOrderStatus())
-//                .dueDate(order.getDueDate())
-//                .totalAmount(order.getTotalAmount())
-//                .items(itemDtos)
-//                .build();
     }
 
     // 3. 발주 목록 조회
