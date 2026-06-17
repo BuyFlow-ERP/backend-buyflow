@@ -239,19 +239,18 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
         int quantity = item.getRequestQuantity() != null ? item.getRequestQuantity() : 0;
         int unitPrice = item.getEstimatedUnitPrice() != null ? item.getEstimatedUnitPrice() : 0;
 
-    return new PurchaseRequestDto.ItemResponse(
-        item.getRequestItemId(),
-        item.getProductId(),
-        product != null ? nullToEmpty(product.getProductNo()) : "",
-        product != null ? nullToEmpty(product.getProductName()) : "",
-        product != null ? nullToEmpty(product.getCategoryName()) : "",
-        product != null ? nullToEmpty(product.getSpec()) : "",
-        quantity,
-        product != null ? nullToEmpty(product.getUnit()) : "",
-        unitPrice,
-        quantity * unitPrice,
-        nullToEmpty(item.getRemark())
-);
+        return new PurchaseRequestDto.ItemResponse(
+                item.getRequestItemId(),
+                item.getProductId(),
+                product != null ? nullToEmpty(product.getProductNo()) : "",
+                product != null ? nullToEmpty(product.getProductName()) : "",
+                product != null ? nullToEmpty(product.getCategoryName()) : "",
+                product != null ? nullToEmpty(product.getSpec()) : "",
+                quantity,
+                product != null ? nullToEmpty(product.getUnit()) : "",
+                unitPrice,
+                quantity * unitPrice
+        );
     }
 
     private long countByStatusLabel(List<PurchaseRequest> requests, String label) {

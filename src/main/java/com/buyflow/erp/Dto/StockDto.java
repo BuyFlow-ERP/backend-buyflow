@@ -3,7 +3,6 @@ package com.buyflow.erp.Dto;
 import java.time.LocalDateTime;
 
 import lombok.Getter;
-import lombok.Setter;
 
 public class StockDto {
 
@@ -17,7 +16,6 @@ public class StockDto {
 
     // 화면에 List 뿌릴 때 쓰기 위함.
     @Getter
-    @Setter
     public static class Response {
         private Long stockId;
         private Long productId;

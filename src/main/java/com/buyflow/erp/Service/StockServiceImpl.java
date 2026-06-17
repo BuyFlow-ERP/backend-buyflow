@@ -56,15 +56,15 @@ public class StockServiceImpl implements StockService {
     private StockDto.Response convertToResponseDto(Stock stock) {
         StockDto.Response rs = new StockDto.Response();
 
-        rs.setStockId(stock.getStockId());
-        rs.setProductId(stock.getProductId());
-        rs.setWarehouseCode(stock.getWarehouseCode());
-        rs.setQuantity(stock.getQuantity());
-        rs.setStockStatus(stock.getStockStatus());
-        rs.setUpdatedAt(stock.getUpdatedAt());
-
-        rs.setProductName("품목명");
-        rs.setWarehouseName("창고명");
+//        rs.setStockId(stock.getStockId());
+//        rs.setProductId(stock.getProductId());
+//        rs.setWarehouseCode(stock.getWarehouseCode());
+//        rs.setQuantity(stock.getQuantity());
+//        rs.setStockStatus(stock.getStockStatus());
+//        rs.setUpdatedAt(stock.getUpdatedAt());
+//
+//        rs.setProductName("품목명");
+//        rs.setWarehouseName("창고명");
 
         return rs;
 
