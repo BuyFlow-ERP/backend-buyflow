@@ -12,6 +12,8 @@ public interface PurchaseOrderService {
 
 	// 발주 상세 조회 (items 포함)
 	PurchaseOrderDto.Response getOrderWithItems(Long orderId);
+	
+	List<PurchaseOrderDto.ItemResponse> getApprovedRequestItems(Long requestId);
 
 	// 발주 목록 조회
 	PageResponse<PurchaseOrderDto.Response> getOrderList(PurchaseOrderDto.SearchCondition condition);
