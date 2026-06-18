@@ -72,4 +72,14 @@ public class PurchaseRequestController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(purchaseRequestService.createPurchaseRequest(request));
     }
-}
+
+    @PutMapping("/{requestId}")
+    public ResponseEntity<PurchaseRequestDto.DetailResponse> updatePurchaseRequest(
+            @PathVariable Long requestId,
+            @RequestBody PurchaseRequestDto.UpdateRequest request
+    ) {
+        return ResponseEntity.ok(
+            purchaseRequestService.updatePurchaseRequest(requestId, request)
+            );
+        }
+    }

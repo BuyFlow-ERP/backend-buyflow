@@ -89,6 +89,36 @@ public class PurchaseRequestDto {
     ) {
     }
 
+    public record UpdateRequest(
+        String requestNumber,
+        String requestDate,
+        String expectedDate,
+        String title,
+        String urgency,
+        String priority,
+        String status,
+        String reason,
+        List<UpdateItemRequest> items
+    ) {
+    }
+
+    public record UpdateItemRequest(
+        Long productId,
+        Integer requestQuantity,
+        Integer quantity,
+        BigDecimal estimatedUnitPrice,
+        BigDecimal unitPrice,
+        String remark
+  ) {
+        public Integer requestQuantity() {
+           return requestQuantity != null ? requestQuantity : quantity;
+      }
+
+        public BigDecimal estimatedUnitPrice() {
+           return estimatedUnitPrice != null ? estimatedUnitPrice : unitPrice;
+      }
+  }
+
     public record CreateItemRequest(
             Long productId,
             Integer requestQuantity,
