@@ -41,6 +41,7 @@ public class WarehouseDto {
         private LocalDateTime updatedAt;
         private String managerName; 
         private String type;
+        private String memo;
     }
     
 	@Getter
@@ -59,6 +60,7 @@ public class WarehouseDto {
         private LocalDateTime updatedAt;
         private String managerName;
         private String type;
+        private String memo;
     }
     
 	@Getter
@@ -76,6 +78,7 @@ public class WarehouseDto {
         private String userId;
         private String managerName;
         private String type;
+        private String memo;
     }
     
 	@Getter
@@ -91,6 +94,8 @@ public class WarehouseDto {
     	private String useYn;
     	private String userId;
     	private String type;
+        private String managerName;
+        private String memo;
     }
     
 }
