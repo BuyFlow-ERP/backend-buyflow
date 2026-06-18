@@ -2,15 +2,15 @@ package com.buyflow.erp.Service;
 
 import java.util.List;
 
-import com.buyflow.erp.Entity.StockHistory;
+import com.buyflow.erp.Dto.StockHistoryResponseDto;
 
 public interface StockHistoryService {
 
-    List<StockHistory> getStockHistory();
+    List<StockHistoryResponseDto> getStockHistory();
 
-    List<StockHistory> getStockHistoryByType(
+    List<StockHistoryResponseDto> getStockHistoryByType(
             String historyType);
 
-    StockHistory getStockHistory(
+    StockHistoryResponseDto getStockHistory(
             Long historyId);
 }

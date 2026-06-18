@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.buyflow.erp.Entity.StockHistory;
+import com.buyflow.erp.Dto.StockHistoryResponseDto;
 import com.buyflow.erp.Service.StockHistoryService;
 
 import lombok.RequiredArgsConstructor;
@@ -20,13 +20,13 @@ public class StockHistoryController {
     private final StockHistoryService stockHistoryService;
 
     @GetMapping
-    public List<StockHistory> getStockHistory() {
+    public List<StockHistoryResponseDto> getStockHistory() {
 
         return stockHistoryService.getStockHistory();
     }
 
     @GetMapping("/type/{historyType}")
-    public List<StockHistory> getStockHistoryByType(
+    public List<StockHistoryResponseDto> getStockHistoryByType(
             @PathVariable String historyType) {
 
         return stockHistoryService
@@ -34,11 +34,10 @@ public class StockHistoryController {
     }
 
     @GetMapping("/{historyId}")
-    public StockHistory getStockHistory(
+    public StockHistoryResponseDto getStockHistory(
             @PathVariable Long historyId) {
 
         return stockHistoryService
-                .getStockHistory(
-                        historyId);
+                .getStockHistory(historyId);
     }
 }
