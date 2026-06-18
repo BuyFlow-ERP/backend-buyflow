@@ -28,5 +28,12 @@ public interface PurchaseRequestService {
 
     Map<String, Object> getFilterOptions();
 
-    PurchaseRequestDto.DetailResponse createPurchaseRequest(PurchaseRequestDto.CreateRequest request);
+    PurchaseRequestDto.DetailResponse createPurchaseRequest(
+            PurchaseRequestDto.CreateRequest request
+    );
+
+    PurchaseRequestDto.DetailResponse updatePurchaseRequest(
+            Long requestId,
+            PurchaseRequestDto.UpdateRequest request
+    );
 }

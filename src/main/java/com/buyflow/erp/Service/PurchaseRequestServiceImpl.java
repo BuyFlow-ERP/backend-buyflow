@@ -254,6 +254,111 @@ BigDecimal calculatedTotalAmount = items.stream()
             return getPurchaseRequestDetail(requestId);
     }
 
+@Override
+@Transactional
+    public PurchaseRequestDto.DetailResponse updatePurchaseRequest(
+        Long requestId,
+        PurchaseRequestDto.UpdateRequest dto
+) {
+        PurchaseRequest request = purchaseRequestRepository.findById(requestId)
+                .filter(this::isActive)
+                .orElseThrow(() -> new EntityNotFoundException(
+                    "구매 요청을 찾을 수 없습니다. ID: " + requestId
+            ));
+
+            validateEditableStatus(request);
+
+    if (isBlank(dto.title())) {
+        throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "요청 제목은 필수입니다."
+        );
+    }
+
+    if (isBlank(dto.reason())) {
+        throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "요청 사유는 필수입니다."
+        );
+    }
+
+    List<PurchaseRequestDto.UpdateItemRequest> itemDtos =
+            dto.items() == null ? List.of() : dto.items();
+
+    if (itemDtos.isEmpty()) {
+        throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "구매 요청 품목은 1개 이상 필요합니다."
+        );
+    }
+
+    LocalDateTime now = LocalDateTime.now();
+
+    request.setTitle(dto.title().trim());
+    request.setReason(dto.reason().trim());
+    request.setDueDate(parseDate(dto.expectedDate()));
+    request.setUpdatedAt(now);
+
+    List<PurchaseRequestItem> existingItems =
+            purchaseRequestItemRepository.findByRequestIdOrderByRequestItemIdAsc(requestId);
+
+    purchaseRequestItemRepository.deleteAll(existingItems);
+
+    List<PurchaseRequestItem> nextItems = new ArrayList<>();
+    BigDecimal totalAmount = BigDecimal.ZERO;
+
+    for (PurchaseRequestDto.UpdateItemRequest itemDto : itemDtos) {
+        if (itemDto.productId() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "품목 ID는 필수입니다."
+            );
+        }
+
+        Product product = productRepository.findById(itemDto.productId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "존재하지 않는 품목 ID입니다: " + itemDto.productId()
+                ));
+
+        int quantity = itemDto.requestQuantity() != null
+                ? itemDto.requestQuantity()
+                : 0;
+
+        if (quantity <= 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "요청 수량은 1개 이상이어야 합니다."
+            );
+        }
+
+        BigDecimal unitPrice = itemDto.estimatedUnitPrice() != null
+                ? itemDto.estimatedUnitPrice()
+                : toBigDecimal(product.getUnitPrice());
+
+        BigDecimal amount = calculateAmount(quantity, unitPrice);
+        totalAmount = totalAmount.add(amount);
+
+        PurchaseRequestItem item = new PurchaseRequestItem();
+        item.setRequestId(requestId);
+        item.setProductId(itemDto.productId());
+        item.setRequestQuantity(quantity);
+        item.setEstimatedUnitPrice(unitPrice);
+        item.setRemark(nullToEmpty(itemDto.remark()));
+        item.setCreatedAt(now);
+        item.setUpdatedAt(now);
+
+        nextItems.add(item);
+    }
+
+    request.setTotalAmount(totalAmount);
+
+    purchaseRequestRepository.save(request);
+    purchaseRequestItemRepository.saveAll(nextItems);
+
+    return getPurchaseRequestDetail(requestId);
+}
+
     private PurchaseRequestDto.ListResponse toListResponse(PurchaseRequest request) {
         return new PurchaseRequestDto.ListResponse(
             request.getRequestId(),
@@ -442,5 +547,29 @@ BigDecimal calculatedTotalAmount = items.stream()
         default -> "PENDING_APPROVAL";
     };
 }
+
+
+    private void validateEditableStatus(PurchaseRequest request) {
+        String status = normalizeRequestStatus(request.getRequestStatus());
+
+        boolean editable = Set.of(
+            "DRAFT",
+            "PENDING_APPROVAL",
+            "REJECTED"
+    ).contains(status);
+
+    if (!editable) {
+        throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "현재 상태에서는 구매 요청을 수정할 수 없습니다. 상태: "
+                        + toRequestStatusLabel(status)
+        );
+    }
+}
+
+    private BigDecimal toBigDecimal(Long value) {
+        return value == null ? BigDecimal.ZERO : BigDecimal.valueOf(value);
+    }
+
 }
 
