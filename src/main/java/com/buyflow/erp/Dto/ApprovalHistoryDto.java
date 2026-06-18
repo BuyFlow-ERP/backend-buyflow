@@ -66,6 +66,7 @@ public class ApprovalHistoryDto {
     }
 
     public record ApprovalItemResponse(
+
         Long requestItemId,
         Long productId,
         String itemCode,
@@ -81,7 +82,6 @@ public class ApprovalHistoryDto {
         String updatedAt
 ) {
 }
-
     public record AttachmentResponse(
             Long attachmentId,
             String fileName,

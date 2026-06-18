@@ -264,6 +264,7 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
         int quantity = item.getRequestQuantity() != null ? item.getRequestQuantity() : 0;
         int unitPrice = item.getEstimatedUnitPrice() != null ? item.getEstimatedUnitPrice() : 0;
 
+
     return new PurchaseRequestDto.ItemResponse(
         item.getRequestItemId(),
         item.getProductId(),
@@ -279,6 +280,7 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
         formatDateTime(item.getCreatedAt()),
         formatDateTime(item.getUpdatedAt())
 );
+
     }
 
     private long countByStatusLabel(List<PurchaseRequest> requests, String label) {

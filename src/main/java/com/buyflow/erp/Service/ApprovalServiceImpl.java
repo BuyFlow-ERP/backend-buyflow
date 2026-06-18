@@ -231,6 +231,7 @@ private ApprovalHistoryDto.DetailResponse toDetailResponse(ApprovalHistory appro
                     int quantity = item.getRequestQuantity() != null ? item.getRequestQuantity() : 0;
                     int unitPrice = item.getEstimatedUnitPrice() != null ? item.getEstimatedUnitPrice() : 0;
 
+
 return new ApprovalHistoryDto.ApprovalItemResponse(
         item.getRequestItemId(),
         item.getProductId(),

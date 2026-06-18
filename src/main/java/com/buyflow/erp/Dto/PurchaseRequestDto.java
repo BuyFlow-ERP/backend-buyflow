@@ -55,7 +55,6 @@ public class PurchaseRequestDto {
           String updatedAt
    ) {
  }
-
     public record AttachmentResponse(
             Long attachmentId,
             String fileName,
