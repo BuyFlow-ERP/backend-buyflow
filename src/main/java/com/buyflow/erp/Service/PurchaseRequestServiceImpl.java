@@ -192,10 +192,25 @@ BigDecimal calculatedTotalAmount = items.stream()
 
         request.setTotalAmount(BigDecimal.ZERO);
 
+        /*
+        * REQUEST_NO는 DB에서 NOT NULL 컬럼이다.
+        * 따라서 첫 save 전에 임시 요청번호라도 반드시 넣어야 한다.
+        */
+        boolean autoGenerateRequestNo = isBlank(dto.requestNumber());
+
+        request.setRequestNo(
+            autoGenerateRequestNo
+                ? "PR-TEMP-" + System.currentTimeMillis()
+                : dto.requestNumber().trim()
+    );
+
         purchaseRequestRepository.save(request);
 
         Long requestId = request.getRequestId();
-        request.setRequestNo(isBlank(dto.requestNumber()) ? createRequestNumber(requestId) : dto.requestNumber());
+
+        if (autoGenerateRequestNo) {
+            request.setRequestNo(createRequestNumber(requestId));
+        }
 
         List<PurchaseRequestItem> items = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
