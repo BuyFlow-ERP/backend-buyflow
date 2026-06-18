@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -96,17 +97,17 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
                 .filter(this::isActive)
                 .orElseThrow(() -> new EntityNotFoundException("구매 요청을 찾을 수 없습니다. ID: " + requestId));
 
-        List<PurchaseRequestDto.ItemResponse> items = getItemResponses(requestId);
-        int calculatedTotalAmount = items.stream()
-                .mapToInt(PurchaseRequestDto.ItemResponse::estimatedAmount)
-                .sum();
+List<PurchaseRequestDto.ItemResponse> items = getItemResponses(requestId);
+BigDecimal calculatedTotalAmount = items.stream()
+        .map(PurchaseRequestDto.ItemResponse::estimatedAmount)
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             return new PurchaseRequestDto.DetailResponse(
                 request.getRequestId(),
                 nullToEmpty(request.getRequestNo()),
                 nullToEmpty(request.getTitle()),
                 getUserName(request.getRequestorId()),
-                "-",
+                getDepartmentName(request.getRequestorId()),
                 formatDate(request.getCreatedAt()),
                 formatDate(request.getDueDate()),
                 formatDateTime(request.getCreatedAt()),
@@ -137,8 +138,16 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
     @Override
     public Map<String, Object> getFilterOptions() {
         Set<String> departments = new LinkedHashSet<>();
-        departments.add("전체 부서");
-        departments.add("-");
+            departments.add("전체 부서");
+
+            userRepository.findAll().stream()
+                .map(Users::getDepartmentName)
+                .filter(name -> !isBlank(name))
+                .forEach(departments::add);
+
+        if (departments.size() == 1) {
+                departments.add("-");
+         }
 
         Set<String> statuses = new LinkedHashSet<>(List.of("전체", "승인 대기", "승인 완료", "반려", "발주 완료"));
         Set<String> priorities = new LinkedHashSet<>(List.of("전체", "일반", "긴급"));
@@ -153,12 +162,9 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
     @Override
     @Transactional
     public PurchaseRequestDto.DetailResponse createPurchaseRequest(PurchaseRequestDto.CreateRequest dto) {
-        long requestId = nextRequestId();
         LocalDateTime now = LocalDateTime.now();
 
         PurchaseRequest request = new PurchaseRequest();
-        request.setRequestId(requestId);
-        request.setRequestNo(isBlank(dto.requestNumber()) ? createRequestNumber(requestId) : dto.requestNumber());
         Long requestorId = dto.requestorId();
 
     if (requestorId == null) {
@@ -184,17 +190,25 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
         request.setRequestStatus(normalizeRequestStatus(dto.status()));
         request.setDeletedYn("N");
 
+        request.setTotalAmount(BigDecimal.ZERO);
+
+        purchaseRequestRepository.save(request);
+
+        Long requestId = request.getRequestId();
+        request.setRequestNo(isBlank(dto.requestNumber()) ? createRequestNumber(requestId) : dto.requestNumber());
+
         List<PurchaseRequestItem> items = new ArrayList<>();
-        long nextItemId = nextRequestItemId();
-        int totalAmount = 0;
+        BigDecimal totalAmount = BigDecimal.ZERO;
 
         for (PurchaseRequestDto.CreateItemRequest itemDto : dto.items() == null ? List.<PurchaseRequestDto.CreateItemRequest>of() : dto.items()) {
             int quantity = itemDto.requestQuantity() != null ? itemDto.requestQuantity() : 0;
-            int unitPrice = itemDto.estimatedUnitPrice() != null ? itemDto.estimatedUnitPrice() : 0;
-            totalAmount += quantity * unitPrice;
+            BigDecimal unitPrice = itemDto.estimatedUnitPrice() != null
+            ? itemDto.estimatedUnitPrice()
+            : BigDecimal.ZERO;
+
+            totalAmount = totalAmount.add(calculateAmount(quantity, unitPrice));
 
             PurchaseRequestItem item = new PurchaseRequestItem();
-            item.setRequestItemId(nextItemId++);
             item.setRequestId(requestId);
             item.setProductId(itemDto.productId());
             item.setRequestQuantity(quantity);
@@ -203,7 +217,7 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
             item.setCreatedAt(now);
             item.setUpdatedAt(now);
             items.add(item);
-        }
+}
 
     request.setTotalAmount(totalAmount);
     purchaseRequestRepository.save(request);
@@ -212,9 +226,8 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
     if ("PENDING_APPROVAL".equals(request.getRequestStatus())) {
     ApprovalHistory approvalHistory = new ApprovalHistory();
 
-    approvalHistory.setApprovalId(nextApprovalId());
     approvalHistory.setRequestId(requestId);
-    approvalHistory.setApproverId(101L);
+    approvalHistory.setApproverId(resolveApproverId(requestorId));
     approvalHistory.setApprovalStatus("PENDING_APPROVAL");
     approvalHistory.setCommentText("구매 요청 승인 대기");
     approvalHistory.setApprovedAt(null);
@@ -228,21 +241,21 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
 
     private PurchaseRequestDto.ListResponse toListResponse(PurchaseRequest request) {
         return new PurchaseRequestDto.ListResponse(
-                request.getRequestId(),
-                nullToEmpty(request.getRequestNo()),
-                nullToEmpty(request.getTitle()),
-                getUserName(request.getRequestorId()),
-                "-",
-                formatDate(request.getCreatedAt()),
-                formatDate(request.getDueDate()),
-                formatDateTime(request.getCreatedAt()),
-                formatDateTime(request.getUpdatedAt()),
-                purchaseRequestItemRepository.countByRequestId(request.getRequestId()),
-                request.getTotalAmount() != null ? request.getTotalAmount() : 0,
-                resolvePriorityLabel(request),
-                toRequestStatusLabel(request.getRequestStatus())
-        );
-    }
+            request.getRequestId(),
+            nullToEmpty(request.getRequestNo()),
+            nullToEmpty(request.getTitle()),
+            getUserName(request.getRequestorId()),
+            getDepartmentName(request.getRequestorId()),
+            formatDate(request.getCreatedAt()),
+            formatDate(request.getDueDate()),
+            formatDateTime(request.getCreatedAt()),
+            formatDateTime(request.getUpdatedAt()),
+            purchaseRequestItemRepository.countByRequestId(request.getRequestId()),
+            request.getTotalAmount() != null ? request.getTotalAmount() : BigDecimal.ZERO,
+            resolvePriorityLabel(request),
+            toRequestStatusLabel(request.getRequestStatus())
+    );
+}
 
     private List<PurchaseRequestDto.ItemResponse> getItemResponses(Long requestId) {
         List<PurchaseRequestItem> items = purchaseRequestItemRepository.findByRequestIdOrderByRequestItemIdAsc(requestId);
@@ -260,27 +273,33 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
                 .toList();
     }
 
-    private PurchaseRequestDto.ItemResponse toItemResponse(PurchaseRequestItem item, Product product) {
-        int quantity = item.getRequestQuantity() != null ? item.getRequestQuantity() : 0;
-        int unitPrice = item.getEstimatedUnitPrice() != null ? item.getEstimatedUnitPrice() : 0;
+        private PurchaseRequestDto.ItemResponse toItemResponse(PurchaseRequestItem item, Product product) {
+            int quantity = item.getRequestQuantity() != null ? item.getRequestQuantity() : 0;
+        BigDecimal unitPrice = item.getEstimatedUnitPrice() != null
+            ? item.getEstimatedUnitPrice()
+            : BigDecimal.ZERO;
+        BigDecimal estimatedAmount = calculateAmount(quantity, unitPrice);
 
+            return new PurchaseRequestDto.ItemResponse(
+                    item.getRequestItemId(),
+                    item.getProductId(),
+                    product != null ? nullToEmpty(product.getProductNo()) : "",
+                    product != null ? nullToEmpty(product.getProductName()) : "",
+                    product != null ? nullToEmpty(product.getCategoryName()) : "",
+                    product != null ? nullToEmpty(product.getSpec()) : "",
+                    quantity,
+                    product != null ? nullToEmpty(product.getUnit()) : "",
+                    unitPrice,
+                    estimatedAmount,
+                    nullToEmpty(item.getRemark()),
+                    formatDateTime(item.getCreatedAt()),
+                    formatDateTime(item.getUpdatedAt())
+            );
+        }
 
-    return new PurchaseRequestDto.ItemResponse(
-        item.getRequestItemId(),
-        item.getProductId(),
-        product != null ? nullToEmpty(product.getProductNo()) : "",
-        product != null ? nullToEmpty(product.getProductName()) : "",
-        product != null ? nullToEmpty(product.getCategoryName()) : "",
-        product != null ? nullToEmpty(product.getSpec()) : "",
-        quantity,
-        product != null ? nullToEmpty(product.getUnit()) : "",
-        unitPrice,
-        quantity * unitPrice,
-        nullToEmpty(item.getRemark()),
-        formatDateTime(item.getCreatedAt()),
-        formatDateTime(item.getUpdatedAt())
-);
-
+        private BigDecimal calculateAmount(int quantity, BigDecimal unitPrice) {
+            BigDecimal safeUnitPrice = unitPrice != null ? unitPrice : BigDecimal.ZERO;
+            return safeUnitPrice.multiply(BigDecimal.valueOf(quantity));
     }
 
     private long countByStatusLabel(List<PurchaseRequest> requests, String label) {
@@ -319,6 +338,17 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
                 .map(Users::getUserName)
                 .filter(name -> !isBlank(name))
                 .orElse("사용자 " + userId);
+    }
+
+    private String getDepartmentName(Long userId) {
+    if (userId == null) {
+        return "-";
+        }
+
+    return userRepository.findById(userId)
+            .map(Users::getDepartmentName)
+            .filter(name -> !isBlank(name))
+            .orElse("-");
     }
 
     private String resolvePriorityLabel(PurchaseRequest request) {
@@ -370,32 +400,13 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
         return LocalDate.parse(value);
     }
 
-    private long nextRequestId() {
-        return purchaseRequestRepository.findAll()
-                .stream()
-                .map(PurchaseRequest::getRequestId)
-                .filter(Objects::nonNull)
-                .max(Comparator.naturalOrder())
-                .orElse(0L) + 1;
+    private Long resolveApproverId(Long requestorId) {
+        return userRepository.findFirstApproverId(requestorId)
+                .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "승인자로 지정할 사용자가 없습니다."
+            ));
     }
-
-    private long nextRequestItemId() {
-        return purchaseRequestItemRepository.findAll()
-                .stream()
-                .map(PurchaseRequestItem::getRequestItemId)
-                .filter(Objects::nonNull)
-                .max(Comparator.naturalOrder())
-                .orElse(0L) + 1;
-    }
-
-    private long nextApprovalId() {
-        return approvalHistoryRepository.findAll()
-                .stream()
-                .map(ApprovalHistory::getApprovalId)
-                .filter(Objects::nonNull)
-                .max(Comparator.naturalOrder())
-                .orElse(920000L) + 1;
-}
 
     private String createRequestNumber(long requestId) {
         return "PR-" + LocalDate.now().getYear() + "-" + String.format("%04d", requestId);

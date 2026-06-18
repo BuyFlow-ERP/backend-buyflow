@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -229,7 +230,7 @@ private ApprovalHistoryDto.DetailResponse toDetailResponse(ApprovalHistory appro
                 .map(item -> {
                     Product product = productMap.get(item.getProductId());
                     int quantity = item.getRequestQuantity() != null ? item.getRequestQuantity() : 0;
-                    int unitPrice = item.getEstimatedUnitPrice() != null ? item.getEstimatedUnitPrice() : 0;
+                    BigDecimal unitPrice = item.getEstimatedUnitPrice() != null ? item.getEstimatedUnitPrice() : BigDecimal.ZERO;
 
 
 return new ApprovalHistoryDto.ApprovalItemResponse(
@@ -242,7 +243,7 @@ return new ApprovalHistoryDto.ApprovalItemResponse(
         quantity,
         product != null ? nullToEmpty(product.getUnit()) : "",
         unitPrice,
-        quantity * unitPrice,
+        unitPrice.multiply(BigDecimal.valueOf(quantity)),
         nullToEmpty(item.getRemark()),
         formatDateTime(item.getCreatedAt()),
         formatDateTime(item.getUpdatedAt())
@@ -277,12 +278,17 @@ return new ApprovalHistoryDto.ApprovalItemResponse(
                 .orElseThrow(() -> new EntityNotFoundException("구매 요청을 찾을 수 없습니다. ID: " + requestId));
     }
 
-    private int calculateTotalAmount(Long requestId) {
+    private BigDecimal calculateTotalAmount(Long requestId) {
         return purchaseRequestItemRepository.findByRequestIdOrderByRequestItemIdAsc(requestId)
                 .stream()
-                .mapToInt(item -> (item.getRequestQuantity() != null ? item.getRequestQuantity() : 0)
-                        * (item.getEstimatedUnitPrice() != null ? item.getEstimatedUnitPrice() : 0))
-                .sum();
+                .map(item -> {
+                    int quantity = item.getRequestQuantity() != null ? item.getRequestQuantity() : 0;
+                    BigDecimal unitPrice = item.getEstimatedUnitPrice() != null
+                            ? item.getEstimatedUnitPrice()
+                            : BigDecimal.ZERO;
+                    return unitPrice.multiply(BigDecimal.valueOf(quantity));
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private String getUserName(Long userId) {

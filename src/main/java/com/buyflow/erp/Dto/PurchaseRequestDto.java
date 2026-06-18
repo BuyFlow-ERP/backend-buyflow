@@ -1,5 +1,6 @@
 package com.buyflow.erp.Dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public class PurchaseRequestDto {
@@ -15,7 +16,7 @@ public class PurchaseRequestDto {
            String createdAt,
            String updatedAt,
            long itemCount,
-           int totalAmount,
+           BigDecimal totalAmount,
            String priority,
            String status
     ) {
@@ -34,7 +35,7 @@ public class PurchaseRequestDto {
           String priority,
           String status,
           String reason,
-          int totalAmount,
+          BigDecimal totalAmount,
           List<ItemResponse> items,
           List<AttachmentResponse> attachments
      ) {
@@ -48,8 +49,8 @@ public class PurchaseRequestDto {
           String specification,
           int requestQuantity,
           String unit,
-          int estimatedUnitPrice,
-          int estimatedAmount,
+          BigDecimal estimatedUnitPrice,
+          BigDecimal estimatedAmount,
           String remark,
           String createdAt,
           String updatedAt
@@ -92,16 +93,16 @@ public class PurchaseRequestDto {
             Long productId,
             Integer requestQuantity,
             Integer quantity,
-            Integer estimatedUnitPrice,
-            Integer unitPrice,
+            BigDecimal estimatedUnitPrice,
+            BigDecimal unitPrice,
             String remark
     ) {
         public Integer requestQuantity() {
-            return requestQuantity != null ? requestQuantity : quantity;
+           return requestQuantity != null ? requestQuantity : quantity;
         }
 
-        public Integer estimatedUnitPrice() {
-            return estimatedUnitPrice != null ? estimatedUnitPrice : unitPrice;
+        public BigDecimal estimatedUnitPrice() {
+           return estimatedUnitPrice != null ? estimatedUnitPrice : unitPrice;
         }
     }
 

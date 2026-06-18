@@ -1,5 +1,6 @@
 package com.buyflow.erp.Dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public class ApprovalHistoryDto {
@@ -15,7 +16,7 @@ public class ApprovalHistoryDto {
         String desiredInboundAt,
         String createdAt,
         String updatedAt,
-        int totalAmount,
+        BigDecimal totalAmount,
         String priority,
         String requestStatus,
         String requestStatusLabel,
@@ -75,8 +76,8 @@ public class ApprovalHistoryDto {
         String specification,
         int quantity,
         String unit,
-        int expectedUnitPrice,
-        int expectedAmount,
+        BigDecimal expectedUnitPrice,
+        BigDecimal expectedAmount,
         String remark,
         String createdAt,
         String updatedAt
