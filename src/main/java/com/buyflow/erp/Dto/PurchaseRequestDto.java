@@ -65,13 +65,13 @@ public class PurchaseRequestDto {
 
     public record SummaryResponse(
             long total,
-            long draft,
             long pending,
             long approved,
             long rejected,
-            long ordered
-    ) {
-    }
+            long ordered,
+            long canceled
+     ) {
+      }
 
     public record CreateRequest(
             String requestNumber,

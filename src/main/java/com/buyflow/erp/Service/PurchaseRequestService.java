@@ -36,4 +36,6 @@ public interface PurchaseRequestService {
             Long requestId,
             PurchaseRequestDto.UpdateRequest request
     );
+
+    PurchaseRequestDto.DetailResponse cancelPurchaseRequest(Long requestId);
 }

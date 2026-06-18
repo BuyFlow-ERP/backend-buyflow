@@ -82,4 +82,13 @@ public class PurchaseRequestController {
             purchaseRequestService.updatePurchaseRequest(requestId, request)
             );
         }
+
+    @PatchMapping("/{requestId}/cancel")
+    public ResponseEntity<PurchaseRequestDto.DetailResponse> cancelPurchaseRequest(
+        @PathVariable Long requestId
+    ) {
+        return ResponseEntity.ok(
+            purchaseRequestService.cancelPurchaseRequest(requestId)
+            );
     }
+}
