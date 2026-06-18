@@ -1,11 +1,15 @@
 package com.buyflow.erp.Entity;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,6 +21,12 @@ import lombok.Setter;
 public class PurchaseRequest {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "purchase_request_seq")
+    @SequenceGenerator(
+        name = "purchase_request_seq",
+        sequenceName = "SEQ_PURCHASE_REQUEST",
+        allocationSize = 1
+)
     @Column(name = "REQUEST_ID")
     private Long requestId;
 
@@ -35,8 +45,8 @@ public class PurchaseRequest {
     @Column(name = "DUE_DATE")
     private LocalDate dueDate;
 
-    @Column(name = "TOTAL_AMOUNT")
-    private Integer totalAmount;
+    @Column(name = "TOTAL_AMOUNT", precision = 12, scale = 2)
+    private BigDecimal totalAmount;
 
     @Column(name = "CREATED_AT")
     private LocalDateTime createdAt;

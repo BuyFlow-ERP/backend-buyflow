@@ -36,4 +36,13 @@ public class Users {
 	
 	@Column(name = "LOGIN_ID")
 	private String loginId;
+
+	@Column(name = "DEPARTMENT_NAME")
+	private String departmentName;
+
+	@Column(name = "POSITION_NAME")
+	private String positionName;
+
+	@Column(name = "JOB_RANK")
+	private String jobRank;
 }
