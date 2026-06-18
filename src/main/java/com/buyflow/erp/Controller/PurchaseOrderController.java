@@ -1,5 +1,6 @@
 package com.buyflow.erp.Controller;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -18,7 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Dto.PurchaseOrderDto;
+import com.buyflow.erp.Dto.WarehouseDto;
 import com.buyflow.erp.Service.PurchaseOrderService;
+import com.buyflow.erp.Service.WarehouseService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -29,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 public class PurchaseOrderController {
 
     private final PurchaseOrderService service;
+    private final WarehouseService warehouseService;
 
     @GetMapping("/form-options")
     public ResponseEntity<Map<String, Object>> getFormOptions() {
@@ -37,8 +41,20 @@ public class PurchaseOrderController {
         // 예: 등록 폼에 공급업체 셀렉트 박스가 있다면 여기에 배열로 담아줍니다.
         options.put("statuses", Arrays.asList("전체", "PENDING", "APPROVED", "CANCELLED"));
         options.put("suppliers", Arrays.asList("전체 공급업체", "동양산업", "대한기계상사", "세진테크"));
+        options.put("approvedPurchaseRequests", new ArrayList<>());
         
+        List<WarehouseDto.HouseList> actualWarehouses = warehouseService.findAllWarehouses();
+        
+        options.put("warehouses", actualWarehouses);
         return ResponseEntity.ok(options);
+    }
+    
+    @GetMapping("/purchase-requests/{requestId}/items")
+    public ResponseEntity<List<PurchaseOrderDto.ItemResponse>> getRequestItems(
+    		@PathVariable(name = "requestId") Long requestId) {
+    	List<PurchaseOrderDto.ItemResponse> items = service.getApprovedRequestItems(requestId);
+    	
+    	return ResponseEntity.ok(items);
     }
     
     // 1. 발주 단건 상세 조회
@@ -69,12 +85,12 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(options);
     }
     
-    private Map<String, String> createOption(String value, String label) {
-    	Map<String, String> option = new HashMap<>();
-    	option.put("value", value);
-    	option.put("label", label);
-    	return option;
-    }
+//    private Map<String, String> createOption(String value, String label) {
+//    	Map<String, String> option = new HashMap<>();
+//    	option.put("value", value);
+//    	option.put("label", label);
+//    	return option;
+//    }
 
     // 3. 발주 등록
     @PostMapping

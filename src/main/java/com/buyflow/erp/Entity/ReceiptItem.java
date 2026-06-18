@@ -12,19 +12,19 @@ import java.time.LocalDateTime;
 @Table(name = "RECEIPT_ITEM")
 public class ReceiptItem {
 
-   @Id
-@GeneratedValue(
-        strategy = GenerationType.SEQUENCE,
-        generator = "receipt_item_seq"
-)
-@SequenceGenerator(
-        name = "receipt_item_seq",
-        sequenceName = "SEQ_RECEIPT_ITEM",
-        allocationSize = 1
-)
-@Column(name = "RECEIPT_ITEM_ID")
-private Long receiptItemId;
-
+	@Id
+	@GeneratedValue(
+	        strategy = GenerationType.SEQUENCE,
+	        generator = "receipt_item_seq"
+	)
+	@SequenceGenerator(
+	        name = "receipt_item_seq",
+	        sequenceName = "SEQ_RECEIPT_ITEM",
+	        allocationSize = 1
+	)
+	@Column(name = "RECEIPT_ITEM_ID")
+	private Long receiptItemId;
+	
     @Column(name = "RECEIPT_ID")
     private Long receiptId;
 

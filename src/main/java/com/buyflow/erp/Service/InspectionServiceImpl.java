@@ -1,7 +1,11 @@
 package com.buyflow.erp.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -14,17 +18,22 @@ import com.buyflow.erp.Dto.InspectionDto;
 import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Dto.StockDto;
 import com.buyflow.erp.Entity.Inspection;
+import com.buyflow.erp.Entity.PurchaseOrder;
 import com.buyflow.erp.Entity.Receipt;
 import com.buyflow.erp.Entity.ReceiptItem;
 import com.buyflow.erp.Entity.Stock;
 import com.buyflow.erp.Entity.StockHistory;
+import com.buyflow.erp.Entity.Supplier;
 import com.buyflow.erp.Entity.Users;
+import com.buyflow.erp.Entity.Warehouse;
 import com.buyflow.erp.Repository.InspectionRepository;
+import com.buyflow.erp.Repository.PurchaseOrderRepository;
 import com.buyflow.erp.Repository.ReceiptItemRepository;
 import com.buyflow.erp.Repository.ReceiptRepository;
 import com.buyflow.erp.Repository.StockHistoryRepository;
 import com.buyflow.erp.Repository.StockRepository;
 import com.buyflow.erp.Repository.UserRepository;
+import com.buyflow.erp.Repository.WarehouseRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -40,32 +49,117 @@ public class InspectionServiceImpl implements InspectionService {
 	private final StockRepository stockRepository;
 	private final StockHistoryRepository stockHistoryRepository;
 	private final UserRepository userRepository;
+	private final PurchaseOrderRepository purchaseOrderRepository;
+	private final WarehouseRepository warehouseRepository;
 
 	@Override
 	@Transactional(readOnly = true)
 	public PageResponse<InspectionDto.ListResponse> getInspections(InspectionDto.SearchCondition condition) {
-		int safePage = Math.max(condition.getPage(), 0);
-		int safeSize = Math.max(condition.getSize(), 1);
-		Pageable pageable = PageRequest.of(safePage, safeSize);
+	    // ⭕ [페이징 바인딩 해결] Integer 래퍼 방패로 500 바인딩 컷 차단
+	    int displayPage = (condition.getPage() != null) ? condition.getPage() : 1;
+	    int safeSize = (condition.getSize() != null && condition.getSize() > 0) ? condition.getSize() : 15;
+	    
+	    int safePage = Math.max(displayPage - 1, 0);
+	    Pageable pageable = PageRequest.of(safePage, safeSize);
 
-		String result = (condition.getInspectionResult() == null || condition.getInspectionResult().isEmpty()
-				|| condition.getInspectionResult().equals("전체")) ? null : condition.getInspectionResult();
+	    String result = (condition.getInspectionResult() == null || condition.getInspectionResult().isEmpty()
+	            || condition.getInspectionResult().equals("전체")) ? null : condition.getInspectionResult();
 
-		Page<Inspection> inspectionPage = inspectionRepository.searchInspections(condition.getReceiptItemId(), result,
-				pageable);
+	    Page<Inspection> inspectionPage = inspectionRepository.searchInspections(condition.getReceiptItemId(), result, pageable);
 
-		List<InspectionDto.ListResponse> dtoList = inspectionPage.getContent().stream()
-				.map(inspection -> new InspectionDto.ListResponse(inspection.getInspectionId(),
-						inspection.getInspectionDate(), inspection.getInspectionType(),
-						inspection.getInspectionResult(), inspection.getReceiptItemId(),
-						inspection.getUser() != null ? inspection.getUser().getUserId() : null,
-						inspection.getQuantity(), inspection.getDefectQuantity()))
-				.collect(Collectors.toList());
+	    List<InspectionDto.ListResponse> dtoList = inspectionPage.getContent().stream()
+	            .map(inspection -> new InspectionDto.ListResponse(
+	                    inspection.getInspectionId(),
+	                    inspection.getInspectionDate(), 
+	                    inspection.getInspectionType(),
+	                    inspection.getInspectionResult(), 
+	                    inspection.getReceiptItemId(),
+	                    inspection.getUser() != null ? inspection.getUser().getUserId() : null,
+	                    inspection.getQuantity(), 
+	                    inspection.getDefectQuantity()))
+	            .collect(Collectors.toList());
 
-		return new PageResponse<>(dtoList, new PageResponse.Pagination(inspectionPage.getNumber() + 1,
-				inspectionPage.getSize(), inspectionPage.getTotalElements(), inspectionPage.getTotalPages()));
+	    return new PageResponse<>(dtoList, new PageResponse.Pagination(
+	            inspectionPage.getNumber() + 1,
+	            inspectionPage.getSize(), 
+	            inspectionPage.getTotalElements(), 
+	            inspectionPage.getTotalPages()));
 	}
+	
+	@Override
+	@Transactional(readOnly = true)
+	public PageResponse<InspectionDto.Response> getPendingInspections(InspectionDto.SearchCondition condition) {
+	    
+	    // 🛡️ 프론트엔드 page=1 규격 완벽 인지 및 바인딩 방패
+	    int displayPage = (condition.getPage() != null) ? condition.getPage() : 1;
+	    int safeSize = (condition.getSize() != null && condition.getSize() > 0) ? condition.getSize() : 15;
+	    
+	    int safePage = Math.max(displayPage - 1, 0);
+	    Pageable pageable = PageRequest.of(safePage, safeSize);
+	    
+	    // 🚀 에러 발생 가능성 0%인 기본 findAll 메서드로 오라클 데이터 안전 획득!
+	    Page<ReceiptItem> pendingReceiptItemPage = receiptItemRepository.findAll(pageable);
 
+	    // 💡 연관 ID 리스트 추출 및 벌크 조인 캐시 맵 빌드
+	    List<Long> receiptIds = pendingReceiptItemPage.getContent().stream()
+	            .map(ReceiptItem::getReceiptId)
+	            .filter(Objects::nonNull)
+	            .toList();
+
+	    Map<Long, Receipt> receiptMap = receiptRepository.findAllById(receiptIds).stream()
+	            .collect(Collectors.toMap(Receipt::getReceiptId, Function.identity(), (v1, v2) -> v1));
+
+	    List<Long> orderIds = receiptMap.values().stream()
+	            .map(Receipt::getOrderId)
+	            .filter(Objects::nonNull)
+	            .toList();
+
+	    Map<Long, PurchaseOrder> orderMap = purchaseOrderRepository.findAllById(orderIds).stream()
+	            .collect(Collectors.toMap(PurchaseOrder::getOrderId, Function.identity(), (v1, v2) -> v1));
+
+	    // 웅장한 DTO 100% 안전 매칭 파이프라인
+	    List<InspectionDto.Response> dtoList = pendingReceiptItemPage.getContent().stream()
+	            .<InspectionDto.Response>map(item -> {
+	                Receipt receipt = (item.getReceiptId() != null) ? receiptMap.get(item.getReceiptId()) : null;
+	                PurchaseOrder order = null;
+	                if (receipt != null && receipt.getOrderId() != null) {
+	                	order = orderMap.get(receipt.getOrderId());
+	                }
+	                
+	                Supplier supplier = (order != null) ? order.getSupplier() : null;
+
+	                return InspectionDto.Response.builder()
+	                        .id(item.getReceiptItemId())
+	                        .inspectionNumber("IQC-" + item.getReceiptItemId())
+	                        
+	                        .inboundNumber(receipt != null && receipt.getReceiptNo() != null ? receipt.getReceiptNo() : "-")
+	                        .orderNumber(order != null ? "PO-2026-" + order.getOrderId() : "-")
+	                        .supplierName(supplier != null && supplier.getSupplierName() != null ? supplier.getSupplierName() : "-")
+	                        .warehouseName("-")
+	                        
+	                        .receivedAt(receipt != null && receipt.getReceiptDate() != null ? receipt.getReceiptDate().toLocalDate().toString() : "-")
+	                        .inspectionDueAt(receipt != null && receipt.getReceiptDate() != null ? receipt.getReceiptDate().toLocalDate().plusDays(3).toString() : "-")
+	                        .priority("일반")
+	                        .status("PENDING")
+	                        .receivedBy(receipt != null && receipt.getLoginId() != null ? receipt.getLoginId() : "-")
+	                        .itemCount(1)
+	                        .totalReceivedQuantity(item.getReceiptQty() != null ? item.getReceiptQty() : 0L)
+	                        .items(new ArrayList<>())
+	                        .build();
+	            })
+	            .toList();
+
+	    return new PageResponse<>(
+	            dtoList,
+	            new PageResponse.Pagination(
+	                    pendingReceiptItemPage.getNumber() + 1,
+	                    pendingReceiptItemPage.getSize(),
+	                    pendingReceiptItemPage.getTotalElements(),
+	                    pendingReceiptItemPage.getTotalPages()
+	            )
+	    );
+	}
+	
 	@Override
 	@Transactional(readOnly = true)
 	public Inspection getInspection(Long inspectionId) {

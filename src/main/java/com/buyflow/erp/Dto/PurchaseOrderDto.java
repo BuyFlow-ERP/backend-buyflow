@@ -1,12 +1,10 @@
 package com.buyflow.erp.Dto;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import com.buyflow.erp.Entity.PurchaseOrder;
-import com.buyflow.erp.Entity.PurchaseOrderItem;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -43,10 +41,18 @@ public class PurchaseOrderDto {
 		private Long createdBy; // 등록시에만 사용
 		private LocalDateTime dueDate;
 		private String orderStatus; // 수정시에 주로 사용
+		
+		private String orderNo;             // 발주 번호
+        private Long requestId;             // 구매 요청 ID
+        private String requestNumber;       // 구매 요청 번호
+        private String requestTitle;        // 구매 요청 제목
+        private String expectedInboundFrom; // 입고 예정일 (시작)
+        private String expectedInboundTo;   // 입고 예정일 (종료)
+        private String warehouseCode;       // 입고 창고 코드
+        private String memo;                // 비고
 
 		private List<PurchaseOrderDto.Item> items;
 	}
-	
 	
 	@Getter
 	@Setter
@@ -101,5 +107,21 @@ public class PurchaseOrderDto {
 					.items(itemDtos)
 					.build();
 		}
+	}
+	
+	@Getter
+	@Setter
+	@NoArgsConstructor
+	@AllArgsConstructor
+	@Builder
+	public static class ItemResponse {
+	    private Long requestItemId;     // 구매 요청 품목 식별자 (리액트 key로 사용됨)
+	    private String itemCode;        // 품목 코드
+	    private String itemName;        // 품목명
+	    private String specification;   // 규격
+	    private Integer requestedQuantity; // 요청 수량
+	    private Integer orderQuantity;    // 발주 수량 (초기값은 요청 수량과 동일하게 세팅)
+	    private String unit;            // 단위
+	    private Long unitPrice;         // 공급 단가 (초기값 0 또는 품목 기본 단가)
 	}
 }
