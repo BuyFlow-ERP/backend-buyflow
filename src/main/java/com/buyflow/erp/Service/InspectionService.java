@@ -16,4 +16,6 @@ public interface InspectionService {
     
     void saveInspectionResult(Long receiptId, InspectionDto.ResultRequest request);
     
+    InspectionDto.SummaryResponse getInspectionSummary();
+    
 }

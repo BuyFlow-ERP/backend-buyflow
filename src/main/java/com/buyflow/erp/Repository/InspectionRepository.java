@@ -23,4 +23,7 @@ public interface InspectionRepository extends JpaRepository<Inspection, Long> {
             @Param("result") String result,
             Pageable pageable
     );
+    
+    long count();
+    long countByInspectionResult(String inspectionResult);
 }

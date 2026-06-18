@@ -1,5 +1,6 @@
 package com.buyflow.erp.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -11,10 +12,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Dto.WarehouseDto;
+import com.buyflow.erp.Entity.Users;
 import com.buyflow.erp.Entity.Warehouse;
-import com.buyflow.erp.Entity.Users; 
+import com.buyflow.erp.Exception.ResourceNotFoundException;
+import com.buyflow.erp.Repository.UserRepository;
 import com.buyflow.erp.Repository.WarehouseRepository;
-import com.buyflow.erp.Repository.UserRepository; 
+
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -73,7 +76,7 @@ public class WarehouseServiceImpl implements WarehouseService {
     @Override
     public WarehouseDto.Detail getWarehouse(String warehouseCode) {
         Warehouse warehouse = warehouseRepository.findById(warehouseCode)
-                .orElseThrow(() -> new RuntimeException("창고 없음."));
+                .orElseThrow(() -> new ResourceNotFoundException("해당 창고를 찾을 수 없습니다. (코드: " + warehouseCode + ")"));
         
         WarehouseDto.Detail detail = new WarehouseDto.Detail();
         detail.setWarehouseCode(warehouse.getWarehouseCode());
@@ -94,7 +97,7 @@ public class WarehouseServiceImpl implements WarehouseService {
     
     @Override
     @Transactional
-    public void createWarehouse(WarehouseDto.Create request) {
+    public WarehouseDto.Create createWarehouse(WarehouseDto.Create request) {
         Warehouse warehouse = new Warehouse();
         warehouse.setWarehouseCode(request.getWarehouseCode());
         warehouse.setWarehouseName(request.getWarehouseName());
@@ -104,20 +107,27 @@ public class WarehouseServiceImpl implements WarehouseService {
         warehouse.setContact(request.getContact());
         warehouse.setUseYn(request.getUseYn());
         warehouse.setType(request.getType());
+        warehouse.setCreatedAt(LocalDateTime.now());
+        warehouse.setUpdatedAt(LocalDateTime.now());
         
         // request.getUserId()가 올바르게 동작합니다 (DTO에 추가했기 때문)
-        if (request.getUserId() != null) {
-            Users user = userRepository.findById(request.getUserId())
+        if (request.getUserId() != null && !request.getUserId().isEmpty()) {
+            Users user = userRepository.findByLoginId(request.getUserId())
                     .orElseThrow(() -> new RuntimeException("사용자가 존재하지 않습니다."));
             warehouse.setUser(user);
         }
+        Warehouse savedWarehouse = warehouseRepository.save(warehouse);
         
-        warehouseRepository.save(warehouse);
+        request.setWarehouseCode(savedWarehouse.getWarehouseCode());
+        if (savedWarehouse.getUser() != null) {
+        	request.setManagerName(savedWarehouse.getUser().getUserName());
+        }
+        return request;
     }
 
     @Override
     @Transactional
-    public void updateWarehouse(String warehouseCode, WarehouseDto.Update request) {
+    public WarehouseDto.Detail updateWarehouse(String warehouseCode, WarehouseDto.Update request) {
         Warehouse warehouse = warehouseRepository.findById(warehouseCode)
                 .orElseThrow(() -> new RuntimeException("창고 없음."));
         
@@ -129,12 +139,14 @@ public class WarehouseServiceImpl implements WarehouseService {
         if (request.getUseYn() != null) warehouse.setUseYn(request.getUseYn());
         if (request.getType() != null) warehouse.setType(request.getType());
         
-        if (request.getUserId() != null) {
-            Users user = userRepository.findById(request.getUserId())
+        if (request.getUserId() != null && !request.getUserId().trim().isEmpty()) {
+            Users user = userRepository.findByLoginId(request.getUserId())
                     .orElseThrow(() -> new RuntimeException("사용자가 존재하지 않습니다."));
             warehouse.setUser(user);
         }
-        warehouseRepository.save(warehouse);
+        warehouse.setUpdatedAt(LocalDateTime.now());
+        Warehouse updatedWarehouse = warehouseRepository.save(warehouse);        
+        return getWarehouse(updatedWarehouse.getWarehouseCode());
     }
 
     @Override

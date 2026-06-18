@@ -73,7 +73,7 @@ public class WarehouseDto {
         private String detailAddress;
         private String contact;
         private String useYn;
-        private Long userId;
+        private String userId;
         private String managerName;
         private String type;
     }
@@ -89,7 +89,7 @@ public class WarehouseDto {
     	private String detailAddress;
     	private String contact;
     	private String useYn;
-    	private Long userId;
+    	private String userId;
     	private String type;
     }
     

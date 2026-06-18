@@ -1,5 +1,10 @@
 package com.buyflow.erp.Controller;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -32,35 +37,48 @@ public class WarehouseController {
     
         PageResponse<WarehouseDto.HouseList> result = warehouseService.searchWarehouses(condition);
         return ResponseEntity.ok(result);
-}
+    }
+    
+
+    @GetMapping("/filter-options") 
+    public ResponseEntity<Map<String, List<String>>> getFilterOptions() {
+        
+        Map<String, List<String>> options = new HashMap<>();
+        
+        // 1. 프론트엔드 WarehouseSearchForm.jsx에서 사용하는 셀렉트 박스 옵션 규격을 맞춰줍니다.
+        options.put("warehouseTypes", Arrays.asList("전체", "냉동 창고", "냉장 창고", "위험물 창고", "일반 창고", "보세 창고"));
+        options.put("activeStatuses", Arrays.asList("전체", "사용 중", "사용 중지"));
+        
+        return ResponseEntity.ok(options);
+    }
     
     // 단건 조회
     @GetMapping("/{warehouseCode}")
     public ResponseEntity<WarehouseDto.Detail> getWarehouse(
-    		@PathVariable String warehouseCode) {
+    		@PathVariable(name = "warehouseCode") String warehouseCode) {
     	return ResponseEntity.ok(warehouseService.getWarehouse(warehouseCode));
     }
     
     // 창고 등록
     @PostMapping
-    public ResponseEntity<Void> createWarehouse(
+    public ResponseEntity<WarehouseDto.Create> createWarehouse(
     		@RequestBody WarehouseDto.Create request) {
-    	warehouseService.createWarehouse(request);
-    	return ResponseEntity.status(HttpStatus.CREATED).build();
+    	WarehouseDto.Create result = warehouseService.createWarehouse(request);
+    	return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
     
     // 창고 수정
     @PatchMapping("/{warehouseCode}")
-    public ResponseEntity<Void> updateWarehouse(
-    		@PathVariable String warehouseCode, 
+    public ResponseEntity<WarehouseDto.Detail> updateWarehouse(
+    		@PathVariable(name = "warehouseCode") String warehouseCode, 
     		@RequestBody WarehouseDto.Update request) {
-    	warehouseService.updateWarehouse(warehouseCode, request);
-    	return ResponseEntity.noContent().build();
+    	WarehouseDto.Detail result = warehouseService.updateWarehouse(warehouseCode, request);
+    	return ResponseEntity.ok(result);
     }
     
     // 창고 삭제
     @DeleteMapping("/{warehouseCode}")
-    public ResponseEntity<Void> deleteWarehouse(@PathVariable String warehouseCode) {
+    public ResponseEntity<Void> deleteWarehouse(@PathVariable(name = "warehouseCode") String warehouseCode) {
     	warehouseService.deleteWarehouse(warehouseCode);
     	return ResponseEntity.noContent().build();
     }

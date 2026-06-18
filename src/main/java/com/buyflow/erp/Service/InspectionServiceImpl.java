@@ -214,5 +214,17 @@ public class InspectionServiceImpl implements InspectionService {
 			saveInspection(createRequest);
 		}
 	}
+	
+	@Override
+	@Transactional(readOnly = true)
+	public InspectionDto.SummaryResponse getInspectionSummary() {
+		long total = inspectionRepository.count();
+		long passCount = inspectionRepository.countByInspectionResult("PASS");
+		long defectCount = inspectionRepository.countByInspectionResult("DEFECT");
+		
+		long pendingCount = total - (passCount + defectCount);
+		
+		return new InspectionDto.SummaryResponse(total, pendingCount, passCount, defectCount);
+	}
 }
 
