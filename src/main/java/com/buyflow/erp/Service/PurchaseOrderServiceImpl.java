@@ -126,7 +126,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                     Product product = productMap.get(item.getProductId());
                     
                     Long defaultPrice = 0L;
-                    if (item.getEstimatedUnitPrice() != null && item.getEstimatedUnitPrice() > 0) {
+                    if (item.getEstimatedUnitPrice() != null && item.getEstimatedUnitPrice().compareTo(BigDecimal.ZERO) > 0) {
                         defaultPrice = item.getEstimatedUnitPrice().longValue();
                     } else if (product != null && product.getUnitPrice() != null) {
                         defaultPrice = product.getUnitPrice();
