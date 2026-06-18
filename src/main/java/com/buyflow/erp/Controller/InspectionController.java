@@ -30,38 +30,30 @@ public class InspectionController {
 
     private final InspectionService inspectionService;
 
-    @GetMapping
+    @GetMapping("/pending")
     public ResponseEntity<PageResponse<InspectionDto.ListResponse>> getInspections(
         InspectionDto.SearchCondition condition) {
             return ResponseEntity.ok(inspectionService.getInspections(condition));
     }
     
-    @GetMapping("/filter-options")
-    public ResponseEntity<Map<String, List<Map<String, String>>>> getInspectionFilterOptions() {
-    	Map<String, List<Map<String, String>>> options = new HashMap<>();
-    	List<Map<String, String>> resultOptions = Arrays.asList(
-    		createOption("전체", "전체 결과"),
-    		createOption("PASS", "합격"),
-    		createOption("DEFECT", "불량")
-    	);
-    	
-    	options.put("inspectionResults", resultOptions);
+    @GetMapping("/pending/filter-options")
+    public ResponseEntity<Map<String, Object>> getInspectionFilterOptions() {
+    	Map<String, Object> options = new HashMap<>();
+    	options.put("suppliers", Arrays.asList("전체 공급업체"));
+    	options.put("warehouses", Arrays.asList("전체 창고"));
+    	options.put("priorities", Arrays.asList("전체", "일반", "긴급"));
     	return ResponseEntity.ok(options);
     }
     
-    private Map<String, String> createOption(String value, String label) {
-    	Map<String, String> option = new HashMap<>();
-    	option.put("value", value);
-    	option.put("label", value);
-    	return option;
+    @GetMapping("/pending/summary")
+    public ResponseEntity<Map<String, Object>> getPendingSummary() {
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("total", 0);
+        summary.put("receivedToday", 0);
+        summary.put("urgent", 0);
+        summary.put("overdue", 0);
+        return ResponseEntity.ok(summary);
     }
-
-    @GetMapping("/{inspectionId}")
-    public Inspection getInspections(
-        @PathVariable(name="inspectionId") Long inspectionId) {
-
-            return inspectionService.getInspection(inspectionId);
-        }
 
     @PostMapping
     public ResponseEntity<String> saveInspection(
@@ -86,5 +78,12 @@ public class InspectionController {
     public ResponseEntity<InspectionDto.SummaryResponse> getSummary() {
         return ResponseEntity.ok(inspectionService.getInspectionSummary());
     }
+    
+    @GetMapping("/{inspectionId}")
+    public Inspection getInspections(
+        @PathVariable(name="inspectionId") Long inspectionId) {
+
+            return inspectionService.getInspection(inspectionId);
+        }
     
 }

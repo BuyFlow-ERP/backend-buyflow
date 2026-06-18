@@ -12,18 +12,18 @@ import java.time.LocalDateTime;
 @Table(name = "RECEIPT")
 public class Receipt {
 
-   @Id
-@GeneratedValue(
-        strategy = GenerationType.SEQUENCE,
-        generator = "receipt_seq"
-)
-@SequenceGenerator(
-        name = "receipt_seq",
-        sequenceName = "SEQ_RECEIPT",
-        allocationSize = 1
-)
-@Column(name = "RECEIPT_ID")
-private Long receiptId;
+	@Id
+	@GeneratedValue(
+	        strategy = GenerationType.SEQUENCE,
+	        generator = "receipt_seq"
+	)
+	@SequenceGenerator(
+	        name = "receipt_seq",
+	        sequenceName = "SEQ_RECEIPT",
+	        allocationSize = 1
+	)
+	@Column(name = "RECEIPT_ID")
+	private Long receiptId;
 
     @Column(name = "ORDER_ID")
     private Long orderId;

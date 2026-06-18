@@ -3,13 +3,17 @@ package com.buyflow.erp.Service;
 import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Dto.PurchaseOrderDto;
 import com.buyflow.erp.Dto.PurchaseOrderItemDto;
+import com.buyflow.erp.Entity.Product;
 import com.buyflow.erp.Entity.PurchaseOrder;
 import com.buyflow.erp.Entity.PurchaseOrderItem;
+import com.buyflow.erp.Entity.PurchaseRequestItem;
 import com.buyflow.erp.Entity.Supplier;
 import com.buyflow.erp.Entity.Users;
 import com.buyflow.erp.Repository.PurchaseOrderRepository;
+import com.buyflow.erp.Repository.PurchaseRequestItemRepository;
 import com.buyflow.erp.Repository.SupplierRepository;
 import com.buyflow.erp.Repository.UserRepository;
+import com.buyflow.erp.Repository.ProductRepository;
 import com.buyflow.erp.Repository.PurchaseOrderItemRepository; // 아이템 저장을 위해 필요 시 주입
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +28,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,6 +43,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final PurchaseOrderRepository orderRepository;
     // 만약 아이템을 별도로 save 해야 한다면 JpaRepository<PurchaseOrderItem, Long>를 상속받은 레포지토리를 주입받으세요.
     private final PurchaseOrderItemRepository orderItemRepository; 
+    private final ProductRepository productRepository;
+    private final PurchaseRequestItemRepository purchaseRequestItemRepository;
 
     @Override
     public PurchaseOrderDto.Response createOrder(PurchaseOrderDto.Request request) {
@@ -54,28 +63,32 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 .dueDate(request.getDueDate())
                 .totalAmount(0.0)
                 .build();
-
-//        List<PurchaseOrderItem> itemsToSave = new ArrayList<>();
         
         // 1-2. 화면에서 넘어온 내부 static Item DTO를 꺼내어 엔티티로 변환.
-        Double total = 0.0;
+        long totalSupplyAmount = 0L;
+        long totalVatAmount = 0L;
+        
         for (PurchaseOrderDto.Item itemReq : request.getItems()) {
             PurchaseOrderItem item = PurchaseOrderItem.builder()
+            		.purchaseOrder(order)
                     .productId(itemReq.getProductId())
                     .quantity(itemReq.getQuantity())   // Long 타입
                     .unitPrice(itemReq.getUnitPrice()) // Double 타입
                     .build();
             
             order.addItem(item); // 빈 리스트에 차곡차곡 담기.
-            total += itemReq.getUnitPrice() * itemReq.getQuantity();
+            
+            long lineSupply = (long) (itemReq.getUnitPrice() * itemReq.getQuantity());
+            long lineVat = (long) Math.floor(lineSupply * 0.1);
+            
+            totalSupplyAmount += lineSupply;
+            totalVatAmount += lineVat;
         } 
 
-        // 1-4. 총 금액 업데이트 후 최종 반영
-        order.setTotalAmount(total);
+        double finalTotalAmount = (double) (totalSupplyAmount + totalVatAmount);
+        order.setTotalAmount(finalTotalAmount);
         
-        // 리턴값은 새로 정돈한 DTO의 만능 변환기(.from)를 써서 반환
-        // 연관관계가 없으므로 엔티티와 저장한 자식 리스트(itemsToSave)를 같이 던져줌.
-        // 발주서를 먼저 영속화(DB 저장)하여 고유 번호(ORDER_ID)를 받아옵니다.
+        // 1-4. 총 금액 업데이트 후 최종 반영
         PurchaseOrder savedOrder = orderRepository.save(order);
         
         return PurchaseOrderDto.Response.from(savedOrder);
@@ -92,6 +105,47 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         return PurchaseOrderDto.Response.from(order);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<PurchaseOrderDto.ItemResponse> getApprovedRequestItems(Long requestId) {        
+        List<PurchaseRequestItem> items = purchaseRequestItemRepository.findByRequestIdOrderByRequestItemIdAsc(requestId);
+        
+        // 2. 품목 ID들을 추출해서 진짜 품목(Product) 정보들을 한방에 맵(Map)으로 묶어버립니다.
+        Map<Long, Product> productMap = productRepository.findAllById(
+                        items.stream()
+                                .map(PurchaseRequestItem::getProductId)
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.toSet())
+                )
+                .stream()
+                .collect(Collectors.toMap(Product::getProductId, Function.identity()));
+
+        return items.stream()
+                .map(item -> {
+                    // 맵에서 해당하는 품목 상세 정보(Product)를 꺼냅니다.
+                    Product product = productMap.get(item.getProductId());
+                    
+                    Long defaultPrice = 0L;
+                    if (item.getEstimatedUnitPrice() != null && item.getEstimatedUnitPrice() > 0) {
+                        defaultPrice = item.getEstimatedUnitPrice().longValue();
+                    } else if (product != null && product.getUnitPrice() != null) {
+                        defaultPrice = product.getUnitPrice();
+                    }
+                    
+                    return PurchaseOrderDto.ItemResponse.builder()
+                            .requestItemId(item.getRequestItemId()) // 👈 팀원들 찐 식별자 필드명 반영!
+                            .itemCode(product != null ? product.getProductNo() : "") // product 엔티티의 코드명 체크 필수! (예: productCode 또는 itemCode)
+                            .itemName(product != null ? product.getProductName() : "") // 품목명 매칭
+                            .specification(product != null ? product.getSpec() : "") // 규격 매칭
+                            .requestedQuantity(item.getRequestQuantity()) // 요청 수량
+                            .orderQuantity(item.getRequestQuantity())     // 발주 수량 초기값 = 요청 수량
+                            .unit(product != null ? product.getUnit() : "") // 단위 매칭
+                            .unitPrice(defaultPrice) // 단가 매칭
+                            .build();
+                })
+                .toList();
+    }
+ 
     // 3. 발주 목록 조회
     @Override
     @Transactional(readOnly = true)
@@ -154,7 +208,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         // 기존 아이템 전체 삭제
         orderItemRepository.deleteByPurchaseOrder_OrderId(orderId);
 
-        Double total = 0.0;
+        long totalSupplyAmount = 0L;
+        long totalVatAmount = 0L;
         List<PurchaseOrderItem> itemsToSave = new ArrayList<>();
 
         for (PurchaseOrderDto.Item itemReq : request.getItems()) {
@@ -166,11 +221,18 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                     .build();
 
             itemsToSave.add(item);
-            total += itemReq.getUnitPrice() * itemReq.getQuantity();
+
+            long lineSupply = (long) (itemReq.getUnitPrice() * itemReq.getQuantity());
+            long lineVat = (long) Math.floor(lineSupply * 0.1);
+            
+            totalSupplyAmount += lineSupply;
+            totalVatAmount += lineVat;
         }
 
         orderItemRepository.saveAll(itemsToSave);
-        order.setTotalAmount(total);
+        
+        double finalTotalAmount = (double) (totalSupplyAmount + totalVatAmount);
+        order.setTotalAmount(finalTotalAmount);
         
         PurchaseOrder updatedOrder = orderRepository.save(order);
         
