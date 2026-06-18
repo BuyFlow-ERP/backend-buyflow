@@ -34,6 +34,9 @@ public class ApprovalServiceImpl implements ApprovalService {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
 
+    private static final DateTimeFormatter DATE_TIME_FORMATTER =
+        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     private final ApprovalHistoryRepository approvalHistoryRepository;
     private final PurchaseRequestRepository purchaseRequestRepository;
     private final PurchaseRequestItemRepository purchaseRequestItemRepository;
@@ -150,57 +153,66 @@ public class ApprovalServiceImpl implements ApprovalService {
         }
 
         return new ApprovalHistoryDto.ListResponse(
-                approval.getApprovalId(),
-                request.getRequestId(),
-                nullToEmpty(request.getRequestNo()),
-                nullToEmpty(request.getTitle()),
-                getUserName(request.getRequestorId()),
-                "-",
-                formatDate(request.getCreatedAt()),
-                formatDate(request.getDueDate()),
-                request.getTotalAmount() != null ? request.getTotalAmount() : calculateTotalAmount(request.getRequestId()),
-                resolvePriorityLabel(request),
-                toStatusCode(request.getRequestStatus()),
-                toRequestStatusLabel(request.getRequestStatus()),
-                createStepLabel(approval),
-                getApproverName(approval.getApproverId())
-        );
+        approval.getApprovalId(),
+        request.getRequestId(),
+        nullToEmpty(request.getRequestNo()),
+        nullToEmpty(request.getTitle()),
+        getUserName(request.getRequestorId()),
+        "-",
+        formatDate(request.getCreatedAt()),
+        formatDate(request.getDueDate()),
+        formatDateTime(request.getCreatedAt()),
+        formatDateTime(request.getUpdatedAt()),
+        request.getTotalAmount() != null ? request.getTotalAmount() : calculateTotalAmount(request.getRequestId()),
+        resolvePriorityLabel(request),
+        toStatusCode(request.getRequestStatus()),
+        toRequestStatusLabel(request.getRequestStatus()),
+        createStepLabel(approval),
+        getApproverName(approval.getApproverId())
+);
     }
 
-    private ApprovalHistoryDto.DetailResponse toDetailResponse(ApprovalHistory approval, PurchaseRequest request) {
-        Users requester = request.getRequestorId() == null ? null : userRepository.findById(request.getRequestorId()).orElse(null);
-        Users approver = approval.getApproverId() == null ? null : userRepository.findById(approval.getApproverId()).orElse(null);
+private ApprovalHistoryDto.DetailResponse toDetailResponse(ApprovalHistory approval, PurchaseRequest request) {
+    Users requester = request.getRequestorId() == null
+            ? null
+            : userRepository.findById(request.getRequestorId()).orElse(null);
 
-        return new ApprovalHistoryDto.DetailResponse(
-                approval.getApprovalId(),
-                request.getRequestId(),
-                nullToEmpty(request.getRequestNo()),
-                nullToEmpty(request.getTitle()),
-                new ApprovalHistoryDto.UserInfo(
-                        requester != null ? requester.getUserId() : request.getRequestorId(),
-                        requester != null ? nullToEmpty(requester.getUserName()) : getUserName(request.getRequestorId()),
-                        ""
-                ),
-                new ApprovalHistoryDto.DepartmentInfo(null, "-"),
-                formatDate(request.getCreatedAt()),
-                formatDate(request.getDueDate()),
-                resolvePriorityLabel(request),
-                toStatusCode(request.getRequestStatus()),
-                toRequestStatusLabel(request.getRequestStatus()),
-                nullToEmpty(request.getReason()),
-                getApprovalItemResponses(request.getRequestId()),
-                List.of(),
-                new ApprovalHistoryDto.CurrentStep(
-                        createStepLabel(approval),
-                        new ApprovalHistoryDto.UserInfo(
-                                approver != null ? approver.getUserId() : approval.getApproverId(),
-                                approver != null ? nullToEmpty(approver.getUserName()) : getApproverName(approval.getApproverId()),
-                                ""
-                        )
-                ),
-                getHistoryResponses(request.getRequestId())
-        );
-    }
+    Users approver = approval.getApproverId() == null
+            ? null
+            : userRepository.findById(approval.getApproverId()).orElse(null);
+
+    return new ApprovalHistoryDto.DetailResponse(
+            approval.getApprovalId(),
+            request.getRequestId(),
+            nullToEmpty(request.getRequestNo()),
+            nullToEmpty(request.getTitle()),
+            new ApprovalHistoryDto.UserInfo(
+                    requester != null ? requester.getUserId() : request.getRequestorId(),
+                    requester != null ? nullToEmpty(requester.getUserName()) : getUserName(request.getRequestorId()),
+                    ""
+            ),
+            new ApprovalHistoryDto.DepartmentInfo(null, "-"),
+            formatDate(request.getCreatedAt()),
+            formatDate(request.getDueDate()),
+            formatDateTime(request.getCreatedAt()),
+            formatDateTime(request.getUpdatedAt()),
+            resolvePriorityLabel(request),
+            toStatusCode(request.getRequestStatus()),
+            toRequestStatusLabel(request.getRequestStatus()),
+            nullToEmpty(request.getReason()),
+            getApprovalItemResponses(request.getRequestId()),
+            List.of(),
+            new ApprovalHistoryDto.CurrentStep(
+                    createStepLabel(approval),
+                    new ApprovalHistoryDto.UserInfo(
+                            approver != null ? approver.getUserId() : approval.getApproverId(),
+                            approver != null ? nullToEmpty(approver.getUserName()) : getApproverName(approval.getApproverId()),
+                            ""
+                    )
+            ),
+            getHistoryResponses(request.getRequestId())
+    );
+}
 
     private List<ApprovalHistoryDto.ApprovalItemResponse> getApprovalItemResponses(Long requestId) {
         List<PurchaseRequestItem> items = purchaseRequestItemRepository.findByRequestIdOrderByRequestItemIdAsc(requestId);
@@ -219,7 +231,7 @@ public class ApprovalServiceImpl implements ApprovalService {
                     int quantity = item.getRequestQuantity() != null ? item.getRequestQuantity() : 0;
                     int unitPrice = item.getEstimatedUnitPrice() != null ? item.getEstimatedUnitPrice() : 0;
 
-    return new ApprovalHistoryDto.ApprovalItemResponse(
+return new ApprovalHistoryDto.ApprovalItemResponse(
         item.getRequestItemId(),
         item.getProductId(),
         product != null ? nullToEmpty(product.getProductNo()) : "",
@@ -230,8 +242,10 @@ public class ApprovalServiceImpl implements ApprovalService {
         product != null ? nullToEmpty(product.getUnit()) : "",
         unitPrice,
         quantity * unitPrice,
-        nullToEmpty(item.getRemark())
-                    );
+        nullToEmpty(item.getRemark()),
+        formatDateTime(item.getCreatedAt()),
+        formatDateTime(item.getUpdatedAt())
+);
                 })
                 .toList();
     }
@@ -379,6 +393,6 @@ public class ApprovalServiceImpl implements ApprovalService {
     }
 
     private String formatDateTime(LocalDateTime value) {
-        return value == null ? "" : value.toString();
-    }
+    return value == null ? "" : value.format(DATE_TIME_FORMATTER);
+}
 }

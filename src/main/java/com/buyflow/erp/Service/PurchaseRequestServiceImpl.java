@@ -14,8 +14,10 @@ import com.buyflow.erp.Repository.PurchaseRequestRepository;
 import com.buyflow.erp.Repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -36,6 +38,9 @@ import java.util.stream.Collectors;
 public class PurchaseRequestServiceImpl implements PurchaseRequestService {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
+
+    private static final DateTimeFormatter DATE_TIME_FORMATTER =
+        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final PurchaseRequestRepository purchaseRequestRepository;
     private final PurchaseRequestItemRepository purchaseRequestItemRepository;
@@ -96,7 +101,7 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
                 .mapToInt(PurchaseRequestDto.ItemResponse::estimatedAmount)
                 .sum();
 
-        return new PurchaseRequestDto.DetailResponse(
+            return new PurchaseRequestDto.DetailResponse(
                 request.getRequestId(),
                 nullToEmpty(request.getRequestNo()),
                 nullToEmpty(request.getTitle()),
@@ -104,14 +109,16 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
                 "-",
                 formatDate(request.getCreatedAt()),
                 formatDate(request.getDueDate()),
+                formatDateTime(request.getCreatedAt()),
+                formatDateTime(request.getUpdatedAt()),
                 resolvePriorityLabel(request),
                 toRequestStatusLabel(request.getRequestStatus()),
                 nullToEmpty(request.getReason()),
                 request.getTotalAmount() != null ? request.getTotalAmount() : calculatedTotalAmount,
                 items,
                 List.of()
-        );
-    }
+                );
+         }
 
     @Override
     public PurchaseRequestDto.SummaryResponse getPurchaseRequestSummary() {
@@ -152,7 +159,23 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
         PurchaseRequest request = new PurchaseRequest();
         request.setRequestId(requestId);
         request.setRequestNo(isBlank(dto.requestNumber()) ? createRequestNumber(requestId) : dto.requestNumber());
-        request.setRequestorId(dto.requestorId() != null ? dto.requestorId() : 1L);
+        Long requestorId = dto.requestorId();
+
+    if (requestorId == null) {
+        throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+            "요청자 ID는 필수입니다."
+    );
+}
+
+        if (!userRepository.existsById(requestorId)) {
+            throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST,
+            "존재하지 않는 요청자 ID입니다: " + requestorId
+            );
+        }
+
+        request.setRequestorId(requestorId);
         request.setTitle(nullToEmpty(dto.title()));
         request.setReason(nullToEmpty(dto.reason()));
         request.setDueDate(parseDate(dto.expectedDate()));
@@ -200,7 +223,7 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
     approvalHistoryRepository.save(approvalHistory);
 }
 
-    return getPurchaseRequestDetail(requestId);
+            return getPurchaseRequestDetail(requestId);
     }
 
     private PurchaseRequestDto.ListResponse toListResponse(PurchaseRequest request) {
@@ -212,6 +235,8 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
                 "-",
                 formatDate(request.getCreatedAt()),
                 formatDate(request.getDueDate()),
+                formatDateTime(request.getCreatedAt()),
+                formatDateTime(request.getUpdatedAt()),
                 purchaseRequestItemRepository.countByRequestId(request.getRequestId()),
                 request.getTotalAmount() != null ? request.getTotalAmount() : 0,
                 resolvePriorityLabel(request),
@@ -250,7 +275,9 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
         product != null ? nullToEmpty(product.getUnit()) : "",
         unitPrice,
         quantity * unitPrice,
-        nullToEmpty(item.getRemark())
+        nullToEmpty(item.getRemark()),
+        formatDateTime(item.getCreatedAt()),
+        formatDateTime(item.getUpdatedAt())
 );
     }
 
@@ -325,6 +352,10 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
     private String formatDate(LocalDateTime value) {
         return value == null ? "" : value.toLocalDate().format(DATE_FORMATTER);
     }
+
+    private String formatDateTime(LocalDateTime value) {
+    return value == null ? "" : value.format(DATE_TIME_FORMATTER);
+}
 
     private String formatDate(LocalDate value) {
         return value == null ? "" : value.format(DATE_FORMATTER);
