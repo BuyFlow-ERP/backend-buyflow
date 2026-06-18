@@ -25,9 +25,9 @@ import com.buyflow.erp.Service.WarehouseService;
 
 import lombok.RequiredArgsConstructor;
 
-@CrossOrigin(origins = "http://localhost:3000") // React 연동을 위한 크로스 오리진 설정
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 @RestController
-@RequestMapping("/orders")
+@RequestMapping({"/orders", "/api/orders"})
 @RequiredArgsConstructor
 public class PurchaseOrderController {
 
