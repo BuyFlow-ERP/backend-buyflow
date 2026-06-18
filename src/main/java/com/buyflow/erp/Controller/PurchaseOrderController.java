@@ -30,11 +30,22 @@ public class PurchaseOrderController {
 
     private final PurchaseOrderService service;
 
+    @GetMapping("/form-options")
+    public ResponseEntity<Map<String, Object>> getFormOptions() {
+        Map<String, Object> options = new HashMap<>();
+        
+        // 예: 등록 폼에 공급업체 셀렉트 박스가 있다면 여기에 배열로 담아줍니다.
+        options.put("statuses", Arrays.asList("전체", "PENDING", "APPROVED", "CANCELLED"));
+        options.put("suppliers", Arrays.asList("전체 공급업체", "동양산업", "대한기계상사", "세진테크"));
+        
+        return ResponseEntity.ok(options);
+    }
+    
     // 1. 발주 단건 상세 조회
     @GetMapping("/{orderId}")
-    public ResponseEntity<PurchaseOrderDto.Response> getOrder(@PathVariable(name= "orderId") Long orderId) {
-        PurchaseOrderDto.Response response = service.getOrderWithItems(orderId);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<PurchaseOrderDto.Response> getOrder(
+    		@PathVariable(name= "orderId") Long orderId) {        
+        return ResponseEntity.ok(service.getOrderWithItems(orderId));
     }
 
     // 2. 발주 목록 조회
@@ -52,13 +63,8 @@ public class PurchaseOrderController {
     public ResponseEntity<Map<String, List<String>>> getOrderFilterOptions() {
         
         Map<String, List<String>> options = new HashMap<>();
-        
-        // 1. ⭕ [원인 해결] 키 이름을 'orderStatuses'에서 프론트 규격인 'statuses'로 변경!
-        // 178~179라인 규격에 맞게 단순 글자 리스트(List<String>)로 던져줍니다.
-        options.put("statuses", Arrays.asList("전체", "PENDING", "APPROVED", "CANCELLED")); //
-        
-        // 2. 공급업체 목록 (아까 맞춰둔 규격 그대로 유지)
-        options.put("suppliers", Arrays.asList("전체", "삼성물산", "현대글로비스"));
+        options.put("statuses", Arrays.asList("전체", "PENDING", "APPROVED", "CANCELLED"));
+        options.put("suppliers", Arrays.asList("전체", "동양산업", "대한기계상사", "세진테크"));
         
         return ResponseEntity.ok(options);
     }

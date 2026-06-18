@@ -96,9 +96,9 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<PurchaseOrderDto.Response> getOrderList(PurchaseOrderDto.SearchCondition condition) {
-        int safePage = Math.max(condition.getPage(), 0);
+        int safePage = Math.max(condition.getPage(), 1);
         int safeSize = Math.max(condition.getSize(), 1);
-        Pageable pageable = PageRequest.of(safePage, safeSize);
+        Pageable pageable = PageRequest.of(safePage - 1, safeSize);
         
         String orderNo = (condition.getOrderNo() == null || condition.getOrderNo().isEmpty()) ? null : condition.getOrderNo();
         String supplierName = (condition.getSupplierName() == null || condition.getSupplierName().isEmpty() || condition.getSupplierName().equals("전체 공급업체")) ? null : condition.getSupplierName();
@@ -126,26 +126,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                     orderPage.getTotalPages()
                 )
         );
-//                .map(order -> {
-//                    List<PurchaseOrderItem> items = orderItemRepository.findByOrderId(order.getOrderId());
-//                    List<PurchaseOrderItemDto> itemDtos = items.stream()
-//                            .map(item -> PurchaseOrderItemDto.builder()
-//                                    .orderItemId(item.getOrderItemId())
-//                                    .productId(item.getProductId())
-//                                    .quantity(item.getQuantity())
-//                                    .unitPrice(item.getUnitPrice())
-//                                    .build())
-//                            .toList();
-//                            
-//                    return PurchaseOrderResponse.builder()
-//                            .orderId(order.getOrderId())
-//                            .supplierId(order.getSupplierId())
-//                            .orderStatus(order.getOrderStatus())
-//                            .totalAmount(order.getTotalAmount())
-//                            .items(itemDtos)
-//                            .build();
-//                })
-//                .toList();
     }
 
     // 4. 발주 수정
@@ -172,7 +152,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         }
 
         // 기존 아이템 전체 삭제
- orderItemRepository.deleteByPurchaseOrder_OrderId(orderId);
+        orderItemRepository.deleteByPurchaseOrder_OrderId(orderId);
 
         Double total = 0.0;
         List<PurchaseOrderItem> itemsToSave = new ArrayList<>();
