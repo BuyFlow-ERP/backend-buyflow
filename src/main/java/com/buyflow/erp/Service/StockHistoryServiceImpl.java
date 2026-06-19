@@ -25,16 +25,86 @@ public class StockHistoryServiceImpl
     private final ProductRepository productRepository;
     private final WarehouseRepository warehouseRepository;
 
-    @Override
-    public List<StockHistoryResponseDto> getStockHistory() {
+   @Override
+public List<StockHistoryResponseDto> getStockHistory(
+        String fromDate,
+        String toDate,
+        String itemKeyword,
+        String warehouseCode,
+        String movementType) {
 
-        return stockHistoryRepository
-                .findAllByOrderByHistoryIdDesc()
-                .stream()
-                .map(this::convert)
-                .toList();
-    }
+    return stockHistoryRepository
+            .findAllByOrderByHistoryIdDesc()
+            .stream()
 
+            .filter(history -> {
+
+                Stock stock = stockRepository
+                        .findById(history.getStockId())
+                        .orElse(null);
+
+                if (stock == null) {
+                    return false;
+                }
+
+                var product = productRepository
+                        .findById(stock.getProductId())
+                        .orElse(null);
+
+                String itemCode =
+                        product != null
+                                ? product.getProductNo()
+                                : "";
+
+                String itemName =
+                        product != null
+                                ? product.getProductName()
+                                : "";
+
+                String historyDate =
+                        history.getCreatedAt() != null
+                                ? history.getCreatedAt()
+                                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                                : "";
+
+                boolean matchMovement =
+                        movementType == null
+                                || movementType.isBlank()
+                                || movementType.equals("전체")
+                                || movementType.equals(history.getHistoryType());
+
+                boolean matchWarehouse =
+                        warehouseCode == null
+                                || warehouseCode.isBlank()
+                                || warehouseCode.equals("전체")
+                                || warehouseCode.equals(stock.getWarehouseCode());
+
+                boolean matchKeyword =
+                        itemKeyword == null
+                                || itemKeyword.isBlank()
+                                || itemCode.contains(itemKeyword)
+                                || itemName.contains(itemKeyword);
+
+                boolean matchFromDate =
+                        fromDate == null
+                                || fromDate.isBlank()
+                                || historyDate.compareTo(fromDate) >= 0;
+
+                boolean matchToDate =
+                        toDate == null
+                                || toDate.isBlank()
+                                || historyDate.compareTo(toDate) <= 0;
+
+                return matchMovement
+                        && matchWarehouse
+                        && matchKeyword
+                        && matchFromDate
+                        && matchToDate;
+            })
+
+            .map(this::convert)
+            .toList();
+}
     @Override
     public List<StockHistoryResponseDto> getStockHistoryByType(
             String historyType) {
