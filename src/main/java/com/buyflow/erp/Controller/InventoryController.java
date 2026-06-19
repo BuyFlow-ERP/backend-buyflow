@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.buyflow.erp.Dto.InventoryDto;
@@ -20,6 +21,7 @@ import java.util.Map;
 import com.buyflow.erp.Repository.ProductRepository;
 import com.buyflow.erp.Repository.WarehouseRepository;
 
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/inventories")
@@ -29,32 +31,100 @@ public class InventoryController {
     private final ProductRepository productRepository;
     private final WarehouseRepository warehouseRepository;
 
-    @GetMapping
-    public InventoryListResponse getInventories() {
+@GetMapping
+public InventoryListResponse getInventories(
+        @RequestParam(required = false) String itemCode,
+        @RequestParam(required = false) String itemName,
+        @RequestParam(required = false) String category,
+        @RequestParam(required = false) String warehouseCode,
+        @RequestParam(required = false) String stockStatus) {
 
-        List<InventoryDto> items = stockRepository.findAll()
-                .stream()
-                .map(this::convert)
-                .collect(Collectors.toList());
+    List<InventoryDto> items = stockRepository.findAll()
+            .stream()
+            .map(this::convert)
+          
+            .filter(item ->
+                    itemCode == null
+                            || itemCode.isBlank()
+                            || item.getItemCode().contains(itemCode))
 
-        return InventoryListResponse.builder()
-                .items(items)
-                .summary(
-                        InventoryListResponse.Summary.builder()
-                                .total(items.size())
-                                .normal(items.size())
-                                .low(0)
-                                .outOfStock(0)
-                                .build())
-                .pagination(
-                        InventoryListResponse.Pagination.builder()
-                                .page(1)
-                                .size(items.size())
-                                .totalElements((long) items.size())
-                                .totalPages(1)
-                                .build())
-                .build();
-    }
+            .filter(item ->
+                    itemName == null
+                            || itemName.isBlank()
+                            || item.getItemName().contains(itemName))
+
+            .filter(item ->
+                    category == null
+                            || category.isBlank()
+                            || category.equals("전체")
+                            || category.equals(item.getCategory()))
+
+            .filter(item ->
+                    warehouseCode == null
+                            || warehouseCode.isBlank()
+                            || warehouseCode.equals("전체")
+                            || warehouseCode.equals(item.getWarehouseCode()))
+
+            .filter(item -> {
+
+                if (stockStatus == null
+                        || stockStatus.isBlank()
+                        || stockStatus.equals("전체")) {
+                    return true;
+                }
+
+                if (stockStatus.equals("재고 없음")) {
+                    return item.getCurrentStock() <= 0;
+                }
+
+                if (stockStatus.equals("안전재고 미만")) {
+                    return item.getCurrentStock() > 0
+                            && item.getCurrentStock() < item.getSafetyStock();
+                }
+
+                if (stockStatus.equals("정상")) {
+                    return item.getCurrentStock() >= item.getSafetyStock();
+                }
+
+                return true;
+            })
+
+            .collect(Collectors.toList());
+
+    long normal = items.stream()
+            .filter(item ->
+                    item.getCurrentStock() >= item.getSafetyStock())
+            .count();
+
+    long low = items.stream()
+            .filter(item ->
+                    item.getCurrentStock() > 0
+                            && item.getCurrentStock() < item.getSafetyStock())
+            .count();
+
+    long outOfStock = items.stream()
+            .filter(item ->
+                    item.getCurrentStock() <= 0)
+            .count();
+
+    return InventoryListResponse.builder()
+            .items(items)
+            .summary(
+                    InventoryListResponse.Summary.builder()
+                            .total(items.size())
+                            .normal((int) normal)
+                            .low((int) low)
+                            .outOfStock((int) outOfStock)
+                            .build())
+            .pagination(
+                    InventoryListResponse.Pagination.builder()
+                            .page(1)
+                            .size(items.size())
+                            .totalElements((long) items.size())
+                            .totalPages(1)
+                            .build())
+            .build();
+}
 
     @GetMapping("/filter-options")
     public Map<String, Object> getFilterOptions() {
