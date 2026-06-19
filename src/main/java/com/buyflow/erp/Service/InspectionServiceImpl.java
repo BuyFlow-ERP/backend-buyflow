@@ -214,16 +214,20 @@ public class InspectionServiceImpl implements InspectionService {
             .build();
 }
 
-		private InspectionDto.InspectionItemDto buildInspectionItemDto(ReceiptItem receiptItem) {
-    Product product = receiptItem.getProductId() != null
-            ? productRepository.findById(receiptItem.getProductId()).orElse(null)
-            : null;
+        private InspectionDto.InspectionItemDto buildInspectionItemDto(ReceiptItem receiptItem) {
+                Product product = receiptItem.getProductId() != null
+                ? productRepository.findById(receiptItem.getProductId()).orElse(null)
+                : null;
 
-    Long receivedQty = receiptItem.getReceiptQty() == null ? 0L : receiptItem.getReceiptQty();
-    Long acceptedQty = receiptItem.getAcceptedQty() == null ? receivedQty : receiptItem.getAcceptedQty();
-    Long defectiveQty = receiptItem.getDefectQty() == null ? 0L : receiptItem.getDefectQty();
+                Long receivedQty = receiptItem.getReceiptQty() == null ? 0L : receiptItem.getReceiptQty();
+                Long acceptedQty = receiptItem.getAcceptedQty() == null ? receivedQty : receiptItem.getAcceptedQty();
+                Long defectiveQty = receiptItem.getDefectQty() == null ? 0L : receiptItem.getDefectQty();
 
-    return InspectionDto.InspectionItemDto.builder()
+        Inspection inspection = inspectionRepository
+            .findByReceiptItemId(receiptItem.getReceiptItemId())
+            .orElse(null);
+
+        return InspectionDto.InspectionItemDto.builder()
             .id(receiptItem.getReceiptItemId())
             .receiptItemId(receiptItem.getReceiptItemId())
 
@@ -237,17 +241,25 @@ public class InspectionServiceImpl implements InspectionService {
             .receivedQuantity(receivedQty)
             .acceptedQuantity(acceptedQty)
             .defectiveQuantity(defectiveQty)
-            .defectReason(null)
-            .disposition("NONE")
+
+            // 검수 완료된 품목이면 INSPECTION 테이블의 저장값 우선 표시
+            .defectReason(inspection != null ? inspection.getNotes() : null)
+            .disposition(
+                    inspection != null
+                            && inspection.getDisposition() != null
+                            && !inspection.getDisposition().isBlank()
+                                    ? inspection.getDisposition()
+                                    : "NONE"
+            )
             .build();
 }
 
-private String resolveReceiptInspectionStatus(List<ReceiptItem> receiptItems) {
-    if (receiptItems == null || receiptItems.isEmpty()) {
-        return "PENDING";
-    }
+        private String resolveReceiptInspectionStatus(List<ReceiptItem> receiptItems) {
+          if (receiptItems == null || receiptItems.isEmpty()) {
+                return "PENDING";
+        }
 
-    boolean hasPendingItem = receiptItems.stream()
+        boolean hasPendingItem = receiptItems.stream()
             .anyMatch(item -> !inspectionRepository.existsByReceiptItemId(item.getReceiptItemId()));
 
     if (hasPendingItem) {
@@ -377,13 +389,16 @@ private String optionToNull(String value, String allOptionText) {
 		inspection.setUser(user);
 		inspection.setInspectionDate(request.getInspectionDate());
 		inspection.setInspectionType(request.getInspectionType());
-		
-		inspection.setQuantity(request.getQuantity());
-		
-		inspection.setDefectQuantity(finalDefectQty);
-		inspection.setInspectionResult(request.getInspectionResult());
-		inspection.setNotes(request.getNotes());
-		inspection.setCreatedAt(LocalDateTime.now());
+		inspection.setQuantity(request.getQuantity() != null ? request.getQuantity() : receiptQty);
+                inspection.setDefectQuantity(finalDefectQty);
+                inspection.setInspectionResult(request.getInspectionResult());
+                inspection.setNotes(request.getNotes());
+                inspection.setDisposition(
+                request.getDisposition() == null || request.getDisposition().isBlank()
+                        ? "NONE"
+                        : request.getDisposition()
+        );
+                inspection.setCreatedAt(LocalDateTime.now());
 
 		inspectionRepository.save(inspection);
 
@@ -426,69 +441,97 @@ private String optionToNull(String value, String allOptionText) {
 		
 		receiptItem.setDefectQty(finalDefectQty);
 		receiptItem.setAcceptedQty(finalAcceptedQty);
+                receiptItem.setReceiptItemStatus("INSPECTED");
 		receiptItemRepository.save(receiptItem);
 	}
 	
 	@Override
-	@Transactional
-	public void saveInspectionResult(Long receiptId, InspectionDto.ResultRequest request) {
-		if (request.getItems() == null || request.getItems().isEmpty()) {
-			throw new RuntimeException("검수할 품목이 없습니다.");
-		}
-		
-		for (InspectionDto.ResultItemRequest itemRequest : request.getItems()) {
-			Long receiptItemId = itemRequest.getReceiptItemId() != null
-					? itemRequest.getReceiptItemId()
-					: itemRequest.getId();
-			
-			InspectionDto.CreateRequest createRequest = new InspectionDto.CreateRequest();
-			
-			createRequest.setReceiptItemId(receiptItemId);
-			createRequest.setInspectorId(request.getInspectorId());
-			createRequest.setInspectionDate(
-				request.getInspectedAt() == null
-						? java.time.LocalDate.now()
-						: request.getInspectedAt().toLocalDate()
-			);
-			createRequest.setInspectionType("INBOUND");
-			createRequest.setQuantity(itemRequest.getReceivedQuantity());
-			createRequest.setAcceptedQuantity(itemRequest.getAcceptedQuantity());
-			createRequest.setDefectQuantity(itemRequest.getDefectiveQuantity());
-			createRequest.setInspectionResult(
-					itemRequest.getDefectiveQuantity() != null && itemRequest.getDefectiveQuantity() > 0
-							? "DEFECT"
-							: "PASS"
-			);
-			createRequest.setNotes(
-					itemRequest.getDefectReason() != null && !itemRequest.getDefectReason().isBlank()
-							? itemRequest.getDefectReason()
-							: request.getNote()
-			);
-			
-			saveInspection(createRequest);
-		}
-	}
+        @Transactional
+        public void saveInspectionResult(Long receiptId, InspectionDto.ResultRequest request) {
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+        throw new RuntimeException("검수할 품목이 없습니다.");
+    }
+
+        for (InspectionDto.ResultItemRequest itemRequest : request.getItems()) {
+                Long receiptItemId = itemRequest.getReceiptItemId() != null
+                        ? itemRequest.getReceiptItemId()
+                        : itemRequest.getId();
+
+        InspectionDto.CreateRequest createRequest = new InspectionDto.CreateRequest();
+
+        createRequest.setReceiptItemId(receiptItemId);
+        createRequest.setInspectorId(request.getInspectorId());
+        createRequest.setInspectionDate(
+                request.getInspectedAt() == null
+                        ? java.time.LocalDate.now()
+                        : request.getInspectedAt().toLocalDate()
+        );
+        createRequest.setInspectionType("INBOUND");
+        createRequest.setQuantity(itemRequest.getReceivedQuantity());
+        createRequest.setAcceptedQuantity(itemRequest.getAcceptedQuantity());
+        createRequest.setDefectQuantity(itemRequest.getDefectiveQuantity());
+        createRequest.setInspectionResult(
+                itemRequest.getDefectiveQuantity() != null && itemRequest.getDefectiveQuantity() > 0
+                        ? "DEFECT"
+                        : "PASS"
+        );
+
+        createRequest.setNotes(
+                itemRequest.getDefectReason() != null && !itemRequest.getDefectReason().isBlank()
+                        ? itemRequest.getDefectReason()
+                        : request.getNote()
+        );
+
+        createRequest.setDisposition(
+                itemRequest.getDisposition() == null || itemRequest.getDisposition().isBlank()
+                        ? "NONE"
+                        : itemRequest.getDisposition()
+        );
+
+        saveInspection(createRequest);
+    }
+
+    updateReceiptStatusAfterInspection(receiptId);
+}
+
+private void updateReceiptStatusAfterInspection(Long receiptId) {
+    List<ReceiptItem> items = receiptItemRepository.findByReceiptId(receiptId);
+
+    if (items == null || items.isEmpty()) {
+        return;
+    }
+
+    boolean allInspected = items.stream()
+            .allMatch(item -> inspectionRepository.existsByReceiptItemId(item.getReceiptItemId()));
+
+    if (!allInspected) {
+        return;
+    }
+
+    boolean hasDefect = items.stream()
+            .anyMatch(item -> item.getDefectQty() != null && item.getDefectQty() > 0);
+
+    Receipt receipt = receiptRepository.findById(receiptId)
+            .orElseThrow(() -> new RuntimeException("입고 정보를 찾을 수 없습니다."));
+
+    receipt.setReceiptStatus(hasDefect ? "INSPECTED_DEFECT" : "INSPECTED_PASS");
+    receipt.setUpdatedAt(LocalDateTime.now());
+
+    receiptRepository.save(receipt);
+}
 	
 @Override
 @Transactional(readOnly = true)
-public InspectionDto.SummaryResponse getInspectionSummary() {
-    Page<Receipt> pendingPage = receiptRepository.searchPendingReceipts(
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            PageRequest.of(0, 1)
-    );
+        public InspectionDto.SummaryResponse getInspectionSummary() {
+           long pendingCount = receiptRepository.countPendingReceipts();
+           long passCount = inspectionRepository.countByInspectionResult("PASS");
+           long defectCount = inspectionRepository.countByInspectionResult("DEFECT");
 
-    long pendingCount = pendingPage.getTotalElements();
-
-    return new InspectionDto.SummaryResponse(
-            pendingCount,
-            pendingCount,
-            0,
-            0
+            return new InspectionDto.SummaryResponse(
+               pendingCount + passCount + defectCount,
+               pendingCount,
+               passCount,
+               defectCount
     );
 }
 
@@ -522,16 +565,17 @@ public InspectionDto.SummaryResponse getInspectionSummary() {
                     .sorted()
                     .toList()
     );
-
+    
     return Map.of(
             "suppliers", suppliers,
             "warehouses", warehouses,
             "priorities", List.of("전체", "일반", "긴급"),
-
+            
             "inspectionTypes", List.of("입고검수", "품질검수", "출하검수"),
             "inspectionResults", List.of("합격", "불합격", "부분합격", "검수대기"),
             "dispositions", List.of("입고", "반품", "폐기", "재검수")
-    );
+        );
 }
 }
+        
 
