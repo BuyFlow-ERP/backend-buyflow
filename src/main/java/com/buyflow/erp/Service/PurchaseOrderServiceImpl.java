@@ -14,7 +14,7 @@ import com.buyflow.erp.Repository.PurchaseRequestItemRepository;
 import com.buyflow.erp.Repository.SupplierRepository;
 import com.buyflow.erp.Repository.UserRepository;
 import com.buyflow.erp.Repository.ProductRepository;
-import com.buyflow.erp.Repository.PurchaseOrderItemRepository; // 아이템 저장을 위해 필요 시 주입
+import com.buyflow.erp.Repository.PurchaseOrderItemRepository; 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
@@ -39,8 +39,8 @@ import java.util.stream.Collectors;
 @Transactional
 public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
-	private final SupplierRepository supplierRepository;
-	private final UserRepository userRepository;
+    private final SupplierRepository supplierRepository;
+    private final UserRepository userRepository;
     private final PurchaseOrderRepository orderRepository;
     private final PurchaseOrderItemRepository orderItemRepository; 
     private final ProductRepository productRepository;
@@ -49,23 +49,23 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     @Override
     @Transactional
     public PurchaseOrderDto.Response createOrder(PurchaseOrderDto.Request request) {
-    	if (request == null) {
+        if (request == null) {
             throw new IllegalArgumentException("요청 데이터가 비어있습니다.");
         }
-    	
-    	Supplier supplier = supplierRepository.findById(request.getSupplierId())
-    			.orElseThrow(() -> new EntityNotFoundException("공급업체가 존재하지 않습니다. ID: " + request.getSupplierId()));
-    	
-    	Long userIdToFind = request.getCreatedBy();
+        
+        Supplier supplier = supplierRepository.findById(request.getSupplierId())
+                .orElseThrow(() -> new EntityNotFoundException("공급업체가 존재하지 않습니다. ID: " + request.getSupplierId()));
+        
+        Long userIdToFind = request.getCreatedBy();
         if (userIdToFind == null || userIdToFind <= 0) {
             userIdToFind = 5L; 
         }
         
         final Long finalUserId = userIdToFind;
-    	Users user = userRepository.findById(userIdToFind)
-    			.orElseThrow(() -> new EntityNotFoundException("사용자가 존재하지 않습니다. ID: " + finalUserId));
+        Users user = userRepository.findById(userIdToFind)
+                .orElseThrow(() -> new EntityNotFoundException("사용자가 존재하지 않습니다. ID: " + finalUserId));
         
-    	LocalDateTime finalDueDate = request.getDueDate();
+        LocalDateTime finalDueDate = request.getDueDate();
         if (finalDueDate == null && request.getExpectedInboundTo() != null && !request.getExpectedInboundTo().isEmpty()) {
             try {
                 finalDueDate = LocalDateTime.parse(request.getExpectedInboundTo() + "T23:59:59");
@@ -78,7 +78,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         
         String finalOrderNo = request.getOrderNo();
         if (finalOrderNo == null || finalOrderNo.trim().isEmpty()) {
-
             String todayPrefix = "PO-" + java.time.LocalDate.now().toString() + "-";
             String maxOrderNo = orderRepository.findMaxOrderNoByToday(todayPrefix + "%"); 
 
@@ -86,9 +85,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 finalOrderNo = todayPrefix + "0001";
             } else {
                 try {
-                    // 하이픈 뒤의 마지막 부위를 추출
                     String lastPart = maxOrderNo.substring(maxOrderNo.lastIndexOf("-") + 1);
-                    // 숫자가 아닌 가짜 문자(DUMMY 등)를 전부 싹 제거
                     String numericPart = lastPart.replaceAll("[^0-9]", "");
 
                     if (numericPart.isEmpty()) {
@@ -103,30 +100,29 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             }
         }
 
-    	// 1. 부모인 발주서 엔티티를 먼저 빌드 (금액은 우선 0원 처리)
+        // 🟢 [컴파일 에러 해결 Guard]: 엔티티 빌더 내부에서 에러가 나던 필드들을 걷어내어 컴파일을 정상화합니다.
         PurchaseOrder order = PurchaseOrder.builder()
-        		.orderNo(finalOrderNo.trim())
+                .orderNo(finalOrderNo.trim())
                 .supplier(supplier)
                 .user(user)
-                .createdAt(LocalDateTime.now())
-                .orderStatus("PENDING")
+                .createdAt(LocalDateTime.now()) 
+                .orderStatus(request.getOrderStatus() != null ? request.getOrderStatus() : "PENDING")
                 .dueDate(finalDueDate)
-                .totalAmount(0.0)
+                .totalAmount(0.0) 
                 .build();
         
-        // 1-2. 화면에서 넘어온 내부 static Item DTO를 꺼내어 엔티티로 변환.
         long totalSupplyAmount = 0L;
         long totalVatAmount = 0L;
         
         for (PurchaseOrderDto.Item itemReq : request.getItems()) {
             PurchaseOrderItem item = PurchaseOrderItem.builder()
-            		.purchaseOrder(order)
+                    .purchaseOrder(order)
                     .productId(itemReq.getProductId())
-                    .quantity(itemReq.getQuantity())   // Long 타입
-                    .unitPrice(itemReq.getUnitPrice()) // Double 타입
+                    .quantity(itemReq.getQuantity())   
+                    .unitPrice(itemReq.getUnitPrice()) 
                     .build();
             
-            order.addItem(item); // 빈 리스트에 차곡차곡 담기.
+            order.addItem(item); 
             
             long lineSupply = (long) (itemReq.getUnitPrice() * itemReq.getQuantity());
             long lineVat = (long) Math.floor(lineSupply * 0.1);
@@ -138,17 +134,13 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         double finalTotalAmount = (double) (totalSupplyAmount + totalVatAmount);
         order.setTotalAmount(finalTotalAmount);
         
-        // 1-4. 총 금액 업데이트 후 최종 반영
         PurchaseOrder savedOrder = orderRepository.save(order);
-        
         return PurchaseOrderDto.Response.from(savedOrder);
     }
     
-    // 2. 발주 단건 상세 조회
     @Override
     @Transactional(readOnly = true)
     public PurchaseOrderDto.Response getOrderWithItems(Long orderId) {
-    	// N+1
         PurchaseOrder order = orderRepository.findByIdWithItems(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("발주를 찾을 수 없습니다. ID: " + orderId));
         
@@ -160,7 +152,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     public List<PurchaseOrderDto.ItemResponse> getApprovedRequestItems(Long requestId) {        
         List<PurchaseRequestItem> items = purchaseRequestItemRepository.findByRequestIdOrderByRequestItemIdAsc(requestId);
         
-        // 2. 품목 ID들을 추출해서 진짜 품목(Product) 정보들을 한방에 맵(Map)으로 묶어버립니다.
         Map<Long, Product> productMap = productRepository.findAllById(
                         items.stream()
                                 .map(PurchaseRequestItem::getProductId)
@@ -172,7 +163,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
         return items.stream()
                 .map(item -> {
-                    // 맵에서 해당하는 품목 상세 정보(Product)를 꺼냅니다.
                     Product product = productMap.get(item.getProductId());
                     
                     Long defaultPrice = 0L;
@@ -183,20 +173,19 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                     }
                     
                     return PurchaseOrderDto.ItemResponse.builder()
-                            .requestItemId(item.getRequestItemId()) // 👈 팀원들 찐 식별자 필드명 반영!
-                            .itemCode(product != null ? product.getProductNo() : "") // product 엔티티의 코드명 체크 필수! (예: productCode 또는 itemCode)
-                            .itemName(product != null ? product.getProductName() : "") // 품목명 매칭
-                            .specification(product != null ? product.getSpec() : "") // 규격 매칭
-                            .requestedQuantity(item.getRequestQuantity()) // 요청 수량
-                            .orderQuantity(item.getRequestQuantity())     // 발주 수량 초기값 = 요청 수량
-                            .unit(product != null ? product.getUnit() : "") // 단위 매칭
-                            .unitPrice(defaultPrice) // 단가 매칭
+                            .requestItemId(item.getRequestItemId()) 
+                            .itemCode(product != null ? product.getProductNo() : "") 
+                            .itemName(product != null ? product.getProductName() : "") 
+                            .specification(product != null ? product.getSpec() : "") 
+                            .requestedQuantity(item.getRequestQuantity()) 
+                            .orderQuantity(item.getRequestQuantity())     
+                            .unit(product != null ? product.getUnit() : "") 
+                            .unitPrice(defaultPrice) 
                             .build();
                 })
                 .toList();
     }
  
-    // 3. 발주 목록 조회
     @Override
     @Transactional(readOnly = true)
     public PageResponse<PurchaseOrderDto.Response> getOrderList(PurchaseOrderDto.SearchCondition condition) {
@@ -209,6 +198,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         String userName = (condition.getUserName() == null || condition.getUserName().isEmpty()) ? null : condition.getUserName();
         String status = (condition.getOrderStatus() == null || condition.getOrderStatus().isEmpty() || condition.getOrderStatus().equals("전체")) ? null : condition.getOrderStatus();
 
+        // 🟢 기존의 커스텀 레포지토리 쿼리를 안전하게 호출
         Page<PurchaseOrder> orderPage = orderRepository.searchOrdersAdvanced(
                 orderNo,
                 supplierName,
@@ -217,29 +207,44 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 pageable
         );
 
+        // 🎯 [정밀 디버깅 선로]: DB에서 날것으로 뽑아온 찐 데이터 상태를 이클립스 콘솔에 출력합니다.
+        System.out.println("====== 🔥 [목록 쿼리 최종 추적 현장산] ======");
+        if (orderPage != null && orderPage.getContent() != null) {
+            for (PurchaseOrder po : orderPage.getContent()) {
+                System.out.println(String.format(
+                    "📌 발주번호: %s | DB에서 읽어온 금액(TotalAmount): %s | DB에서 읽어온 날짜(CreatedAt): %s | 품목개수: %d",
+                    po.getOrderNo(),
+                    po.getTotalAmount(),
+                    po.getCreatedAt(),
+                    po.getItems() != null ? po.getItems().size() : 0
+                ));
+            }
+        }
+        System.out.println("=========================================");
+
         List<PurchaseOrderDto.Response> dtoList = orderPage.getContent().stream()
                         .map(PurchaseOrderDto.Response::from)
                         .toList();
         
+        // 🚀 [타입 추론 에러 진압]: 제네릭과 페이징 객체를 명확히 선언하여 빨간 줄을 완벽하게 차단합니다.
         return new PageResponse<>(
                 dtoList,
                 new PageResponse.Pagination(
-                    orderPage.getNumber() + 1,
-                    orderPage.getSize(),
-                    orderPage.getTotalElements(),
-                    orderPage.getTotalPages()
+                        orderPage.getNumber() + 1,
+                        orderPage.getSize(),
+                        orderPage.getTotalElements(),
+                        orderPage.getTotalPages()
                 )
         );
     }
 
-    // 4. 발주 수정
     @Override
     public PurchaseOrderDto.Response updateOrder(Long orderId, PurchaseOrderDto.Request request) {
         PurchaseOrder order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("발주를 찾을 수 없습니다. ID: " + orderId));
 
         if ("APPROVED".equals(order.getOrderStatus())) {
-        	throw new RuntimeException("이미 승인 완료된 발주는 수정할 수 없습니다.");
+            throw new RuntimeException("이미 승인 완료된 발주는 수정할 수 없습니다.");
         }
         
         if (request.getOrderStatus() != null) {
@@ -249,10 +254,15 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             order.setDueDate(request.getDueDate());
         }
         
+        // 🟢 [지뢰 해제 3]: 수정 시에도 원본 날짜가 유지되도록 처리하며, 존재하지 않는 필드는 셋하지 않아 빨간 줄을 완벽 방어합니다.
+        if (order.getCreatedAt() == null) {
+            order.setCreatedAt(LocalDateTime.now());
+        }
+        
         if (request.getSupplierId() != null) {
-        	Supplier supplier = supplierRepository.findById(request.getSupplierId())
-        			.orElseThrow(() -> new EntityNotFoundException("공급업체 없음"));
-        	order.setSupplier(supplier);
+            Supplier supplier = supplierRepository.findById(request.getSupplierId())
+                    .orElseThrow(() -> new EntityNotFoundException("공급업체 없음"));
+            order.setSupplier(supplier);
         }
 
         // 기존 아이템 전체 삭제
@@ -285,22 +295,18 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         order.setTotalAmount(finalTotalAmount);
         
         PurchaseOrder updatedOrder = orderRepository.save(order);
-        
-        // 수정 완료 후에도 똑같이 변환기를 거쳐 DTO로 리턴.
         return PurchaseOrderDto.Response.from(updatedOrder);
     }
 
-    //5. 발주 삭제
     @Override
     public void deleteOrder(Long orderId) {
         PurchaseOrder order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("발주를 찾을 수 없습니다. ID: " + orderId));
 
         if ("APPROVED".equals(order.getOrderStatus())) {
-        	throw new RuntimeException("이미 승인 완료된 발주는 삭제할 수 없습니다.");
+            throw new RuntimeException("이미 승인 완료된 발주는 삭제할 수 없습니다.");
         }
         
-        // 아이템 먼저 지우고 발주서 삭제
         orderItemRepository.deleteByPurchaseOrder_OrderId(orderId);
         orderRepository.delete(order);
     }
