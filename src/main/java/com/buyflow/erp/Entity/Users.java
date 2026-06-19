@@ -45,4 +45,8 @@ public class Users {
 
 	@Column(name = "JOB_RANK")
 	private String jobRank;
+	
+	@Column(name = "PHONE")
+	private String phone;
+
 }

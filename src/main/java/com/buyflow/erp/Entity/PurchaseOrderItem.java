@@ -32,7 +32,7 @@ public class PurchaseOrderItem {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ORDER_ID", nullable = false)
     private PurchaseOrder purchaseOrder;
-
+    
     @Column(name = "PRODUCT_ID", nullable = false)
     private Long productId;
 
@@ -41,4 +41,9 @@ public class PurchaseOrderItem {
 
     @Column(name = "UNIT_PRICE", nullable = false)
     private Double unitPrice;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "REQUEST_ID")
+    private PurchaseRequest purchaseRequest;
+    
 }

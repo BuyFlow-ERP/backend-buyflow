@@ -34,15 +34,15 @@ public class PurchaseOrder {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "purchase_order_seq")
     @SequenceGenerator(name = "purchase_order_seq", sequenceName = "SEQ_PURCHASE_ORDER", allocationSize = 1)
-    @Column(name = "ORDER_ID")
+    @Column(name = "ORDER_ID", nullable = false)
     private Long orderId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "SUPPLIER_ID")
+    @JoinColumn(name = "SUPPLIER_ID", nullable = false)
     private Supplier supplier;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "CREATED_BY")
+    @JoinColumn(name = "USER_ID", nullable = false)
     private Users user;
 
     @Column(name = "CREATED_AT")
@@ -56,6 +56,16 @@ public class PurchaseOrder {
 
     @Column(name = "DUE_DATE")
     private LocalDateTime dueDate;
+    
+    @Column(name = "ORDER_NO", length = 50, nullable = false, unique = true)
+    private String orderNo;
+    
+    @Column(name = "MEMO")
+    private String memo;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "REQUEST_ID", nullable = false)
+    private PurchaseRequest purchaseRequest;
 
     @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

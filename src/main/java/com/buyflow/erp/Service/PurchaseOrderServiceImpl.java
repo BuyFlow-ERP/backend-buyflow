@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,26 +42,75 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 	private final SupplierRepository supplierRepository;
 	private final UserRepository userRepository;
     private final PurchaseOrderRepository orderRepository;
-    // 만약 아이템을 별도로 save 해야 한다면 JpaRepository<PurchaseOrderItem, Long>를 상속받은 레포지토리를 주입받으세요.
     private final PurchaseOrderItemRepository orderItemRepository; 
     private final ProductRepository productRepository;
     private final PurchaseRequestItemRepository purchaseRequestItemRepository;
 
     @Override
+    @Transactional
     public PurchaseOrderDto.Response createOrder(PurchaseOrderDto.Request request) {
+    	if (request == null) {
+            throw new IllegalArgumentException("요청 데이터가 비어있습니다.");
+        }
+    	
     	Supplier supplier = supplierRepository.findById(request.getSupplierId())
     			.orElseThrow(() -> new EntityNotFoundException("공급업체가 존재하지 않습니다. ID: " + request.getSupplierId()));
     	
-    	Users user = userRepository.findById(request.getCreatedBy())
-    			.orElseThrow(() -> new EntityNotFoundException("사용자가 존재하지 않습니다. ID: " + request.getCreatedBy()));
+    	Long userIdToFind = request.getCreatedBy();
+        if (userIdToFind == null || userIdToFind <= 0) {
+            userIdToFind = 5L; 
+        }
         
+        final Long finalUserId = userIdToFind;
+    	Users user = userRepository.findById(userIdToFind)
+    			.orElseThrow(() -> new EntityNotFoundException("사용자가 존재하지 않습니다. ID: " + finalUserId));
+        
+    	LocalDateTime finalDueDate = request.getDueDate();
+        if (finalDueDate == null && request.getExpectedInboundTo() != null && !request.getExpectedInboundTo().isEmpty()) {
+            try {
+                finalDueDate = LocalDateTime.parse(request.getExpectedInboundTo() + "T23:59:59");
+            } catch (Exception e) {
+                finalDueDate = LocalDateTime.now().plusDays(7);
+            }
+        } else if (finalDueDate == null) {
+            finalDueDate = LocalDateTime.now().plusDays(7);
+        }
+        
+        String finalOrderNo = request.getOrderNo();
+        if (finalOrderNo == null || finalOrderNo.trim().isEmpty()) {
+
+            String todayPrefix = "PO-" + java.time.LocalDate.now().toString() + "-";
+            String maxOrderNo = orderRepository.findMaxOrderNoByToday(todayPrefix + "%"); 
+
+            if (maxOrderNo == null || maxOrderNo.isEmpty()) {
+                finalOrderNo = todayPrefix + "0001";
+            } else {
+                try {
+                    // 하이픈 뒤의 마지막 부위를 추출
+                    String lastPart = maxOrderNo.substring(maxOrderNo.lastIndexOf("-") + 1);
+                    // 숫자가 아닌 가짜 문자(DUMMY 등)를 전부 싹 제거
+                    String numericPart = lastPart.replaceAll("[^0-9]", "");
+
+                    if (numericPart.isEmpty()) {
+                        finalOrderNo = todayPrefix + "0001";
+                    } else {
+                        int nextSeq = Integer.parseInt(numericPart) + 1;
+                        finalOrderNo = String.format("PO-%s-%04d", java.time.LocalDate.now().toString(), nextSeq);
+                    }
+                } catch (Exception e) {
+                    finalOrderNo = todayPrefix + "0001";
+                }
+            }
+        }
+
     	// 1. 부모인 발주서 엔티티를 먼저 빌드 (금액은 우선 0원 처리)
         PurchaseOrder order = PurchaseOrder.builder()
+        		.orderNo(finalOrderNo.trim())
                 .supplier(supplier)
                 .user(user)
                 .createdAt(LocalDateTime.now())
                 .orderStatus("PENDING")
-                .dueDate(request.getDueDate())
+                .dueDate(finalDueDate)
                 .totalAmount(0.0)
                 .build();
         
