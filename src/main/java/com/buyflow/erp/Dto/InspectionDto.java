@@ -162,6 +162,13 @@ public class InspectionDto {
 			long defectCount
 	) {}
 
+	public record PendingSummaryResponse(
+        long total,
+        long receivedToday,
+        long urgent,
+        long overdue
+) {}
+
 	@Getter
 	@Setter
 	@NoArgsConstructor

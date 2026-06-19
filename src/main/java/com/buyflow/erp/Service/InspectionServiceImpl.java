@@ -1,6 +1,7 @@
 package com.buyflow.erp.Service;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -103,22 +104,33 @@ public class InspectionServiceImpl implements InspectionService {
 
     Pageable pageable = PageRequest.of(safePage, safeSize);
 
+    String inspectionNumber = blankToNull(condition.getInspectionNumber());
     String inboundNumber = blankToNull(condition.getInboundNumber());
     String orderNumber = blankToNull(condition.getOrderNumber());
     String supplierName = optionToNull(condition.getSupplierName(), "전체 공급업체");
     String warehouseName = optionToNull(condition.getWarehouseName(), "전체 창고");
+    String priority = optionToNull(condition.getPriority(), "전체");
     String receivedFrom = blankToNull(condition.getReceivedFrom());
     String receivedTo = blankToNull(condition.getReceivedTo());
 
+    String summaryFilter = blankToNull(condition.getSummaryFilter());
+
+    if (summaryFilter == null) {
+    summaryFilter = "ALL";
+}
+
     Page<Receipt> receiptPage = receiptRepository.searchPendingReceipts(
-            inboundNumber,
-            orderNumber,
-            supplierName,
-            warehouseName,
-            receivedFrom,
-            receivedTo,
-            pageable
-    );
+        inspectionNumber,
+        inboundNumber,
+        orderNumber,
+        supplierName,
+        warehouseName,
+        priority,
+        receivedFrom,
+        receivedTo,
+        summaryFilter,
+        pageable
+);
 
     List<InspectionDto.Response> dtoList = receiptPage.getContent()
             .stream()
@@ -232,9 +244,7 @@ public class InspectionServiceImpl implements InspectionService {
             ? receipt.getReceiptDate().toLocalDate().toString()
             : "";
 
-    String dueAt = receipt.getReceiptDate() != null
-            ? receipt.getReceiptDate().toLocalDate().plusDays(1).toString()
-            : "";
+    String dueAt = getInspectionDueAtText(receipt);
 
     String status = resolveReceiptInspectionStatus(receiptItems);
 
@@ -242,13 +252,13 @@ public class InspectionServiceImpl implements InspectionService {
 
     if (!"PENDING".equals(status) && includeItems) {
         result = InspectionDto.InspectionResultDto.builder()
-                .status(status)
-                .inspectorName(findInspectorName(receiptItems))
-                .inspectedAt(findLastInspectedAt(receiptItems))
-                .note(findResultNote(receiptItems))
-                .items(items)
-                .build();
-    }
+            .status(status)
+            .inspectorName(findInspectorName(receiptItems))
+            .inspectedAt(findLastInspectedAt(receiptItems))
+            .note(findResultNote(receiptItems))
+            .items(items)
+            .build();
+}
 
     return InspectionDto.Response.builder()
             .id(receipt.getReceiptId())
@@ -261,7 +271,7 @@ public class InspectionServiceImpl implements InspectionService {
             .warehouseName(warehouse != null ? warehouse.getWarehouseName() : "-")
             .receivedAt(receivedAt)
             .inspectionDueAt(dueAt)
-            .priority("일반")
+            .priority(resolveInspectionPriority(receipt))
             .status(status)
             .receivedBy(receipt.getLoginId())
             .itemCount(receiptItems.size())
@@ -269,6 +279,30 @@ public class InspectionServiceImpl implements InspectionService {
             .items(items)
             .inspectionResult(result)
             .build();
+}
+
+        private String getInspectionDueAtText(Receipt receipt) {
+    LocalDate dueDate = getInspectionDueDate(receipt);
+
+    return dueDate == null ? "" : dueDate.toString();
+}
+
+private LocalDate getInspectionDueDate(Receipt receipt) {
+    if (receipt == null || receipt.getReceiptDate() == null) {
+        return null;
+    }
+
+    return receipt.getReceiptDate().toLocalDate().plusDays(1);
+}
+
+private String resolveInspectionPriority(Receipt receipt) {
+    LocalDate dueDate = getInspectionDueDate(receipt);
+
+    if (dueDate == null) {
+        return "일반";
+    }
+
+    return !dueDate.isAfter(LocalDate.now()) ? "긴급" : "일반";
 }
 
         private InspectionDto.InspectionItemDto buildInspectionItemDto(ReceiptItem receiptItem) {
@@ -579,16 +613,17 @@ private void updateReceiptStatusAfterInspection(Long receiptId) {
 	
         @Override
         @Transactional(readOnly = true)
-        public InspectionDto.SummaryResponse getInspectionSummary() {
-           long pendingCount = receiptRepository.countPendingReceipts();
-           long passCount = inspectionRepository.countByInspectionResult("PASS");
-           long defectCount = inspectionRepository.countByInspectionResult("DEFECT");
+        public InspectionDto.PendingSummaryResponse getInspectionSummary() {
+        long total = receiptRepository.countPendingReceipts();
+        long receivedToday = receiptRepository.countPendingReceivedTodayReceipts();
+        long urgent = receiptRepository.countPendingUrgentReceipts();
+        long overdue = receiptRepository.countPendingOverdueReceipts();
 
-            return new InspectionDto.SummaryResponse(
-               pendingCount + passCount + defectCount,
-               pendingCount,
-               passCount,
-               defectCount
+        return new InspectionDto.PendingSummaryResponse(
+            total,
+            receivedToday,
+            urgent,
+            overdue
     );
 }
 
