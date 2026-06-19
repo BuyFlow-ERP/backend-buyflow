@@ -135,6 +135,63 @@ public class InspectionServiceImpl implements InspectionService {
             )
     );
 }
+        @Override
+        @Transactional(readOnly = true)
+        public PageResponse<InspectionDto.Response> getCompletedInspections(
+        InspectionDto.SearchCondition condition) {
+
+                int displayPage = condition.getPage() != null ? condition.getPage() : 1;
+                int safePage = Math.max(displayPage - 1, 0);
+                int safeSize = condition.getSize() != null && condition.getSize() > 0
+            ? condition.getSize()
+            : 15;
+
+        Pageable pageable = PageRequest.of(safePage, safeSize);
+
+        String inspectionNumber = blankToNull(condition.getInspectionNumber());
+        String inboundNumber = blankToNull(condition.getInboundNumber());
+        String orderNumber = blankToNull(condition.getOrderNumber());
+        String supplierName = optionToNull(condition.getSupplierName(), "전체 공급업체");
+        String warehouseName = optionToNull(condition.getWarehouseName(), "전체 창고");
+        String receivedFrom = blankToNull(condition.getReceivedFrom());
+        String receivedTo = blankToNull(condition.getReceivedTo());
+
+        String inspectionResult = condition.getInspectionResult();
+
+                if (inspectionResult == null
+                || inspectionResult.isBlank()
+                || inspectionResult.equals("전체")
+                || inspectionResult.equals("ALL")) {
+                inspectionResult = null;
+    }
+
+        Page<Receipt> receiptPage = receiptRepository.searchCompletedReceipts(
+            inspectionNumber,
+            inboundNumber,
+            orderNumber,
+            supplierName,
+            warehouseName,
+            receivedFrom,
+            receivedTo,
+            inspectionResult,
+            pageable
+    );
+
+        List<InspectionDto.Response> dtoList = receiptPage.getContent()
+            .stream()
+            .map(receipt -> buildInspectionResponse(receipt, true))
+            .toList();
+
+        return new PageResponse<>(
+            dtoList,
+            new PageResponse.Pagination(
+                    receiptPage.getNumber() + 1,
+                    receiptPage.getSize(),
+                    receiptPage.getTotalElements(),
+                    receiptPage.getTotalPages()
+            )
+    );
+}
 
 	@Override
 	@Transactional(readOnly = true)
@@ -520,8 +577,8 @@ private void updateReceiptStatusAfterInspection(Long receiptId) {
     receiptRepository.save(receipt);
 }
 	
-@Override
-@Transactional(readOnly = true)
+        @Override
+        @Transactional(readOnly = true)
         public InspectionDto.SummaryResponse getInspectionSummary() {
            long pendingCount = receiptRepository.countPendingReceipts();
            long passCount = inspectionRepository.countByInspectionResult("PASS");
@@ -532,6 +589,21 @@ private void updateReceiptStatusAfterInspection(Long receiptId) {
                pendingCount,
                passCount,
                defectCount
+    );
+}
+
+        @Override
+        @Transactional(readOnly = true)
+        public InspectionDto.SummaryResponse getCompletedInspectionSummary() {
+                long totalCount = receiptRepository.countCompletedReceipts();
+                long passCount = receiptRepository.countCompletedPassReceipts();
+                long defectCount = receiptRepository.countCompletedDefectReceipts();
+
+                return new InspectionDto.SummaryResponse(
+                        totalCount,
+                        0,
+                        passCount,
+                defectCount
     );
 }
 

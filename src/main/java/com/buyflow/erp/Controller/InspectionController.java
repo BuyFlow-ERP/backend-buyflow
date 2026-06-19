@@ -31,6 +31,17 @@ public class InspectionController {
         return ResponseEntity.ok(inspectionService.getPendingInspections(condition));
     }
 
+    @GetMapping("/completed")
+    public ResponseEntity<PageResponse<InspectionDto.Response>> getCompletedInspections(
+        InspectionDto.SearchCondition condition) {
+    return ResponseEntity.ok(inspectionService.getCompletedInspections(condition));
+    }
+
+    @GetMapping("/completed/summary")
+    public ResponseEntity<InspectionDto.SummaryResponse> getCompletedInspectionSummary() {
+    return ResponseEntity.ok(inspectionService.getCompletedInspectionSummary());
+    }
+
     @GetMapping("/pending/filter-options")
     public ResponseEntity<Map<String, Object>> getInspectionFilterOptions() {
         return ResponseEntity.ok(inspectionService.getInspectionFilterOptions());

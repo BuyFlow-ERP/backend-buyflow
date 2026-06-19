@@ -22,5 +22,9 @@ public interface InspectionService {
 
     InspectionDto.SummaryResponse getInspectionSummary();
 
+    PageResponse<InspectionDto.Response> getCompletedInspections(InspectionDto.SearchCondition condition);
+
+    InspectionDto.SummaryResponse getCompletedInspectionSummary();
+
     Map<String, Object> getInspectionFilterOptions();
 }
