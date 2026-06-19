@@ -2,6 +2,8 @@ package com.buyflow.erp.Repository;
 
 import com.buyflow.erp.Entity.ReceiptItem;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,6 +23,8 @@ public interface ReceiptItemRepository
             Long orderItemId
     );
     
+    List<ReceiptItem> findByReceiptId(Long receiptId);
+
     Page<ReceiptItem> findAll(Pageable pageable);
     
 }

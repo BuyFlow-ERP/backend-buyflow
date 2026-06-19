@@ -47,6 +47,8 @@ public class InspectionDto {
 		
 		private String inspectionResult;
 		private String notes;
+
+		private String disposition;
 	}
 
 	@Getter
@@ -96,6 +98,9 @@ public class InspectionDto {
         private Long totalReceivedQuantity;    // 검수 대상 총수량
         
         private List<InspectionItemDto> items; // 상세조회 시 뿌려줄 하위 품목 리스트
+
+				private InspectionResultDto inspectionResult;
+
     }
 	
 	@Getter
@@ -156,5 +161,18 @@ public class InspectionDto {
 			long passCount,
 			long defectCount
 	) {}
+
+	@Getter
+	@Setter
+	@NoArgsConstructor
+	@AllArgsConstructor
+	@Builder
+	public static class InspectionResultDto {
+    private String status;
+    private String inspectorName;
+    private LocalDateTime inspectedAt;
+    private String note;
+    private List<InspectionItemDto> items;
+}
 
 }

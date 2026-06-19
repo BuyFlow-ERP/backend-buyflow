@@ -1,5 +1,8 @@
 package com.buyflow.erp.Repository;
 
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -23,6 +26,10 @@ public interface InspectionRepository extends JpaRepository<Inspection, Long> {
             @Param("result") String result,
             Pageable pageable
     );
+
+    Optional<Inspection> findByReceiptItemId(Long receiptItemId);
+
+    List<Inspection> findByReceiptItemIdIn(List<Long> receiptItemIds);
     
     long count();
     long countByInspectionResult(String inspectionResult);

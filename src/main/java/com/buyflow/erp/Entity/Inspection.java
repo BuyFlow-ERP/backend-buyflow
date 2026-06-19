@@ -64,6 +64,7 @@ public class Inspection {
     @Column(name = "CREATED_AT")
     private LocalDateTime createdAt; // TimeStamp 매핑
 
+    @Column(name= "DISPOSITION", length = 50)
+    private String disposition;
 
-    
 }

@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -16,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.buyflow.erp.Dto.InspectionDto;
 import com.buyflow.erp.Dto.PageResponse;
-import com.buyflow.erp.Dto.StockDto;
 import com.buyflow.erp.Entity.Inspection;
 import com.buyflow.erp.Entity.PurchaseOrder;
 import com.buyflow.erp.Entity.Receipt;
@@ -26,6 +24,7 @@ import com.buyflow.erp.Entity.StockHistory;
 import com.buyflow.erp.Entity.Supplier;
 import com.buyflow.erp.Entity.Users;
 import com.buyflow.erp.Entity.Warehouse;
+import com.buyflow.erp.Entity.Product;
 import com.buyflow.erp.Repository.InspectionRepository;
 import com.buyflow.erp.Repository.PurchaseOrderRepository;
 import com.buyflow.erp.Repository.ReceiptItemRepository;
@@ -34,6 +33,9 @@ import com.buyflow.erp.Repository.StockHistoryRepository;
 import com.buyflow.erp.Repository.StockRepository;
 import com.buyflow.erp.Repository.UserRepository;
 import com.buyflow.erp.Repository.WarehouseRepository;
+import com.buyflow.erp.Repository.ProductRepository;
+import com.buyflow.erp.Repository.SupplierRepository;
+
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +53,8 @@ public class InspectionServiceImpl implements InspectionService {
 	private final UserRepository userRepository;
 	private final PurchaseOrderRepository purchaseOrderRepository;
 	private final WarehouseRepository warehouseRepository;
+	private final ProductRepository productRepository;
+	private final SupplierRepository supplierRepository;
 
 	@Override
 	@Transactional(readOnly = true)
@@ -88,77 +92,233 @@ public class InspectionServiceImpl implements InspectionService {
 	
 	@Override
 	@Transactional(readOnly = true)
-	public PageResponse<InspectionDto.Response> getPendingInspections(InspectionDto.SearchCondition condition) {
-	    
-	    // 🛡️ 프론트엔드 page=1 규격 완벽 인지 및 바인딩 방패
-	    int displayPage = (condition.getPage() != null) ? condition.getPage() : 1;
-	    int safeSize = (condition.getSize() != null && condition.getSize() > 0) ? condition.getSize() : 15;
-	    
-	    int safePage = Math.max(displayPage - 1, 0);
-	    Pageable pageable = PageRequest.of(safePage, safeSize);
-	    
-	    // 🚀 에러 발생 가능성 0%인 기본 findAll 메서드로 오라클 데이터 안전 획득!
-	    Page<ReceiptItem> pendingReceiptItemPage = receiptItemRepository.findAll(pageable);
+	public PageResponse<InspectionDto.Response> getPendingInspections(
+        InspectionDto.SearchCondition condition) {
 
-	    // 💡 연관 ID 리스트 추출 및 벌크 조인 캐시 맵 빌드
-	    List<Long> receiptIds = pendingReceiptItemPage.getContent().stream()
-	            .map(ReceiptItem::getReceiptId)
-	            .filter(Objects::nonNull)
-	            .toList();
+    int displayPage = condition.getPage() != null ? condition.getPage() : 1;
+    int safePage = Math.max(displayPage - 1, 0);
+    int safeSize = condition.getSize() != null && condition.getSize() > 0
+            ? condition.getSize()
+            : 15;
 
-	    Map<Long, Receipt> receiptMap = receiptRepository.findAllById(receiptIds).stream()
-	            .collect(Collectors.toMap(Receipt::getReceiptId, Function.identity(), (v1, v2) -> v1));
+    Pageable pageable = PageRequest.of(safePage, safeSize);
 
-	    List<Long> orderIds = receiptMap.values().stream()
-	            .map(Receipt::getOrderId)
-	            .filter(Objects::nonNull)
-	            .toList();
+    String inboundNumber = blankToNull(condition.getInboundNumber());
+    String orderNumber = blankToNull(condition.getOrderNumber());
+    String supplierName = optionToNull(condition.getSupplierName(), "전체 공급업체");
+    String warehouseName = optionToNull(condition.getWarehouseName(), "전체 창고");
+    String receivedFrom = blankToNull(condition.getReceivedFrom());
+    String receivedTo = blankToNull(condition.getReceivedTo());
 
-	    Map<Long, PurchaseOrder> orderMap = purchaseOrderRepository.findAllById(orderIds).stream()
-	            .collect(Collectors.toMap(PurchaseOrder::getOrderId, Function.identity(), (v1, v2) -> v1));
+    Page<Receipt> receiptPage = receiptRepository.searchPendingReceipts(
+            inboundNumber,
+            orderNumber,
+            supplierName,
+            warehouseName,
+            receivedFrom,
+            receivedTo,
+            pageable
+    );
 
-	    // 웅장한 DTO 100% 안전 매칭 파이프라인
-	    List<InspectionDto.Response> dtoList = pendingReceiptItemPage.getContent().stream()
-	            .<InspectionDto.Response>map(item -> {
-	                Receipt receipt = (item.getReceiptId() != null) ? receiptMap.get(item.getReceiptId()) : null;
-	                PurchaseOrder order = null;
-	                if (receipt != null && receipt.getOrderId() != null) {
-	                	order = orderMap.get(receipt.getOrderId());
-	                }
-	                
-	                Supplier supplier = (order != null) ? order.getSupplier() : null;
+    List<InspectionDto.Response> dtoList = receiptPage.getContent()
+            .stream()
+            .map(receipt -> buildInspectionResponse(receipt, false))
+            .toList();
 
-	                return InspectionDto.Response.builder()
-	                        .id(item.getReceiptItemId())
-	                        .inspectionNumber("IQC-" + item.getReceiptItemId())
-	                        
-	                        .inboundNumber(receipt != null && receipt.getReceiptNo() != null ? receipt.getReceiptNo() : "-")
-	                        .orderNumber(order != null ? "PO-2026-" + order.getOrderId() : "-")
-	                        .supplierName(supplier != null && supplier.getSupplierName() != null ? supplier.getSupplierName() : "-")
-	                        .warehouseName("-")
-	                        
-	                        .receivedAt(receipt != null && receipt.getReceiptDate() != null ? receipt.getReceiptDate().toLocalDate().toString() : "-")
-	                        .inspectionDueAt(receipt != null && receipt.getReceiptDate() != null ? receipt.getReceiptDate().toLocalDate().plusDays(3).toString() : "-")
-	                        .priority("일반")
-	                        .status("PENDING")
-	                        .receivedBy(receipt != null && receipt.getLoginId() != null ? receipt.getLoginId() : "-")
-	                        .itemCount(1)
-	                        .totalReceivedQuantity(item.getReceiptQty() != null ? item.getReceiptQty() : 0L)
-	                        .items(new ArrayList<>())
-	                        .build();
-	            })
-	            .toList();
+    return new PageResponse<>(
+            dtoList,
+            new PageResponse.Pagination(
+                    receiptPage.getNumber() + 1,
+                    receiptPage.getSize(),
+                    receiptPage.getTotalElements(),
+                    receiptPage.getTotalPages()
+            )
+    );
+}
 
-	    return new PageResponse<>(
-	            dtoList,
-	            new PageResponse.Pagination(
-	                    pendingReceiptItemPage.getNumber() + 1,
-	                    pendingReceiptItemPage.getSize(),
-	                    pendingReceiptItemPage.getTotalElements(),
-	                    pendingReceiptItemPage.getTotalPages()
-	            )
-	    );
-	}
+	@Override
+	@Transactional(readOnly = true)
+	public InspectionDto.Response getPendingInspectionDetail(Long receiptId) {
+    	Receipt receipt = receiptRepository.findById(receiptId)
+            .orElseThrow(() -> new RuntimeException("입고 정보를 찾을 수 없습니다. ID: " + receiptId));
+
+    	return buildInspectionResponse(receipt, true);
+}
+
+	private InspectionDto.Response buildInspectionResponse(
+        Receipt receipt,
+        boolean includeItems
+) {
+    List<ReceiptItem> receiptItems = receiptItemRepository.findByReceiptId(receipt.getReceiptId());
+
+    PurchaseOrder order = receipt.getOrderId() != null
+            ? purchaseOrderRepository.findById(receipt.getOrderId()).orElse(null)
+            : null;
+
+    Supplier supplier = order != null ? order.getSupplier() : null;
+
+    Warehouse warehouse = receipt.getWarehouseCode() != null
+            ? warehouseRepository.findById(receipt.getWarehouseCode()).orElse(null)
+            : null;
+
+    List<InspectionDto.InspectionItemDto> items = includeItems
+            ? receiptItems.stream()
+                    .map(this::buildInspectionItemDto)
+                    .toList()
+            : List.of();
+
+    long totalReceivedQuantity = receiptItems.stream()
+            .mapToLong(item -> item.getReceiptQty() == null ? 0L : item.getReceiptQty())
+            .sum();
+
+    String receivedAt = receipt.getReceiptDate() != null
+            ? receipt.getReceiptDate().toLocalDate().toString()
+            : "";
+
+    String dueAt = receipt.getReceiptDate() != null
+            ? receipt.getReceiptDate().toLocalDate().plusDays(1).toString()
+            : "";
+
+    String status = resolveReceiptInspectionStatus(receiptItems);
+
+    InspectionDto.InspectionResultDto result = null;
+
+    if (!"PENDING".equals(status) && includeItems) {
+        result = InspectionDto.InspectionResultDto.builder()
+                .status(status)
+                .inspectorName(findInspectorName(receiptItems))
+                .inspectedAt(findLastInspectedAt(receiptItems))
+                .note(findResultNote(receiptItems))
+                .items(items)
+                .build();
+    }
+
+    return InspectionDto.Response.builder()
+            .id(receipt.getReceiptId())
+            .inspectionNumber("IQC-2026-" + String.format("%04d", receipt.getReceiptId()))
+            .inboundNumber(receipt.getReceiptNo())
+            .orderNumber(order != null
+                    ? "PO-2026-" + String.format("%04d", order.getOrderId())
+                    : "-")
+            .supplierName(supplier != null ? supplier.getSupplierName() : "-")
+            .warehouseName(warehouse != null ? warehouse.getWarehouseName() : "-")
+            .receivedAt(receivedAt)
+            .inspectionDueAt(dueAt)
+            .priority("일반")
+            .status(status)
+            .receivedBy(receipt.getLoginId())
+            .itemCount(receiptItems.size())
+            .totalReceivedQuantity(totalReceivedQuantity)
+            .items(items)
+            .inspectionResult(result)
+            .build();
+}
+
+		private InspectionDto.InspectionItemDto buildInspectionItemDto(ReceiptItem receiptItem) {
+    Product product = receiptItem.getProductId() != null
+            ? productRepository.findById(receiptItem.getProductId()).orElse(null)
+            : null;
+
+    Long receivedQty = receiptItem.getReceiptQty() == null ? 0L : receiptItem.getReceiptQty();
+    Long acceptedQty = receiptItem.getAcceptedQty() == null ? receivedQty : receiptItem.getAcceptedQty();
+    Long defectiveQty = receiptItem.getDefectQty() == null ? 0L : receiptItem.getDefectQty();
+
+    return InspectionDto.InspectionItemDto.builder()
+            .id(receiptItem.getReceiptItemId())
+            .receiptItemId(receiptItem.getReceiptItemId())
+
+            .itemCode(product != null ? product.getProductNo() : "-")
+            .itemName(product != null ? product.getProductName() : "-")
+            .category(product != null ? product.getCategoryName() : "-")
+            .specification(product != null ? product.getSpec() : "-")
+            .unit(product != null ? product.getUnit() : "-")
+
+            .lotNumber("-")
+            .receivedQuantity(receivedQty)
+            .acceptedQuantity(acceptedQty)
+            .defectiveQuantity(defectiveQty)
+            .defectReason(null)
+            .disposition("NONE")
+            .build();
+}
+
+private String resolveReceiptInspectionStatus(List<ReceiptItem> receiptItems) {
+    if (receiptItems == null || receiptItems.isEmpty()) {
+        return "PENDING";
+    }
+
+    boolean hasPendingItem = receiptItems.stream()
+            .anyMatch(item -> !inspectionRepository.existsByReceiptItemId(item.getReceiptItemId()));
+
+    if (hasPendingItem) {
+        return "PENDING";
+    }
+
+    boolean hasDefect = receiptItems.stream()
+            .anyMatch(item -> item.getDefectQty() != null && item.getDefectQty() > 0);
+
+    return hasDefect ? "DEFECT" : "PASS";
+}
+
+private String findInspectorName(List<ReceiptItem> receiptItems) {
+    if (receiptItems == null || receiptItems.isEmpty()) {
+        return "-";
+    }
+
+    for (ReceiptItem item : receiptItems) {
+        Inspection inspection = inspectionRepository.findByReceiptItemId(item.getReceiptItemId()).orElse(null);
+
+        if (inspection != null && inspection.getUser() != null) {
+            return inspection.getUser().getUserName();
+        }
+    }
+
+    return "-";
+}
+
+private LocalDateTime findLastInspectedAt(List<ReceiptItem> receiptItems) {
+    if (receiptItems == null || receiptItems.isEmpty()) {
+        return null;
+    }
+
+    return receiptItems.stream()
+            .map(item -> inspectionRepository.findByReceiptItemId(item.getReceiptItemId()).orElse(null))
+            .filter(Objects::nonNull)
+            .map(Inspection::getCreatedAt)
+            .filter(Objects::nonNull)
+            .max(LocalDateTime::compareTo)
+            .orElse(null);
+}
+
+private String findResultNote(List<ReceiptItem> receiptItems) {
+    if (receiptItems == null || receiptItems.isEmpty()) {
+        return null;
+    }
+
+    return receiptItems.stream()
+            .map(item -> inspectionRepository.findByReceiptItemId(item.getReceiptItemId()).orElse(null))
+            .filter(Objects::nonNull)
+            .map(Inspection::getNotes)
+            .filter(note -> note != null && !note.isBlank())
+            .findFirst()
+            .orElse(null);
+}
+
+private String blankToNull(String value) {
+    if (value == null || value.isBlank()) {
+        return null;
+    }
+
+    return value.trim();
+}
+
+private String optionToNull(String value, String allOptionText) {
+    if (value == null || value.isBlank() || value.equals(allOptionText)) {
+        return null;
+    }
+
+    return value.trim();
+}
 	
 	@Override
 	@Transactional(readOnly = true)
@@ -309,16 +469,69 @@ public class InspectionServiceImpl implements InspectionService {
 		}
 	}
 	
+@Override
+@Transactional(readOnly = true)
+public InspectionDto.SummaryResponse getInspectionSummary() {
+    Page<Receipt> pendingPage = receiptRepository.searchPendingReceipts(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            PageRequest.of(0, 1)
+    );
+
+    long pendingCount = pendingPage.getTotalElements();
+
+    return new InspectionDto.SummaryResponse(
+            pendingCount,
+            pendingCount,
+            0,
+            0
+    );
+}
+
 	@Override
 	@Transactional(readOnly = true)
-	public InspectionDto.SummaryResponse getInspectionSummary() {
-		long total = inspectionRepository.count();
-		long passCount = inspectionRepository.countByInspectionResult("PASS");
-		long defectCount = inspectionRepository.countByInspectionResult("DEFECT");
-		
-		long pendingCount = total - (passCount + defectCount);
-		
-		return new InspectionDto.SummaryResponse(total, pendingCount, passCount, defectCount);
-	}
+	public Map<String, Object> getInspectionFilterOptions() {
+    	List<String> suppliers = new ArrayList<>();
+    	suppliers.add("전체 공급업체");
+
+    	suppliers.addAll(
+            supplierRepository.findAll()
+                    .stream()
+                    .map(Supplier::getSupplierName)
+                    .filter(Objects::nonNull)
+                    .filter(name -> !name.isBlank())
+                    .distinct()
+                    .sorted()
+                    .toList()
+    );
+
+    List<String> warehouses = new ArrayList<>();
+    warehouses.add("전체 창고");
+
+    warehouses.addAll(
+            warehouseRepository.findAll()
+                    .stream()
+                    .map(Warehouse::getWarehouseName)
+                    .filter(Objects::nonNull)
+                    .filter(name -> !name.isBlank())
+                    .distinct()
+                    .sorted()
+                    .toList()
+    );
+
+    return Map.of(
+            "suppliers", suppliers,
+            "warehouses", warehouses,
+            "priorities", List.of("전체", "일반", "긴급"),
+
+            "inspectionTypes", List.of("입고검수", "품질검수", "출하검수"),
+            "inspectionResults", List.of("합격", "불합격", "부분합격", "검수대기"),
+            "dispositions", List.of("입고", "반품", "폐기", "재검수")
+    );
+}
 }
 
