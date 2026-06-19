@@ -12,7 +12,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/receipts")
+@RequestMapping({"/receipts", "/api/receipts"})
 public class ReceiptController {
 
     private final ReceiptService receiptService;
@@ -28,8 +28,8 @@ public class ReceiptController {
 
         return receiptService.getReceipt(receiptId);
             }
-@PostMapping
-public ResponseEntity<String> saveReceipt(
+    @PostMapping
+    public ResponseEntity<String> saveReceipt(
         @RequestBody ReceiptDto.ReceiptCreateRequest request) {
 
     try {
@@ -56,4 +56,6 @@ public ResponseEntity<String> test(
             request.getReceiptNo()
     );
 }
+
+
     }
