@@ -47,26 +47,44 @@ public class PurchaseOrderController {
         
         options.put("statuses", Arrays.asList("전체", "PENDING", "APPROVED", "CANCELLED"));
         
-        // 🚀 [하드코딩 파괴 ➔ DB 동적 연동]
-        // 1. DB에서 활성화되어 있거나 전체 공급업체 엔티티 리스트를 긁어옵니다.
-        // (※ 팀원들이 만든 레포지토리 메서드명이 findAll() 또는 findAllByUseYn("Y") 등인지 확인!)
+        // 1. DB에서 엔티티 원본을 가져옵니다.
         List<Supplier> actualSuppliers = supplierRepository.findAll(); 
         
-        // 2. 프론트엔드가 요구하는 단순 문자열 배열(String[]) 규격에 맞춰 이름(SupplierName)만 쏙 추출합니다!
-        List<String> dynamicSupplierNames = actualSuppliers.stream()
-                .map(supplier -> supplier.getSupplierName()) // 엔티티의 공급업체명 Getter 호출
-                .filter(name -> name != null && !name.trim().isEmpty()) // 혹시 모를 빈값 필터링
-                .collect(Collectors.toList());
+//        System.out.println("==================================================");
+//        System.out.println("🔍 [백엔드 디버깅 1] DB에서 조회한 원본 Supplier 개수: " + actualSuppliers.size());
+//        System.out.println("==================================================");
+
+        // 2. 루프를 돌며 데이터를 가공하고, 동시에 콘솔에 원본 값을 찍어봅니다.
+        List<Map<String, Object>> robustSuppliers = new ArrayList<>();
         
-        // 3. 만약 DB에 데이터가 하나도 없다면 화면이 깨지지 않게 최소한의 방어선 가드레일만 구축
-        if (dynamicSupplierNames.isEmpty()) {
-            dynamicSupplierNames = Arrays.asList("동양산업", "대한기계상사", "세진테크");
+        for (Supplier supplier : actualSuppliers) {
+            Map<String, Object> map = new HashMap<>();
+            
+            // 🚨 각 엔티티에 찐 데이터가 들어있는지 콘솔에 인쇄
+//            System.out.println(String.format(
+//                "▶ [엔티티 확인] ID: %s | 업체명: %s | 담당자(Manager): %s | 연락처(Contact): %s",
+//                supplier.getSupplierId(),
+//                supplier.getSupplierName(),
+//                supplier.getManager(),
+//                supplier.getContact()
+//            ));
+            
+            map.put("supplierId", supplier.getSupplierId());
+            map.put("supplierName", supplier.getSupplierName());
+            map.put("manager", supplier.getManager() != null ? supplier.getManager() : "-");
+            map.put("contact", supplier.getContact() != null ? supplier.getContact() : "-");
+            
+            robustSuppliers.add(map);
         }
         
-        // 4. 주머니에 하드코딩 대신 찐 DB에서 가져온 따끈따끈한 이름 리스트를 적재합니다!
-        options.put("suppliers", dynamicSupplierNames);
+        options.put("suppliers", robustSuppliers);
         
-        // 구매 요청 목록 및 입고 창고 기존 로직 유지
+        // 3. 최종적으로 프론트엔드에 던져줄 맵 객체의 속살 인쇄
+//        System.out.println("==================================================");
+//        System.out.println("🚀 [백엔드 디버깅 2] 최종 프론트로 나가는 options 주머니: " + options.get("suppliers"));
+//        System.out.println("==================================================");
+
+        // 기존 로직 유지
         List<PurchaseRequestDto.ListResponse> approvedRequests = 
                 purchaseRequestService.getApprovedRequestsWithoutPaging();
         options.put("approvedPurchaseRequests", approvedRequests);
@@ -115,13 +133,6 @@ public class PurchaseOrderController {
         
         return ResponseEntity.ok(options);
     }
-    
-//    private Map<String, String> createOption(String value, String label) {
-//    	Map<String, String> option = new HashMap<>();
-//    	option.put("value", value);
-//    	option.put("label", label);
-//    	return option;
-//    }
 
     // 3. 발주 등록
     @PostMapping
