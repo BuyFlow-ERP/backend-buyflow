@@ -122,15 +122,16 @@ BigDecimal calculatedTotalAmount = items.stream()
 
     @Override
     public PurchaseRequestDto.SummaryResponse getPurchaseRequestSummary() {
-        List<PurchaseRequest> requests = purchaseRequestRepository.findActiveRequestsOrderByRequestIdDesc();
+        List<PurchaseRequest> requests = purchaseRequestRepository
+            .findActiveRequestsOrderByRequestIdDesc();
 
         return new PurchaseRequestDto.SummaryResponse(
-                requests.size(),
-                countByStatusLabel(requests, "임시 저장"),
-                countByStatusLabel(requests, "승인 대기"),
-                countByStatusLabel(requests, "승인 완료"),
-                countByStatusLabel(requests, "반려"),
-                countByStatusLabel(requests, "발주 완료")
+            requests.size(),
+            countByStatusLabel(requests, "승인 대기"),
+            countByStatusLabel(requests, "승인 완료"),
+            countByStatusLabel(requests, "반려"),
+            countByStatusLabel(requests, "발주 완료"),
+            countByStatusLabel(requests, "요청 취소")
         );
     }
 
@@ -148,7 +149,9 @@ BigDecimal calculatedTotalAmount = items.stream()
                 departments.add("-");
          }
 
-        Set<String> statuses = new LinkedHashSet<>(List.of("전체", "승인 대기", "승인 완료", "반려", "발주 완료"));
+        Set<String> statuses = new LinkedHashSet<>(
+        List.of("전체", "승인 대기", "승인 완료", "반려", "발주 완료", "요청 취소")
+        );
         Set<String> priorities = new LinkedHashSet<>(List.of("전체", "일반", "긴급"));
 
         return Map.of(
@@ -358,6 +361,39 @@ BigDecimal calculatedTotalAmount = items.stream()
     return getPurchaseRequestDetail(requestId);
 }
 
+@Override
+@Transactional
+public PurchaseRequestDto.DetailResponse cancelPurchaseRequest(Long requestId) {
+    PurchaseRequest request = purchaseRequestRepository.findById(requestId)
+            .filter(this::isActive)
+            .orElseThrow(() -> new EntityNotFoundException(
+                    "구매 요청을 찾을 수 없습니다. ID: " + requestId
+            ));
+
+    validateCancelableStatus(request);
+
+    LocalDateTime now = LocalDateTime.now();
+
+    request.setRequestStatus("CANCELED");
+    request.setUpdatedAt(now);
+
+    approvalHistoryRepository
+            .findFirstByRequestIdAndApprovalStatusInOrderByApprovalStepDesc(
+                    requestId,
+                    List.of("PENDING_APPROVAL", "PENDING", "WAITING", "REQUESTED")
+            )
+            .ifPresent(approvalHistory -> {
+                approvalHistory.setApprovalStatus("CANCELED");
+                approvalHistory.setCommentText("요청 취소");
+                approvalHistory.setApprovedAt(now);
+                approvalHistoryRepository.save(approvalHistory);
+            });
+
+    purchaseRequestRepository.save(request);
+
+    return getPurchaseRequestDetail(requestId);
+}
+
     private PurchaseRequestDto.ListResponse toListResponse(PurchaseRequest request) {
         // 이 헬퍼 메서드가 구동될 때도 안전하게 실시간 자식 품목들을 긁어와 묶어주도록 연동합니다.
         List<PurchaseRequestDto.ItemResponse> items = getItemResponses(request.getRequestId());
@@ -489,8 +525,7 @@ BigDecimal calculatedTotalAmount = items.stream()
             return "승인 대기";
         }
         return switch (status.trim().toUpperCase()) {
-            case "DRAFT" -> "임시 저장";
-            case "PENDING", "PENDING_APPROVAL", "WAITING", "REQUESTED" -> "승인 대기";
+            case "DRAFT", "PENDING", "PENDING_APPROVAL", "WAITING", "REQUESTED" -> "승인 대기";
             case "APPROVED" -> "승인 완료";
             case "REJECTED" -> "반려";
             case "ORDERED" -> "발주 완료";
@@ -544,8 +579,7 @@ BigDecimal calculatedTotalAmount = items.stream()
     }
 
     return switch (status.trim().toUpperCase()) {
-        case "DRAFT" -> "DRAFT";
-        case "PENDING", "PENDING_APPROVAL", "WAITING", "REQUESTED" -> "PENDING_APPROVAL";
+        case "DRAFT", "PENDING", "PENDING_APPROVAL", "WAITING", "REQUESTED" -> "PENDING_APPROVAL";
         case "APPROVED" -> "APPROVED";
         case "REJECTED" -> "REJECTED";
         case "ORDERED" -> "ORDERED";
@@ -559,15 +593,26 @@ BigDecimal calculatedTotalAmount = items.stream()
         String status = normalizeRequestStatus(request.getRequestStatus());
 
         boolean editable = Set.of(
-            "DRAFT",
-            "PENDING_APPROVAL",
-            "REJECTED"
-    ).contains(status);
+        "PENDING_APPROVAL",
+        "REJECTED"
+        ).contains(status);
 
     if (!editable) {
         throw new ResponseStatusException(
                 HttpStatus.CONFLICT,
                 "현재 상태에서는 구매 요청을 수정할 수 없습니다. 상태: "
+                        + toRequestStatusLabel(status)
+        );
+    }
+}
+
+private void validateCancelableStatus(PurchaseRequest request) {
+    String status = normalizeRequestStatus(request.getRequestStatus());
+
+    if (!"PENDING_APPROVAL".equals(status)) {
+        throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "승인 대기 상태의 구매 요청만 취소할 수 있습니다. 현재 상태: "
                         + toRequestStatusLabel(status)
         );
     }

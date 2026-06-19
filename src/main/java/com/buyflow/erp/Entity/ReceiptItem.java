@@ -43,8 +43,11 @@ public class ReceiptItem {
     @Column(name = "ACCEPTED_QTY")
     private Long acceptedQty;
 
-    @Column(name = "REMARK")
+    @Column(name = "REMARK") 
     private String remark;
+
+    @Column(name = "RECEIPT_ITEM_STATUS")
+    private String receiptItemStatus;
 
     @Column(name = "CREATED_AT")
     private LocalDateTime createdAt;

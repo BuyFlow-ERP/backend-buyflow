@@ -1,8 +1,5 @@
 package com.buyflow.erp.Controller;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
@@ -16,8 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.buyflow.erp.Dto.InspectionDto;
 import com.buyflow.erp.Dto.PageResponse;
-import com.buyflow.erp.Dto.PurchaseRequestDto;
-import com.buyflow.erp.Entity.Inspection;
 import com.buyflow.erp.Service.InspectionService;
 
 import lombok.RequiredArgsConstructor;
@@ -31,59 +26,44 @@ public class InspectionController {
     private final InspectionService inspectionService;
 
     @GetMapping("/pending")
-    public ResponseEntity<PageResponse<InspectionDto.ListResponse>> getInspections(
-        InspectionDto.SearchCondition condition) {
-            return ResponseEntity.ok(inspectionService.getInspections(condition));
+    public ResponseEntity<PageResponse<InspectionDto.Response>> getPendingInspections(
+            InspectionDto.SearchCondition condition) {
+        return ResponseEntity.ok(inspectionService.getPendingInspections(condition));
     }
-    
+
+    @GetMapping("/completed")
+    public ResponseEntity<PageResponse<InspectionDto.Response>> getCompletedInspections(
+        InspectionDto.SearchCondition condition) {
+    return ResponseEntity.ok(inspectionService.getCompletedInspections(condition));
+    }
+
+    @GetMapping("/completed/summary")
+    public ResponseEntity<InspectionDto.SummaryResponse> getCompletedInspectionSummary() {
+    return ResponseEntity.ok(inspectionService.getCompletedInspectionSummary());
+    }
+
     @GetMapping("/pending/filter-options")
     public ResponseEntity<Map<String, Object>> getInspectionFilterOptions() {
-    	Map<String, Object> options = new HashMap<>();
-    	options.put("suppliers", Arrays.asList("전체 공급업체"));
-    	options.put("warehouses", Arrays.asList("전체 창고"));
-    	options.put("priorities", Arrays.asList("전체", "일반", "긴급"));
-    	return ResponseEntity.ok(options);
+        return ResponseEntity.ok(inspectionService.getInspectionFilterOptions());
     }
-    
+
     @GetMapping("/pending/summary")
-    public ResponseEntity<Map<String, Object>> getPendingSummary() {
-        Map<String, Object> summary = new HashMap<>();
-        summary.put("total", 0);
-        summary.put("receivedToday", 0);
-        summary.put("urgent", 0);
-        summary.put("overdue", 0);
-        return ResponseEntity.ok(summary);
+    public ResponseEntity<InspectionDto.SummaryResponse> getPendingSummary() {
+    return ResponseEntity.ok(inspectionService.getInspectionSummary());
+}
+
+    @GetMapping("/{receiptId}")
+    public ResponseEntity<InspectionDto.Response> getInspectionDetail(
+            @PathVariable Long receiptId) {
+        return ResponseEntity.ok(inspectionService.getPendingInspectionDetail(receiptId));
     }
 
-    @PostMapping
-    public ResponseEntity<String> saveInspection(
-        @RequestBody InspectionDto.CreateRequest request) {
-
-            inspectionService.saveInspection(request);
-
-            return ResponseEntity.ok("검수 완료");
-        }
-    
-    @PostMapping("/{receipId}/result")
+    @PostMapping("/{receiptId}/result")
     public ResponseEntity<String> saveInspectionResult(
-    		@PathVariable(name="receiptId") Long receiptId,
-    		@RequestBody InspectionDto.ResultRequest request) {
-    	
-    	inspectionService.saveInspectionResult(receiptId, request);
-    	
-    	return ResponseEntity.ok("검수 완료");
-    }
-    
-    @GetMapping("/summary")
-    public ResponseEntity<InspectionDto.SummaryResponse> getSummary() {
-        return ResponseEntity.ok(inspectionService.getInspectionSummary());
-    }
-    
-    @GetMapping("/{inspectionId}")
-    public Inspection getInspections(
-        @PathVariable(name="inspectionId") Long inspectionId) {
+            @PathVariable Long receiptId,
+            @RequestBody InspectionDto.ResultRequest request) {
 
-            return inspectionService.getInspection(inspectionId);
-        }
-    
+        inspectionService.saveInspectionResult(receiptId, request);
+        return ResponseEntity.ok("검수 완료");
+    }
 }

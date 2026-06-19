@@ -37,6 +37,11 @@ public interface PurchaseRequestService {
             Long requestId,
             PurchaseRequestDto.UpdateRequest request
     );
+
     
     List<PurchaseRequestDto.ListResponse> getApprovedRequestsWithoutPaging();
+
+
+    PurchaseRequestDto.DetailResponse cancelPurchaseRequest(Long requestId);
+
 }
