@@ -1,5 +1,7 @@
 package com.buyflow.erp.Repository;
 
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,12 +13,15 @@ import com.buyflow.erp.Entity.Warehouse;
 public interface WarehouseRepository extends JpaRepository<Warehouse, String> {
 
     boolean existsByWarehouseCode(String warehouseCode);
+    
+    @Query("SELECT w FROM Warehouse w LEFT JOIN FETCH w.user WHERE w.warehouseCode = :warehouseCode")
+    Optional<Warehouse> findByWarehouseCodeWithUser(@Param("warehouseCode") String warehouseCode);
 
     @Query(
         value = """
-            SELECT w
+            SELECT DISTINCT w
             FROM Warehouse w
-            LEFT JOIN w.user u
+            LEFT JOIN FETCH w.user u
             WHERE (:name IS NULL OR :name = ''
                    OR w.warehouseName LIKE CONCAT(CONCAT('%', :name), '%'))
               AND (:type IS NULL OR :type = ''

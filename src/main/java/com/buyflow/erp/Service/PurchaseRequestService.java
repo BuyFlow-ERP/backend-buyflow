@@ -3,6 +3,7 @@ package com.buyflow.erp.Service;
 import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Dto.PurchaseRequestDto;
 
+import java.util.List;
 import java.util.Map;
 
 public interface PurchaseRequestService {
@@ -37,5 +38,10 @@ public interface PurchaseRequestService {
             PurchaseRequestDto.UpdateRequest request
     );
 
+    
+    List<PurchaseRequestDto.ListResponse> getApprovedRequestsWithoutPaging();
+
+
     PurchaseRequestDto.DetailResponse cancelPurchaseRequest(Long requestId);
+
 }

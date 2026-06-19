@@ -18,19 +18,21 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
 
     List<PurchaseOrder> findByOrderStatus(String status);
 
-    @Query("SELECT p FROM PurchaseOrder p LEFT JOIN FETCH p.items WHERE p.orderId = :orderId")
+    @Query("SELECT p FROM PurchaseOrder p " +
+            "LEFT JOIN FETCH p.items " +
+            "LEFT JOIN FETCH p.supplier " +
+            "LEFT JOIN FETCH p.user " + 
+            "WHERE p.orderId = :orderId")
     Optional<PurchaseOrder> findByIdWithItems(@Param("orderId") Long orderId);
 
-    // ⭕ jsha님 버전: 4명 접속은 물론 수백 명도 버티는 무결점 고성능 동적 검색 쿼리!
     @Query("SELECT DISTINCT p FROM PurchaseOrder p " +
             "LEFT JOIN p.supplier s " +
             "LEFT JOIN p.user u " +
-            "WHERE (:orderNo IS NULL OR CONCAT(p.orderId, '') LIKE CONCAT('%', CONCAT(:orderNo, '%'))) " +
+            "WHERE (:orderNo IS NULL OR p.orderNo LIKE CONCAT('%', CONCAT(:orderNo, '%'))) " +
             "AND (:supplierName IS NULL OR s.supplierName LIKE CONCAT('%', CONCAT(:supplierName, '%'))) " +
             "AND (:userName IS NULL OR u.userName LIKE CONCAT('%', CONCAT(:userName, '%'))) " +
             "AND (:status IS NULL OR p.orderStatus = :status) " +
             "ORDER BY p.orderId DESC")
-    
     Page<PurchaseOrder> searchOrdersAdvanced(
             @Param("orderNo") String orderNo,
             @Param("supplierName") String supplierName,
@@ -38,4 +40,7 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
             @Param("status") String status,
             Pageable pageable
     );
+    
+    @Query("SELECT MAX(p.orderNo) FROM PurchaseOrder p WHERE p.orderNo LIKE :prefix")
+    String findMaxOrderNoByToday(@Param("prefix") String prefix);
 }

@@ -5,22 +5,24 @@ import java.util.List;
 
 public class PurchaseRequestDto {
 
-   public record ListResponse(
-           Long id,
-           String requestNumber,
-           String title,
-           String requester,
-           String department,
-           String requestedAt,
-           String desiredInboundAt,
-           String createdAt,
-           String updatedAt,
-           long itemCount,
-           BigDecimal totalAmount,
-           String priority,
-           String status
-    ) {
-    }
+	   public record ListResponse(
+	           Long id,
+	           String requestNumber,
+	           String title,
+	           String requester,
+	           String department,
+	           String requestedAt,
+	           String desiredInboundAt,
+	           String createdAt,
+	           String updatedAt,
+	           long itemCount,
+	           BigDecimal totalAmount,
+	           String priority,
+	           String status,
+	           
+	           List<ItemResponse> items
+	    ) {
+	    }
 
    public record DetailResponse(
           Long id,
