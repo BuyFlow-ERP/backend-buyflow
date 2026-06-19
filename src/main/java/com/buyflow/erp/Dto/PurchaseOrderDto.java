@@ -21,9 +21,12 @@ public class PurchaseOrderDto {
 	public static class SearchCondition {
 		private String orderStatus;
 		private String orderNo;
+		private Long requestId;
 		private String requestNo;
 		private String supplierName;
+		private String manager;
 		private String userName;
+		private String userPhone;
 		
 		private int page = 0;
 		private int size = 10;
@@ -39,6 +42,8 @@ public class PurchaseOrderDto {
 
 		private Long supplierId;
 		private Long createdBy; // 등록시에만 사용
+		private String userName;
+        private String userPhone;
 		private LocalDateTime dueDate;
 		private String orderStatus; // 수정시에 주로 사용
 		
@@ -50,6 +55,7 @@ public class PurchaseOrderDto {
         private String expectedInboundTo;   // 입고 예정일 (종료)
         private String warehouseCode;       // 입고 창고 코드
         private String memo;                // 비고
+		private String manager;
 
 		private List<PurchaseOrderDto.Item> items;
 	}
@@ -73,14 +79,22 @@ public class PurchaseOrderDto {
 	@Builder
 	public static class Response {
 		private Long orderId;
+		private String orderNo;
+		
+		private Long requestId;       // 구매 요청 ID
+		private String requestNo;     // 구매 요청 번호 (화면 렌더링용)
+		private String requestTitle;  // 구매 요청 제목 (상세 모달용)
+		
 		private Long supplierId;
 		private String supplierName;
 		private String userName;
+		private String userPhone;
 		private Long createdBy;
 		private LocalDateTime createdAt;
 		private String orderStatus;
 		private LocalDateTime dueDate;
 		private Double totalAmount;
+		private String manager;
 
 		private List<PurchaseOrderDto.Item> items;
 
@@ -96,10 +110,18 @@ public class PurchaseOrderDto {
 
 			return Response.builder()
 					.orderId(order.getOrderId())
+					.orderNo(order.getOrderNo())
+					
+					.requestId(order.getPurchaseRequest() != null ? order.getPurchaseRequest().getRequestId() : null)
+					.requestNo(order.getPurchaseRequest() != null ? order.getPurchaseRequest().getRequestNo() : "-")
+					.requestTitle(order.getPurchaseRequest() != null ? order.getPurchaseRequest().getTitle() : "-")
+					
 					.supplierId(order.getSupplier() != null ? order.getSupplier().getSupplierId() : null)
 					.supplierName(order.getSupplier() != null ? order.getSupplier().getSupplierName() : "-")
+					.manager(order.getSupplier() != null ? order.getSupplier().getManager() : "-")
 					.createdBy(order.getUser() != null ? order.getUser().getUserId() : null)
 					.userName(order.getUser() != null ? order.getUser().getUserName() : "-")
+					.userPhone(order.getUser() != null ? order.getUser().getPhone() : "-")
 					.createdAt(order.getCreatedAt())
 					.orderStatus(order.getOrderStatus())
 					.dueDate(order.getDueDate())

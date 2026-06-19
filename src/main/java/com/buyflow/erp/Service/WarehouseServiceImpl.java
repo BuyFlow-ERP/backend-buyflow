@@ -37,7 +37,6 @@ public class WarehouseServiceImpl implements WarehouseService {
                 .collect(Collectors.toList());
     }
     
-    
     @Override
 	public PageResponse<WarehouseDto.HouseList> searchWarehouses(WarehouseDto.SearchCondition condition) {
         // 안전한 페이지 번호와 사이즈 가공
@@ -59,7 +58,7 @@ public class WarehouseServiceImpl implements WarehouseService {
     	// 엔티티를 DTO 목록으로 변환
     	List<WarehouseDto.HouseList> dtoList = warehousePage.getContent().stream()
         	    .map(this::convertToResponseDto)
-                .collect(Collectors.toList());
+              .collect(Collectors.toList());
 
         // 기존 프로젝트 규격인 PageResponse 포맷에 맞춰 조립하여 반환
         return new PageResponse<>(
@@ -75,7 +74,7 @@ public class WarehouseServiceImpl implements WarehouseService {
     
     @Override
     public WarehouseDto.Detail getWarehouse(String warehouseCode) {
-        Warehouse warehouse = warehouseRepository.findById(warehouseCode)
+        Warehouse warehouse = warehouseRepository.findByWarehouseCodeWithUser(warehouseCode)
                 .orElseThrow(() -> new ResourceNotFoundException("해당 창고를 찾을 수 없습니다. (코드: " + warehouseCode + ")"));
         
         WarehouseDto.Detail detail = new WarehouseDto.Detail();
@@ -90,9 +89,13 @@ public class WarehouseServiceImpl implements WarehouseService {
         detail.setUpdatedAt(warehouse.getUpdatedAt());
         detail.setType(warehouse.getType());
         detail.setMemo(warehouse.getMemo());
-        if (warehouse.getUser() != null) {
-            detail.setManagerName(warehouse.getUser().getUserName()); // 필드명은 상황에 맞게 수정
+        
+        if (warehouse.getUser() != null && warehouse.getUser().getUserName() != null) {
+        	detail.setManagerName(warehouse.getUser().getUserName());
+        } else {
+        	detail.setManagerName("-");
         }
+        
         return detail;
     }
 
@@ -127,7 +130,6 @@ public class WarehouseServiceImpl implements WarehouseService {
         warehouse.setCreatedAt(now);
         warehouse.setUpdatedAt(now);
         
-        // 🛡️ [담당자 무적 구출 가드레일 가동]
         String searchUid = (request.getUserId() != null) ? request.getUserId().trim() : "";
         String searchMnm = (request.getManagerName() != null) ? request.getManagerName().trim() : "";
         
@@ -139,10 +141,11 @@ public class WarehouseServiceImpl implements WarehouseService {
         }
         
         // 2차 시도: 이름(UserName)이 부분 일치하거나 공백을 무시하고 스캔
-        if (targetUser == null && !searchMnm.isEmpty() && !searchMnm.equals("-")) {
+        final String finalMnm = searchMnm;
+        if (targetUser == null && !finalMnm.isEmpty() && !finalMnm.equals("-")) {
             targetUser = userRepository.findAll().stream()
                     .filter(u -> u.getUserName() != null && 
-                            (u.getUserName().trim().contains(searchMnm) || searchMnm.contains(u.getUserName().trim())))
+                            (u.getUserName().trim().contains(finalMnm) || finalMnm.contains(u.getUserName().trim())))
                     .findFirst()
                     .orElse(null);
         }
@@ -192,7 +195,7 @@ public class WarehouseServiceImpl implements WarehouseService {
         }    
     }
         warehouse.setUpdatedAt(LocalDateTime.now());
-        Warehouse updatedWarehouse = warehouseRepository.save(warehouse);        
+        Warehouse updatedWarehouse = warehouseRepository.saveAndFlush(warehouse);        
         return getWarehouse(updatedWarehouse.getWarehouseCode());
 }
 
@@ -216,9 +219,13 @@ public class WarehouseServiceImpl implements WarehouseService {
         rs.setUseYn(warehouse.getUseYn());
         rs.setCreatedAt(warehouse.getCreatedAt());
         rs.setUpdatedAt(warehouse.getUpdatedAt());
-        if (warehouse.getUser() != null) {
-            rs.setManagerName(warehouse.getUser().getUserName()); // 필요시 엔티티 이름 필드 매핑
+        
+        if (warehouse.getUser() != null && warehouse.getUser().getUserName() != null) {
+        	rs.setManagerName(warehouse.getUser().getUserName());
+        } else {
+        	rs.setManagerName("-");
         }
+        
         return rs;
     }
 }

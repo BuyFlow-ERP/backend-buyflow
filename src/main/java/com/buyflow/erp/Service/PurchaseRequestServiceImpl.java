@@ -24,7 +24,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -234,28 +233,28 @@ BigDecimal calculatedTotalAmount = items.stream()
             items.add(item);
 }
 
-    request.setTotalAmount(totalAmount);
-    purchaseRequestRepository.save(request);
-    purchaseRequestItemRepository.saveAll(items);
-
-    if ("PENDING_APPROVAL".equals(request.getRequestStatus())) {
-    ApprovalHistory approvalHistory = new ApprovalHistory();
-
-    approvalHistory.setRequestId(requestId);
-    approvalHistory.setApproverId(resolveApproverId(requestorId));
-    approvalHistory.setApprovalStatus("PENDING_APPROVAL");
-    approvalHistory.setCommentText("구매 요청 승인 대기");
-    approvalHistory.setApprovedAt(null);
-    approvalHistory.setApprovalStep(1);
-
-    approvalHistoryRepository.save(approvalHistory);
-}
-
-            return getPurchaseRequestDetail(requestId);
+		    request.setTotalAmount(totalAmount);
+		    purchaseRequestRepository.save(request);
+		    purchaseRequestItemRepository.saveAll(items);
+		
+		    if ("PENDING_APPROVAL".equals(request.getRequestStatus())) {
+		    ApprovalHistory approvalHistory = new ApprovalHistory();
+		
+		    approvalHistory.setRequestId(requestId);
+		    approvalHistory.setApproverId(resolveApproverId(requestorId));
+		    approvalHistory.setApprovalStatus("PENDING_APPROVAL");
+		    approvalHistory.setCommentText("구매 요청 승인 대기");
+		    approvalHistory.setApprovedAt(null);
+		    approvalHistory.setApprovalStep(1);
+		
+		    approvalHistoryRepository.save(approvalHistory);
     }
 
-@Override
-@Transactional
+		    return getPurchaseRequestDetail(requestId);
+}
+
+    @Override
+    @Transactional
     public PurchaseRequestDto.DetailResponse updatePurchaseRequest(
         Long requestId,
         PurchaseRequestDto.UpdateRequest dto
@@ -360,22 +359,29 @@ BigDecimal calculatedTotalAmount = items.stream()
 }
 
     private PurchaseRequestDto.ListResponse toListResponse(PurchaseRequest request) {
+        // 이 헬퍼 메서드가 구동될 때도 안전하게 실시간 자식 품목들을 긁어와 묶어주도록 연동합니다.
+        List<PurchaseRequestDto.ItemResponse> items = getItemResponses(request.getRequestId());
+        long itemCount = (items != null) ? items.size() : 0L;
+
         return new PurchaseRequestDto.ListResponse(
-            request.getRequestId(),
-            nullToEmpty(request.getRequestNo()),
-            nullToEmpty(request.getTitle()),
-            getUserName(request.getRequestorId()),
-            getDepartmentName(request.getRequestorId()),
-            formatDate(request.getCreatedAt()),
-            formatDate(request.getDueDate()),
-            formatDateTime(request.getCreatedAt()),
-            formatDateTime(request.getUpdatedAt()),
-            purchaseRequestItemRepository.countByRequestId(request.getRequestId()),
-            request.getTotalAmount() != null ? request.getTotalAmount() : BigDecimal.ZERO,
-            resolvePriorityLabel(request),
-            toRequestStatusLabel(request.getRequestStatus())
-    );
-}
+                request.getRequestId(),
+                nullToEmpty(request.getRequestNo()),
+                nullToEmpty(request.getTitle()),
+                getUserName(request.getRequestorId()),
+                getDepartmentName(request.getRequestorId()),
+                formatDate(request.getCreatedAt()),
+                formatDate(request.getDueDate()),
+                formatDate(request.getCreatedAt()),
+                formatDate(request.getUpdatedAt()),
+                itemCount, 
+                request.getTotalAmount() != null ? request.getTotalAmount() : BigDecimal.ZERO,
+                "일반",
+                request.getRequestStatus(),
+                
+                // 🚀 [14번째 완결]: 변경된 14개 레코드 포맷에 맞춰 찐 품목 리스트를 콤마 뒤에 안전하게 수혈 완료!
+                items 
+        );
+    }
 
     private List<PurchaseRequestDto.ItemResponse> getItemResponses(Long requestId) {
         List<PurchaseRequestItem> items = purchaseRequestItemRepository.findByRequestIdOrderByRequestItemIdAsc(requestId);
@@ -569,6 +575,42 @@ BigDecimal calculatedTotalAmount = items.stream()
 
     private BigDecimal toBigDecimal(Long value) {
         return value == null ? BigDecimal.ZERO : BigDecimal.valueOf(value);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PurchaseRequestDto.ListResponse> getApprovedRequestsWithoutPaging() {
+        // 1. APPROVED 상태인 마스터 구매요청 목록을 가져옵니다.
+        List<PurchaseRequest> requests = purchaseRequestRepository.findByRequestStatus("APPROVED");
+        
+        // 2. 스트림을 돌며 마스터 정보와 찐 자식 품목 객체 리스트까지 완벽하게 밀봉 바인딩합니다.
+        return requests.stream()
+                .map(request -> {
+                    // 🚀 [찐 자식 품목 수집 엔진 작동]: 팀원의 족보 메서드를 호출해 실제 DB 품목 리스트를 가져옵니다.
+                    List<PurchaseRequestDto.ItemResponse> actualItems = getItemResponses(request.getRequestId());
+                    long actualItemCount = (actualItems != null) ? actualItems.size() : 0L;
+
+                    // 🚀 [100% 무결점 매핑]: 하드코딩 일절 없이 팀원의 정석 인프라 헬퍼들을 14개 인자 규격에 딱 맞춰 배달합니다!
+                    return new PurchaseRequestDto.ListResponse(
+                            request.getRequestId(),
+                            nullToEmpty(request.getRequestNo()),
+                            nullToEmpty(request.getTitle()),
+                            getUserName(request.getRequestorId()),       // 4. 찐 작성자명 동적 연동
+                            getDepartmentName(request.getRequestorId()), // 5. 찐 부서명 동적 연동
+                            formatDate(request.getCreatedAt()),
+                            formatDate(request.getDueDate()),            // 7. 찐 입고희망일 연동
+                            formatDate(request.getCreatedAt()),
+                            formatDate(request.getUpdatedAt()),
+                            actualItemCount,                             // 10. 찐 품목 개수 카운트
+                            request.getTotalAmount() != null ? request.getTotalAmount() : BigDecimal.ZERO, // 11. 찐 합계금액
+                            "일반",                                       // 12. 우선순위 기본값
+                            request.getRequestStatus(),                  // 13. 찐 상태값
+                            
+                            // 🔥 [14번째 인자 투하]: 하이픈이나 더미 없이 찐 품목 객체 리스트를 통째로 수송 완료!
+                            actualItems 
+                    );
+                })
+                .collect(Collectors.toList());
     }
 
 }

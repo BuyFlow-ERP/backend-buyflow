@@ -1,6 +1,9 @@
 package com.buyflow.erp.Repository;
 
+import com.buyflow.erp.Entity.PurchaseRequestItem;
 import com.buyflow.erp.Entity.ReceiptItem;
+
+import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,4 +26,6 @@ public interface ReceiptItemRepository
     
     Page<ReceiptItem> findAll(Pageable pageable);
     
+    @Query("SELECT ri FROM ReceiptItem ri WHERE ri.receiptId = :requestId")
+    List<ReceiptItem> findByRequestId(@Param("requestId") Long requestId);
 }
