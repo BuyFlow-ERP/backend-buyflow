@@ -20,7 +20,7 @@ public interface InspectionService {
 
     void saveInspectionResult(Long receiptId, InspectionDto.ResultRequest request);
 
-    InspectionDto.SummaryResponse getInspectionSummary();
+    InspectionDto.PendingSummaryResponse getInspectionSummary();
 
     PageResponse<InspectionDto.Response> getCompletedInspections(InspectionDto.SearchCondition condition);
 

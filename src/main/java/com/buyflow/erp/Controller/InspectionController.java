@@ -48,7 +48,7 @@ public class InspectionController {
     }
 
     @GetMapping("/pending/summary")
-    public ResponseEntity<InspectionDto.SummaryResponse> getPendingSummary() {
+    public ResponseEntity<InspectionDto.PendingSummaryResponse> getPendingSummary() {
     return ResponseEntity.ok(inspectionService.getInspectionSummary());
 }
 
