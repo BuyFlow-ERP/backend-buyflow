@@ -14,7 +14,6 @@ import com.buyflow.erp.Entity.Receipt;
 import com.buyflow.erp.Repository.StockRepository;
 import com.buyflow.erp.Repository.ReceiptRepository;
 import com.buyflow.erp.Entity.PurchaseOrderItem;
-import com.buyflow.erp.Repository.PurchaseOrderItemRepository;
 
 import com.buyflow.erp.Entity.StockHistory;
 import com.buyflow.erp.Repository.StockHistoryRepository;
