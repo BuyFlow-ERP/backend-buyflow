@@ -19,22 +19,27 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
     List<PurchaseOrder> findByOrderStatus(String status);
 
     @Query("SELECT p FROM PurchaseOrder p " +
-            "LEFT JOIN FETCH p.items " +
+            "LEFT JOIN FETCH p.items i " +
+            "LEFT JOIN FETCH i.product " +
             "LEFT JOIN FETCH p.supplier " +
             "LEFT JOIN FETCH p.user " + 
             "WHERE p.orderId = :orderId")
     Optional<PurchaseOrder> findByIdWithItems(@Param("orderId") Long orderId);
 
+    
     @Query("SELECT DISTINCT p FROM PurchaseOrder p " +
             "LEFT JOIN p.supplier s " +
             "LEFT JOIN p.user u " +
+            "LEFT JOIN p.purchaseRequest pr " +
             "WHERE (:orderNo IS NULL OR p.orderNo LIKE CONCAT('%', CONCAT(:orderNo, '%'))) " +
+            "AND (:requestNumber IS NULL OR pr.requestNo LIKE CONCAT('%', :requestNumber, '%')) " +
             "AND (:supplierName IS NULL OR s.supplierName LIKE CONCAT('%', CONCAT(:supplierName, '%'))) " +
             "AND (:userName IS NULL OR u.userName LIKE CONCAT('%', CONCAT(:userName, '%'))) " +
             "AND (:status IS NULL OR p.orderStatus = :status) " +
             "ORDER BY p.orderId DESC")
     Page<PurchaseOrder> searchOrdersAdvanced(
             @Param("orderNo") String orderNo,
+            @Param("requestNumber") String requestNumber,
             @Param("supplierName") String supplierName,
             @Param("userName") String userName,
             @Param("status") String status,

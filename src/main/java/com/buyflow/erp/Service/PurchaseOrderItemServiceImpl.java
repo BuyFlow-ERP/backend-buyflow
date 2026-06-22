@@ -1,7 +1,9 @@
 package com.buyflow.erp.Service;
 
+import com.buyflow.erp.Entity.Product;
 import com.buyflow.erp.Entity.PurchaseOrder;
 import com.buyflow.erp.Entity.PurchaseOrderItem;
+import com.buyflow.erp.Repository.ProductRepository;
 import com.buyflow.erp.Repository.PurchaseOrderItemRepository;
 import com.buyflow.erp.Repository.PurchaseOrderRepository;
 
@@ -18,6 +20,7 @@ public class PurchaseOrderItemServiceImpl implements PurchaseOrderItemService {
 
 	private final PurchaseOrderItemRepository purchaseOrderItemRepository;
 	private final PurchaseOrderRepository purchaseOrderRepository;
+	private final ProductRepository productRepository;
 
 	@Override
 	public List<PurchaseOrderItem> getOrderItems() {
@@ -28,16 +31,19 @@ public class PurchaseOrderItemServiceImpl implements PurchaseOrderItemService {
 
 	@Override
 	public void saveOrderItem(PurchaseOrderItemDto.CreateRequest request) {
-
-		PurchaseOrderItem item = new PurchaseOrderItem();
 		
 		PurchaseOrder order = purchaseOrderRepository.findById(request.getOrderId())
 				.orElseThrow(()-> new EntityNotFoundException("발주서가 없습니다."));
 
-		item.setPurchaseOrder(order);
-		item.setProductId(request.getProductId());
-		item.setQuantity(request.getQuantity());
-		item.setUnitPrice(request.getUnitPrice());
+		Product product = productRepository.findById(request.getProductId())   // ← 수정
+                .orElseThrow(() -> new EntityNotFoundException("상품을 찾을 수 없습니다. ID: " + request.getProductId()));
+		
+		PurchaseOrderItem item = PurchaseOrderItem.builder()
+				.purchaseOrder(order)
+				.product(product)
+				.quantity(request.getQuantity())
+				.unitPrice(request.getUnitPrice())
+				.build();
 
 		purchaseOrderItemRepository.save(item);
 	}

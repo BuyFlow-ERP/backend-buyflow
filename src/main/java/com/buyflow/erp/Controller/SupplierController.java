@@ -36,12 +36,12 @@ public class SupplierController {
     @GetMapping
     @PreAuthorize(SUPPLIER_READ_AUTHORITY)
     public ApiResponse<SupplierPageResponse> search(
-            @RequestParam(required = false) String supplierCode,
-            @RequestParam(required = false) String supplierName,
-            @RequestParam(required = false) String manager,
-            @RequestParam(required = false) String tradeStatus,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "15") int size
+            @RequestParam(name = "supplierCode", required = false) String supplierCode,
+            @RequestParam(name = "supplierName", required = false) String supplierName,
+            @RequestParam(name = "manager", required = false) String manager,
+            @RequestParam(name = "tradeStatus", required = false) String tradeStatus,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "15") int size
     ) {
         return ApiResponse.success(
                 "Supplier list loaded.",
@@ -58,8 +58,8 @@ public class SupplierController {
     @GetMapping("/business-number/exists")
     @PreAuthorize(SUPPLIER_READ_AUTHORITY)
     public ApiResponse<Boolean> existsBusinessNumber(
-            @RequestParam String businessNumber,
-            @RequestParam(required = false) Long excludeSupplierId
+            @RequestParam(name = "businessNumber") String businessNumber,
+            @RequestParam(name = "excludeSupplierId", required = false) Long excludeSupplierId
     ) {
         return ApiResponse.success(
                 "Supplier business number duplication checked.",
@@ -69,7 +69,7 @@ public class SupplierController {
 
     @GetMapping("/{supplierId}")
     @PreAuthorize(SUPPLIER_READ_AUTHORITY)
-    public ApiResponse<SupplierResponse> findById(@PathVariable Long supplierId) {
+    public ApiResponse<SupplierResponse> findById(@PathVariable(name = "supplierId") Long supplierId) {
         return ApiResponse.success("Supplier detail loaded.", supplierService.findById(supplierId));
     }
 
@@ -82,7 +82,7 @@ public class SupplierController {
     @PutMapping("/{supplierId}")
     @PreAuthorize(SUPPLIER_MANAGE_AUTHORITY)
     public ApiResponse<SupplierResponse> update(
-            @PathVariable Long supplierId,
+            @PathVariable(name = "supplierId") Long supplierId,
             @Valid @RequestBody SupplierRequest request
     ) {
         return ApiResponse.success("Supplier updated.", supplierService.update(supplierId, request));
@@ -91,7 +91,7 @@ public class SupplierController {
     @PatchMapping("/{supplierId}/trade-status")
     @PreAuthorize(SUPPLIER_MANAGE_AUTHORITY)
     public ApiResponse<SupplierResponse> changeTradeStatus(
-            @PathVariable Long supplierId,
+            @PathVariable(name = "supplierId") Long supplierId,
             @Valid @RequestBody SupplierTradeStatusRequest request
     ) {
         return ApiResponse.success(
@@ -102,7 +102,7 @@ public class SupplierController {
 
     @DeleteMapping("/{supplierId}")
     @PreAuthorize(SUPPLIER_MANAGE_AUTHORITY)
-    public ApiResponse<Void> delete(@PathVariable Long supplierId) {
+    public ApiResponse<Void> delete(@PathVariable(name = "supplierId") Long supplierId) {
         supplierService.delete(supplierId);
         return ApiResponse.success("Supplier deleted.");
     }

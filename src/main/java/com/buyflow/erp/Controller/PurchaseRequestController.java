@@ -19,18 +19,18 @@ public class PurchaseRequestController {
 
     @GetMapping
     public ResponseEntity<PageResponse<PurchaseRequestDto.ListResponse>> getPurchaseRequests(
-            @RequestParam(required = false, defaultValue = "") String requestNumber,
-            @RequestParam(required = false, defaultValue = "") String title,
-            @RequestParam(required = false, defaultValue = "") String requester,
-            @RequestParam(required = false, defaultValue = "전체 부서") String department,
-            @RequestParam(required = false, defaultValue = "전체") String status,
-            @RequestParam(required = false, defaultValue = "전체") String priority,
-            @RequestParam(required = false, defaultValue = "") String requestedFrom,
-            @RequestParam(required = false, defaultValue = "") String requestedTo,
-            @RequestParam(required = false, defaultValue = "") String desiredInboundFrom,
-            @RequestParam(required = false, defaultValue = "") String desiredInboundTo,
-            @RequestParam(required = false, defaultValue = "0") int page,
-            @RequestParam(required = false, defaultValue = "15") int size
+            @RequestParam(name = "requestNumber", required = false, defaultValue = "") String requestNumber,
+            @RequestParam(name = "title", required = false, defaultValue = "") String title,
+            @RequestParam(name = "requester", required = false, defaultValue = "") String requester,
+            @RequestParam(name = "department", required = false, defaultValue = "전체 부서") String department,
+            @RequestParam(name = "status", required = false, defaultValue = "전체") String status,
+            @RequestParam(name = "priority", required = false, defaultValue = "전체") String priority,
+            @RequestParam(name = "requestedFrom", required = false, defaultValue = "") String requestedFrom,
+            @RequestParam(name = "requestedTo", required = false, defaultValue = "") String requestedTo,
+            @RequestParam(name = "desiredInboundFrom", required = false, defaultValue = "") String desiredInboundFrom,
+            @RequestParam(name = "desiredInboundTo", required = false, defaultValue = "") String desiredInboundTo,
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "15") int size
     ) {
         return ResponseEntity.ok(purchaseRequestService.getPurchaseRequests(
                 requestNumber,
@@ -60,7 +60,7 @@ public class PurchaseRequestController {
 
     @GetMapping("/{requestId}")
     public ResponseEntity<PurchaseRequestDto.DetailResponse> getPurchaseRequestDetail(
-            @PathVariable Long requestId
+            @PathVariable(name = "requestId") Long requestId
     ) {
         return ResponseEntity.ok(purchaseRequestService.getPurchaseRequestDetail(requestId));
     }
@@ -75,7 +75,7 @@ public class PurchaseRequestController {
 
     @PutMapping("/{requestId}")
     public ResponseEntity<PurchaseRequestDto.DetailResponse> updatePurchaseRequest(
-            @PathVariable Long requestId,
+            @PathVariable(name = "requestId") Long requestId,
             @RequestBody PurchaseRequestDto.UpdateRequest request
     ) {
         return ResponseEntity.ok(
@@ -85,7 +85,7 @@ public class PurchaseRequestController {
 
     @PatchMapping("/{requestId}/cancel")
     public ResponseEntity<PurchaseRequestDto.DetailResponse> cancelPurchaseRequest(
-        @PathVariable Long requestId
+        @PathVariable(name = "requestId") Long requestId
     ) {
         return ResponseEntity.ok(
             purchaseRequestService.cancelPurchaseRequest(requestId)
@@ -94,7 +94,7 @@ public class PurchaseRequestController {
 
     @DeleteMapping("/{requestId}")
     public ResponseEntity<Void> deletePurchaseRequest(
-        @PathVariable Long requestId
+        @PathVariable(name = "requestId") Long requestId
     ) {
         purchaseRequestService.deletePurchaseRequest(requestId);
         return ResponseEntity.noContent().build();

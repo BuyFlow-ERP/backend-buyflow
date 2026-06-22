@@ -37,12 +37,12 @@ public class AdminUserController {
 
     @GetMapping("/page")
     public ApiResponse<PageResponse<AdminUserResponse>> search(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String useYn,
-            @RequestParam(required = false) String jobRank,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "useYn", required = false) String useYn,
+            @RequestParam(name = "jobRank", required = false) String jobRank,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "20") int size
     ) {
         return ApiResponse.success(
                 "관리자 사용자 목록 조회 성공",
@@ -51,18 +51,18 @@ public class AdminUserController {
     }
 
     @GetMapping("/{userId}")
-    public ApiResponse<AdminUserResponse> findById(@PathVariable Long userId) {
+    public ApiResponse<AdminUserResponse> findById(@PathVariable(name = "userId") Long userId) {
         return ApiResponse.success("관리자 사용자 상세 조회 성공", adminUserService.findById(userId));
     }
 
     @PatchMapping("/{userId}/approve")
-    public ApiResponse<AdminUserResponse> approve(@PathVariable Long userId) {
+    public ApiResponse<AdminUserResponse> approve(@PathVariable(name = "userId") Long userId) {
         return ApiResponse.success("사용자 승인 성공", adminUserService.approve(userId));
     }
 
     @PatchMapping("/{userId}/status")
     public ApiResponse<AdminUserResponse> updateStatus(
-            @PathVariable Long userId,
+            @PathVariable(name = "userId") Long userId,
             @Valid @RequestBody AdminUserStatusUpdateRequest request
     ) {
         return ApiResponse.success("사용자 상태 수정 성공", adminUserService.updateStatus(userId, request));
@@ -70,7 +70,7 @@ public class AdminUserController {
 
     @PutMapping("/{userId}/profile")
     public ApiResponse<AdminUserResponse> updateProfile(
-            @PathVariable Long userId,
+            @PathVariable(name = "userId") Long userId,
             @Valid @RequestBody AdminUserProfileUpdateRequest request,
             Authentication authentication
     ) {
@@ -82,7 +82,7 @@ public class AdminUserController {
 
     @PutMapping("/{userId}/roles")
     public ApiResponse<AdminUserResponse> updateRoles(
-            @PathVariable Long userId,
+            @PathVariable(name = "userId") Long userId,
             @Valid @RequestBody AdminUserRoleUpdateRequest request,
             Authentication authentication
     ) {

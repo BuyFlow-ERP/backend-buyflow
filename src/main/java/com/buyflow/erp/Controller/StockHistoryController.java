@@ -15,8 +15,6 @@ import com.buyflow.erp.Service.StockHistoryService;
 
 import lombok.RequiredArgsConstructor;
 import java.util.Map;
-import com.buyflow.erp.Repository.WarehouseRepository;
-import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 @RequiredArgsConstructor
@@ -28,11 +26,11 @@ public class StockHistoryController {
 
    @GetMapping
 public List<StockHistoryResponseDto> getStockHistory(
-        @RequestParam(required = false) String fromDate,
-        @RequestParam(required = false) String toDate,
-        @RequestParam(required = false) String itemKeyword,
-        @RequestParam(required = false) String warehouseCode,
-        @RequestParam(required = false) String movementType) {
+        @RequestParam(name = "fromDate", required = false) String fromDate,
+        @RequestParam(name = "toDate", required = false) String toDate,
+        @RequestParam(name = "itemKeyword", required = false) String itemKeyword,
+        @RequestParam(name = "warehouseCode", required = false) String warehouseCode,
+        @RequestParam(name = "movementType", required = false) String movementType) {
 
     return stockHistoryService.getStockHistory(
             fromDate,
@@ -44,7 +42,7 @@ public List<StockHistoryResponseDto> getStockHistory(
 
     @GetMapping("/type/{historyType}")
     public List<StockHistoryResponseDto> getStockHistoryByType(
-            @PathVariable String historyType) {
+            @PathVariable(name = "historyType") String historyType) {
 
         return stockHistoryService
                 .getStockHistoryByType(historyType);
@@ -52,7 +50,7 @@ public List<StockHistoryResponseDto> getStockHistory(
 
     @GetMapping("/{historyId}")
     public StockHistoryResponseDto getStockHistory(
-            @PathVariable Long historyId) {
+            @PathVariable(name = "historyId") Long historyId) {
 
         return stockHistoryService
                 .getStockHistory(historyId);

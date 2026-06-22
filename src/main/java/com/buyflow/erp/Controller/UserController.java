@@ -36,12 +36,12 @@ public class UserController {
 
     @GetMapping("/page")
     public ApiResponse<PageResponse<UserResponse>> search(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String useYn,
-            @RequestParam(required = false) String jobRank,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(name= "keyword", required = false) String keyword,
+            @RequestParam(name= "status", required = false) String status,
+            @RequestParam(name= "useYn", required = false) String useYn,
+            @RequestParam(name= "jobRank", required = false) String jobRank,
+            @RequestParam(name= "page", defaultValue = "0") int page,
+            @RequestParam(name= "size", defaultValue = "20") int size
     ) {
         return ApiResponse.success(
                 "사용자 목록 조회 성공",
@@ -50,13 +50,13 @@ public class UserController {
     }
 
     @GetMapping("/{userId}")
-    public ApiResponse<UserResponse> findById(@PathVariable Long userId) {
+    public ApiResponse<UserResponse> findById(@PathVariable(name = "userId") Long userId) {
         return ApiResponse.success("사용자 상세 조회 성공", userService.findById(userId));
     }
 
     @PutMapping("/{userId}")
     public ApiResponse<UserResponse> update(
-            @PathVariable Long userId,
+            @PathVariable(name = "userId") Long userId,
             @Valid @RequestBody UserUpdateRequest request,
             Authentication authentication
     ) {
@@ -68,7 +68,7 @@ public class UserController {
 
     @DeleteMapping("/{userId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deactivate(@PathVariable Long userId, Authentication authentication) {
+    public void deactivate(@PathVariable(name = "userId") Long userId, Authentication authentication) {
         userService.deactivate(userId, authentication.getName(), canManageUsers(authentication));
     }
 

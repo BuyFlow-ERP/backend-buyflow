@@ -12,22 +12,28 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ReceiptItemRepository
-        extends JpaRepository<ReceiptItem, Long> {
+                extends JpaRepository<ReceiptItem, Long> {
+@Query("""
+       select coalesce(sum(r.acceptedQty), 0)
+       from ReceiptItem r
+       where r.orderItemId = :orderItemId
+       and r.receiptItemStatus = 'ACTIVE'
+       """)
+Long getAcceptedQtySum(
+        @Param("orderItemId")
+        Long orderItemId
+);
 
-    @Query("""
-           select coalesce(sum(r.acceptedQty), 0)
-           from ReceiptItem r
-           where r.orderItemId = :orderItemId
-           """)
-    Long getAcceptedQtySum(
-            @Param("orderItemId")
-            Long orderItemId
-    );
-    
-    List<ReceiptItem> findByReceiptId(Long receiptId);
+List<ReceiptItem> findByReceiptId(Long receiptId);
 
-    Page<ReceiptItem> findAll(Pageable pageable);
-    
-    @Query("SELECT ri FROM ReceiptItem ri WHERE ri.receiptId = :requestId")
-    List<ReceiptItem> findByRequestId(@Param("requestId") Long requestId);
-}
+Page<ReceiptItem> findAll(Pageable pageable);
+
+@Query("SELECT ri FROM ReceiptItem ri WHERE ri.receiptId = :requestId")
+List<ReceiptItem> findByRequestId(
+        @Param("requestId") Long requestId
+);
+
+List<ReceiptItem> findByReceiptItemStatus(
+        String receiptItemStatus
+);
+                }

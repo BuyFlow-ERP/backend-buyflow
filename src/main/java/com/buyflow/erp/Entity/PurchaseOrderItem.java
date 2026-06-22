@@ -33,8 +33,9 @@ public class PurchaseOrderItem {
     @JoinColumn(name = "ORDER_ID", nullable = false)
     private PurchaseOrder purchaseOrder;
     
-    @Column(name = "PRODUCT_ID", nullable = false)
-    private Long productId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "PRODUCT_ID", nullable = false)
+    private Product product;
 
     @Column(name = "QUANTITY", nullable = false)
     private Long quantity;

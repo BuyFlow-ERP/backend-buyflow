@@ -35,14 +35,33 @@ public class ReceiptItemController {
 
     @PutMapping("/{receiptItemId}")
     public ResponseEntity<String> updateReceiptItem(
-            @PathVariable Long receiptItemId,
+            @PathVariable(name = "receiptItemId") Long receiptItemId,
             @RequestBody ReceiptItemDto.CreateRequest request) {
 
         receiptItemService.updateReceiptItem(
                 receiptItemId,
-                request
-        );
+                request);
 
         return ResponseEntity.ok("수정 완료");
+    }
+
+    @PutMapping("/{receiptItemId}/cancel")
+    public ResponseEntity<String> cancelReceiptItem(
+            @PathVariable Long receiptItemId) {
+
+        receiptItemService.cancelReceiptItem(
+                receiptItemId);
+
+        return ResponseEntity.ok(
+                "취소 완료");
+    }
+
+    @GetMapping("/status/{receiptItemStatus}")
+    public List<ReceiptItem> getReceiptItemsByStatus(
+            @PathVariable String receiptItemStatus) {
+
+        return receiptItemService
+                .getReceiptItemsByStatus(
+                        receiptItemStatus);
     }
 }

@@ -35,7 +35,7 @@ public class ProductController {
 
     @GetMapping("/{productId}")
     public ResponseEntity<ProductDto.ListResponse> getProduct(
-            @PathVariable Long productId
+            @PathVariable(name = "productId") Long productId
     ) {
         return ResponseEntity.ok(productService.getProduct(productId));
     }
@@ -46,21 +46,22 @@ public class ProductController {
     }
 
     @PutMapping("/{productId}")
-    public ResponseEntity<String> updateProduct(
-            @PathVariable Long productId,
-            @RequestBody ProductDto.CreateRequest request
-    ) {
-        productService.updateProduct(productId, request);
 
-        return ResponseEntity.ok("수정 완료");
-    }
-
-    @DeleteMapping("/{productId}")
-    public ResponseEntity<String> deleteProduct(
-            @PathVariable Long productId
-    ) {
-        productService.deleteProduct(productId);
-
-        return ResponseEntity.ok("삭제 완료");
-    }
+	public ResponseEntity<String> updateProduct(
+	        @PathVariable(name = "productId") Long productId,
+	        @RequestBody ProductDto.CreateRequest request) {
+	
+	        productService.updateProduct(productId, request);
+	
+	    return ResponseEntity.ok("수정 완료");
+	}
+    
+	@DeleteMapping("/{productId}")
+	public ResponseEntity<String> deleteProduct(
+	        @PathVariable(name = "productId") Long productId) {
+	
+	        productService.deleteProduct(productId);
+	
+	        return ResponseEntity.ok("삭제 완료");
+	    }
 }

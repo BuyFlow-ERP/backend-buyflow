@@ -21,6 +21,6 @@ public interface PurchaseOrderService {
 	// 수정: 수정(Update) 후 최신 데이터를 Response DTO로 반환합니다.
 	PurchaseOrderDto.Response updateOrder(Long orderId, PurchaseOrderDto.Request request);
 
-	// 발주 삭제
-	void deleteOrder(Long orderId);
+	// 발주 취소
+	PurchaseOrderDto.Response cancelOrder(Long orderId, String cancelReason);
 }
