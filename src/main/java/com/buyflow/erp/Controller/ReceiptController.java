@@ -64,6 +64,18 @@ public class ReceiptController {
         );
     }
 
+@GetMapping("/order/{orderId}")
+public ResponseEntity<ReceiptDto.DetailResponse> getReceiptByOrder(
+        @PathVariable Long orderId
+) {
+
+    System.out.println("ORDER API 호출: " + orderId);
+
+    return ResponseEntity.ok(
+            receiptService.getReceiptByOrderId(orderId)
+    );
+}
+
     @PostMapping
     public ResponseEntity<Map<String, Object>> saveReceipt(
             @RequestBody ReceiptDto.ReceiptCreateRequest request
