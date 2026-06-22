@@ -31,10 +31,10 @@ public class ProductController {
     @GetMapping
 public List<Product> getProducts(
 
-        @RequestParam(required = false, defaultValue = "")
+        @RequestParam(name = "itemCode", required = false, defaultValue = "")
         String itemCode,
 
-        @RequestParam(required = false, defaultValue = "")
+        @RequestParam(name = "itemName", required = false, defaultValue = "")
         String itemName
 ) {
 
@@ -81,7 +81,7 @@ public List<Product> getProducts(
     }
     @PutMapping("/{productId}")
 public ResponseEntity<String> updateProduct(
-        @PathVariable Long productId,
+        @PathVariable(name = "productId") Long productId,
         @RequestBody ProductDto.CreateRequest request) {
 
     productService.updateProduct(productId, request);
@@ -90,7 +90,7 @@ public ResponseEntity<String> updateProduct(
 }
 @DeleteMapping("/{productId}")
 public ResponseEntity<String> deleteProduct(
-        @PathVariable Long productId) {
+        @PathVariable(name = "productId") Long productId) {
 
     productService.deleteProduct(productId);
 

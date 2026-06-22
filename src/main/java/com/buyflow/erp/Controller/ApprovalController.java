@@ -16,15 +16,15 @@ public class ApprovalController {
 
     @GetMapping
     public ResponseEntity<PageResponse<ApprovalHistoryDto.ListResponse>> getApprovals(
-            @RequestParam(required = false, defaultValue = "") String requestNumber,
-            @RequestParam(required = false, defaultValue = "") String title,
-            @RequestParam(required = false, defaultValue = "") String requester,
-            @RequestParam(required = false, defaultValue = "") String department,
-            @RequestParam(required = false, defaultValue = "전체") String status,
-            @RequestParam(required = false, defaultValue = "") String requestedFrom,
-            @RequestParam(required = false, defaultValue = "") String requestedTo,
-            @RequestParam(required = false, defaultValue = "0") int page,
-            @RequestParam(required = false, defaultValue = "10") int size
+            @RequestParam(name = "requestNumber", required = false, defaultValue = "") String requestNumber,
+            @RequestParam(name = "title", required = false, defaultValue = "") String title,
+            @RequestParam(name = "requester", required = false, defaultValue = "") String requester,
+            @RequestParam(name = "department", required = false, defaultValue = "") String department,
+            @RequestParam(name = "status", required = false, defaultValue = "전체") String status,
+            @RequestParam(name = "requestedFrom", required = false, defaultValue = "") String requestedFrom,
+            @RequestParam(name = "requestedTo", required = false, defaultValue = "") String requestedTo,
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10") int size
     ) {
         return ResponseEntity.ok(approvalService.getApprovals(
                 requestNumber,
@@ -41,14 +41,14 @@ public class ApprovalController {
 
     @GetMapping("/{approvalId}")
     public ResponseEntity<ApprovalHistoryDto.DetailResponse> getApprovalDetail(
-            @PathVariable Long approvalId
+            @PathVariable(name = "approvalId") Long approvalId
     ) {
         return ResponseEntity.ok(approvalService.getApprovalDetail(approvalId));
     }
 
     @PostMapping("/{approvalId}/approve")
     public ResponseEntity<ApprovalHistoryDto.DetailResponse> approve(
-            @PathVariable Long approvalId,
+            @PathVariable(name = "approvalId") Long approvalId,
             @RequestBody(required = false) ApprovalHistoryDto.DecisionRequest request
     ) {
         return ResponseEntity.ok(approvalService.approve(approvalId, request));
@@ -56,7 +56,7 @@ public class ApprovalController {
 
     @PostMapping("/{approvalId}/reject")
     public ResponseEntity<ApprovalHistoryDto.DetailResponse> reject(
-            @PathVariable Long approvalId,
+            @PathVariable(name = "approvalId") Long approvalId,
             @RequestBody(required = false) ApprovalHistoryDto.DecisionRequest request
     ) {
         return ResponseEntity.ok(approvalService.reject(approvalId, request));
@@ -64,7 +64,7 @@ public class ApprovalController {
 
     @PatchMapping("/{approvalId}/cancel-request")
     public ResponseEntity<ApprovalHistoryDto.DetailResponse> cancelRequest(
-            @PathVariable Long approvalId
+            @PathVariable(name = "approvalId") Long approvalId
     ) {
         return ResponseEntity.ok(approvalService.cancelRequest(approvalId));
     }

@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -121,10 +122,14 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(response);
     }
 
-    // 5. 발주 삭제
-    @DeleteMapping("/{orderId}")
-    public ResponseEntity<Void> deleteOrder(@PathVariable Long orderId) {
-        service.deleteOrder(orderId);
-        return ResponseEntity.noContent().build();
+    @PatchMapping("/{orderId}/cancel")
+    public ResponseEntity<PurchaseOrderDto.Response> cancelOrder(
+            @PathVariable(name = "orderId") Long orderId,
+            @RequestBody Map<String, String> request) {   // cancelReason 받음
+        
+        String cancelReason = request.get("cancelReason");
+        
+        PurchaseOrderDto.Response response = service.cancelOrder(orderId, cancelReason);
+        return ResponseEntity.ok(response);
     }
 }

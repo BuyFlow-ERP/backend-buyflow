@@ -34,7 +34,7 @@ public class PurchaseOrderItem {
     private PurchaseOrder purchaseOrder;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "PRODUCT_ID", insertable = false, updatable = false, nullable = false)
+    @JoinColumn(name = "PRODUCT_ID", nullable = false)
     private Product product;
 
     @Column(name = "QUANTITY", nullable = false)

@@ -31,7 +31,7 @@ public class RoleController {
     // [추가] 특정 역할의 현재 권한 코드 목록 조회
     // GET /api/roles/{roleCode}/permissions  ->  ["dashboard.read", "products.read", ...]
     @GetMapping("/{roleCode}/permissions")
-    public ApiResponse<List<String>> findRolePermissions(@PathVariable String roleCode) {
+    public ApiResponse<List<String>> findRolePermissions(@PathVariable(name = "roleCode") String roleCode) {
         return ApiResponse.success(
                 "역할 권한 조회 성공",
                 rolePermissionService.findPermissionCodes(roleCode)
@@ -42,7 +42,7 @@ public class RoleController {
     // PUT /api/roles/{roleCode}/permissions   body: { "permissionCodes": ["...", "..."] }
     @PutMapping("/{roleCode}/permissions")
     public ApiResponse<List<String>> updateRolePermissions(
-            @PathVariable String roleCode,
+            @PathVariable(name = "roleCode") String roleCode,
             @RequestBody RolePermissionUpdateRequest request
     ) {
         return ApiResponse.success(

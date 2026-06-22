@@ -1,5 +1,6 @@
 package com.buyflow.erp.Entity;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -66,6 +67,12 @@ public class PurchaseOrder {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "REQUEST_ID", nullable = false)
     private PurchaseRequest purchaseRequest;
+    
+    @Column(name = "CREATED_BY")
+    private Long createdBy;
+    
+    @Column(name = "EXPECTED_RECEIPT_FROM")
+    private LocalDate expectedReceiptFrom;
 
     @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

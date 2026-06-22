@@ -1,5 +1,6 @@
 package com.buyflow.erp.Dto;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,13 +26,14 @@ public class PurchaseOrderDto {
 		private String orderNo;
 		private Long requestId;
 		private String requestNo;
+		private String reqeustNumber;
 		private String supplierName;
 		private String manager;
 		private String contact;
 		private String userName;
 		private String userPhone;
 		
-		private int page = 1;
+		private int page = 0;
 		private int size = 10;
 	}
 
@@ -53,11 +55,12 @@ public class PurchaseOrderDto {
 		private Long requestId;             // 구매 요청 ID
 		private String requestNumber;       // 구매 요청 번호
 		private String requestTitle;        // 구매 요청 제목
-		private String expectedInboundFrom; // 입고 예정일 (시작)
-		private String expectedInboundTo;   // 입고 예정일 (종료)
+		private LocalDate expectedReceiptFrom; // 입고 예정일 (시작)
+		private LocalDate expectedReceiptTo;
 		private String warehouseCode;       // 입고 창고 코드
 		private String memo;                // 비고
 		private String manager;
+		
 
 		private List<PurchaseOrderDto.Item> items;
 	}
@@ -103,6 +106,9 @@ public class PurchaseOrderDto {
 		private LocalDateTime dueDate;
 		private Double totalAmount;
 		private String manager;
+		private String memo;
+		
+		private LocalDate expectedReceiptFrom; // 입고 예정일 (시작)
 
 		private List<PurchaseOrderDto.Item> items;
 
@@ -161,6 +167,7 @@ public class PurchaseOrderDto {
 		        .dueDate(order.getDueDate())
 		        .totalAmount(checkedTotalAmount)
 		        .items(itemDtos)
+		        .expectedReceiptFrom(order.getExpectedReceiptFrom())
 		        .build();
 		}
 	}

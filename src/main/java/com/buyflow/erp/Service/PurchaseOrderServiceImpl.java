@@ -56,6 +56,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         if (request == null) {
             throw new IllegalArgumentException("요청 데이터가 비어있습니다.");
         }
+        System.out.println("🧠 SERVICE requestId = " + request.getRequestId());
         
         Supplier supplier = supplierRepository.findById(request.getSupplierId())
                 .orElseThrow(() -> new EntityNotFoundException("공급업체가 존재하지 않습니다. ID: " + request.getSupplierId()));
@@ -77,15 +78,19 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         }
         
         LocalDateTime finalDueDate = request.getDueDate();
-        if (finalDueDate == null && request.getExpectedInboundTo() != null && !request.getExpectedInboundTo().isEmpty()) {
-            try {
-                finalDueDate = LocalDateTime.parse(request.getExpectedInboundTo() + "T23:59:59");
-            } catch (Exception e) {
-                finalDueDate = LocalDateTime.now().plusDays(7);
-            }
-        } else if (finalDueDate == null) {
+
+        if (finalDueDate == null && request.getExpectedReceiptTo() != null) {
+            finalDueDate = request.getExpectedReceiptTo().atStartOfDay()
+            				.plusHours(23)
+            				.plusMinutes(59)
+            				.plusSeconds(59);   // LocalDateTime 그대로 사용
+        }
+
+        if (finalDueDate == null) {
             finalDueDate = LocalDateTime.now().plusDays(7);
         }
+        
+        LocalDate finalExpectedFrom = request.getExpectedReceiptFrom();
         
         String finalOrderNo = request.getOrderNo();
         if (finalOrderNo == null || finalOrderNo.trim().isEmpty()) {
@@ -115,6 +120,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 .createdAt(LocalDateTime.now()) 
                 .orderStatus(request.getOrderStatus() != null ? request.getOrderStatus() : "PENDING")
                 .dueDate(finalDueDate)
+                .expectedReceiptFrom(finalExpectedFrom)
                 .totalAmount(0.0) 
                 .build();
         
@@ -231,6 +237,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         Pageable pageable = PageRequest.of(safePage - 1, safeSize);
         
         String orderNo = (condition.getOrderNo() == null || condition.getOrderNo().isEmpty()) ? null : condition.getOrderNo();
+        String requestNumber = (condition.getReqeustNumber() == null || condition.getReqeustNumber().isEmpty()) ? null : condition.getReqeustNumber();
         String supplierName = (condition.getSupplierName() == null || condition.getSupplierName().isEmpty() || condition.getSupplierName().equals("전체 공급업체")) ? null : condition.getSupplierName();
         String userName = (condition.getUserName() == null || condition.getUserName().isEmpty()) ? null : condition.getUserName();
         String status = (condition.getOrderStatus() == null || condition.getOrderStatus().isEmpty() || condition.getOrderStatus().equals("전체")) ? null : condition.getOrderStatus();
@@ -238,12 +245,12 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         // 🟢 기존의 커스텀 레포지토리 쿼리를 안전하게 호출
         Page<PurchaseOrder> orderPage = orderRepository.searchOrdersAdvanced(
                 orderNo,
+                requestNumber,
                 supplierName,
                 userName,
                 status,
                 pageable
         );
-
         // 🎯 [정밀 디버깅 선로]: DB에서 날것으로 뽑아온 찐 데이터 상태를 이클립스 콘솔에 출력합니다.
         System.out.println("====== 🔥 [목록 쿼리 최종 추적 현장산] ======");
         if (orderPage != null && orderPage.getContent() != null) {
@@ -295,9 +302,22 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         if (request.getOrderStatus() != null) {
             order.setOrderStatus(request.getOrderStatus());
         }
+        
         if (request.getDueDate() != null) {
             order.setDueDate(request.getDueDate());
         }
+        
+        if (request.getExpectedReceiptFrom() != null) {
+            order.setExpectedReceiptFrom(request.getExpectedReceiptFrom());
+        }
+        
+        if (request.getExpectedReceiptTo() != null) {
+            order.setDueDate(request.getExpectedReceiptTo().atStartOfDay()
+            						.plusHours(23)
+            						.plusMinutes(59)
+            						.plusSeconds(59));   // LocalDateTime
+        }
+        
         if (request.getMemo() != null) {
             order.setMemo(request.getMemo());
         }
@@ -354,76 +374,32 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         return PurchaseOrderDto.Response.from(refreshedOrder);
     }
 
-//    @Override
-//    public PurchaseOrderDto.Response updateOrder(Long orderId, PurchaseOrderDto.Request request) {
-//        PurchaseOrder order = orderRepository.findById(orderId)
-//                .orElseThrow(() -> new EntityNotFoundException("발주를 찾을 수 없습니다. ID: " + orderId));
-//
-//        if ("APPROVED".equals(order.getOrderStatus())) {
-//            throw new RuntimeException("이미 승인 완료된 발주는 수정할 수 없습니다.");
-//        }
-//        
-//        if (request.getOrderStatus() != null) {
-//            order.setOrderStatus(request.getOrderStatus());
-//        }
-//        if (request.getDueDate() != null) {
-//            order.setDueDate(request.getDueDate());
-//        }
-//        
-//        // 🟢 [지뢰 해제 3]: 수정 시에도 원본 날짜가 유지되도록 처리하며, 존재하지 않는 필드는 셋하지 않아 빨간 줄을 완벽 방어합니다.
-//        if (order.getCreatedAt() == null) {
-//            order.setCreatedAt(LocalDateTime.now());
-//        }
-//        
-//        if (request.getSupplierId() != null) {
-//            Supplier supplier = supplierRepository.findById(request.getSupplierId())
-//                    .orElseThrow(() -> new EntityNotFoundException("공급업체 없음"));
-//            order.setSupplier(supplier);
-//        }
-//
-//        // 기존 아이템 전체 삭제
-//        orderItemRepository.deleteByPurchaseOrder_OrderId(orderId);
-//
-//        long totalSupplyAmount = 0L;
-//        long totalVatAmount = 0L;
-//        List<PurchaseOrderItem> itemsToSave = new ArrayList<>();
-//
-//        for (PurchaseOrderDto.Item itemReq : request.getItems()) {
-//            PurchaseOrderItem item = PurchaseOrderItem.builder()
-//                    .purchaseOrder(order)
-//                    .productId(itemReq.getProductId())
-//                    .quantity(itemReq.getQuantity())
-//                    .unitPrice(itemReq.getUnitPrice())
-//                    .build();
-//
-//            itemsToSave.add(item);
-//
-//            long lineSupply = (long) (itemReq.getUnitPrice() * itemReq.getQuantity());
-//            long lineVat = (long) Math.floor(lineSupply * 0.1);
-//            
-//            totalSupplyAmount += lineSupply;
-//            totalVatAmount += lineVat;
-//        }
-//
-//        orderItemRepository.saveAll(itemsToSave);
-//        
-//        double finalTotalAmount = (double) (totalSupplyAmount + totalVatAmount);
-//        order.setTotalAmount(finalTotalAmount);
-//        
-//        PurchaseOrder updatedOrder = orderRepository.save(order);
-//        return PurchaseOrderDto.Response.from(updatedOrder);
-//    }
-
     @Override
-    public void deleteOrder(Long orderId) {
+    @Transactional
+    public PurchaseOrderDto.Response cancelOrder(Long orderId, String cancelReason) {
         PurchaseOrder order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("발주를 찾을 수 없습니다. ID: " + orderId));
 
-        if ("APPROVED".equals(order.getOrderStatus())) {
-            throw new RuntimeException("이미 승인 완료된 발주는 삭제할 수 없습니다.");
+        // 취소 가능 상태 체크
+        if ("CANCELLED".equals(order.getOrderStatus())) {
+            throw new IllegalStateException("이미 취소된 발주입니다.");
         }
-        
-        orderItemRepository.deleteByPurchaseOrder_OrderId(orderId);
-        orderRepository.delete(order);
+        if ("COMPLETED".equals(order.getOrderStatus())) {
+            throw new IllegalStateException("이미 완료된 발주는 취소할 수 없습니다.");
+        }
+
+        // 상태 변경
+        order.setOrderStatus("CANCELLED");
+
+        // 메모에 취소 사유 추가 (선택)
+        String memo = order.getMemo() != null ? order.getMemo() : "";
+        if (cancelReason != null && !cancelReason.trim().isEmpty()) {
+            memo += (memo.isEmpty() ? "" : "\n") + "[취소 사유] " + cancelReason;
+        }
+        order.setMemo(memo);
+
+        PurchaseOrder saved = orderRepository.save(order);
+
+        return PurchaseOrderDto.Response.from(saved);
     }
 }
