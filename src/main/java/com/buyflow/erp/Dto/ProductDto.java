@@ -35,13 +35,13 @@ public class ProductDto {
     @Getter
     @Setter
     public static class SearchCondition {
-        private int page = 0;
-        private int size = 15;
-        private String itemCode;
-        private String itemName;
-        private String category;
-        private String unit;
-        private String activeStatus;
+       private int page = 0;
+       private int size = 15;
+       private String itemCode;
+       private String itemName;
+       private String category;
+       private String unit;
+       private String activeStatus;
     }
 
     @Getter
