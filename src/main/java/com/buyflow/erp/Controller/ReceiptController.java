@@ -3,7 +3,6 @@ package com.buyflow.erp.Controller;
 import com.buyflow.erp.Dto.ReceiptDto;
 import com.buyflow.erp.Service.ReceiptService;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

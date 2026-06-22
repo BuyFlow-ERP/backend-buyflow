@@ -5,12 +5,18 @@ import org.springframework.stereotype.Repository;
 
 import com.buyflow.erp.Entity.Stock;
 import java.util.Optional;
+import java.util.List;
 
 @Repository
 public interface StockRepository extends JpaRepository<Stock, Long> {
 
     Optional<Stock> findByProductIdAndWarehouseCode(
             Long productId,
-            String warehouseCode
-    );
+            String warehouseCode);
+
+    List<Stock> findByProductId(
+            Long productId);
+
+    List<Stock> findByWarehouseCode(
+            String warehouseCode);
 }
