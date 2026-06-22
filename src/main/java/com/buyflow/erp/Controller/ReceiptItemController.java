@@ -35,7 +35,7 @@ public class ReceiptItemController {
 
     @PutMapping("/{receiptItemId}")
     public ResponseEntity<String> updateReceiptItem(
-            @PathVariable Long receiptItemId,
+            @PathVariable(name = "receiptItemId") Long receiptItemId,
             @RequestBody ReceiptItemDto.CreateRequest request) {
 
         receiptItemService.updateReceiptItem(

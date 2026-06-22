@@ -54,13 +54,13 @@ public class InspectionController {
 
     @GetMapping("/{receiptId}")
     public ResponseEntity<InspectionDto.Response> getInspectionDetail(
-            @PathVariable Long receiptId) {
+            @PathVariable(name = "receiptId") Long receiptId) {
         return ResponseEntity.ok(inspectionService.getPendingInspectionDetail(receiptId));
     }
 
     @PostMapping("/{receiptId}/result")
     public ResponseEntity<String> saveInspectionResult(
-            @PathVariable Long receiptId,
+            @PathVariable(name = "receiptId") Long receiptId,
             @RequestBody InspectionDto.ResultRequest request) {
 
         inspectionService.saveInspectionResult(receiptId, request);

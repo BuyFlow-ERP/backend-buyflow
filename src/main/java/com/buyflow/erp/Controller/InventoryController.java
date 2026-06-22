@@ -33,11 +33,11 @@ public class InventoryController {
 
 @GetMapping
 public InventoryListResponse getInventories(
-        @RequestParam(required = false) String itemCode,
-        @RequestParam(required = false) String itemName,
-        @RequestParam(required = false) String category,
-        @RequestParam(required = false) String warehouseCode,
-        @RequestParam(required = false) String stockStatus) {
+        @RequestParam(name = "itemCode", required = false) String itemCode,
+        @RequestParam(name = "itemName", required = false) String itemName,
+        @RequestParam(name = "category", required = false) String category,
+        @RequestParam(name = "warehouseCode", required = false) String warehouseCode,
+        @RequestParam(name = "stockStatus", required = false) String stockStatus) {
 
     List<InventoryDto> items = stockRepository.findAll()
             .stream()
