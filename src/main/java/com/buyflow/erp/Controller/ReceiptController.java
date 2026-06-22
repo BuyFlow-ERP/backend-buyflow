@@ -1,59 +1,69 @@
 package com.buyflow.erp.Controller;
 
 import com.buyflow.erp.Dto.ReceiptDto;
-import com.buyflow.erp.Entity.Receipt;
 import com.buyflow.erp.Service.ReceiptService;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/receipts")
+@RequestMapping({"/receipts", "/api/receipts"})
 public class ReceiptController {
 
     private final ReceiptService receiptService;
 
-    @GetMapping
-    public List<Receipt> getReceipts() {
-        return receiptService.getReceipts();
+    @GetMapping("/filter-options")
+    public ResponseEntity<ReceiptDto.FilterOptionsResponse> getFilterOptions() {
+        return ResponseEntity.ok(receiptService.getFilterOptions());
     }
 
-    @GetMapping("/{receiptId}")
-    public Receipt getReceipt(
-            @PathVariable Long receiptId) {
+    @GetMapping("/summary")
+    public ResponseEntity<ReceiptDto.SummaryResponse> getSummary() {
+        return ResponseEntity.ok(receiptService.getSummary());
+    }
 
-        return receiptService.getReceipt(receiptId);
-            }
-@PostMapping
-public ResponseEntity<String> saveReceipt(
-        @RequestBody ReceiptDto.ReceiptCreateRequest request) {
+    @GetMapping("/{receiptId:\\d+}")
+    public ResponseEntity<ReceiptDto.DetailResponse> getReceipt(
+            @PathVariable Long receiptId
+    ) {
+        return ResponseEntity.ok(
+                receiptService.getReceipt(receiptId)
+        );
+    }
 
-    try {
+    @PostMapping
+    public ResponseEntity<Map<String, Object>> saveReceipt(
+            @RequestBody ReceiptDto.ReceiptCreateRequest request
+    ) {
+        try {
+            receiptService.saveReceipt(request);
 
-        System.out.println("POST /receipts 호출");
+            return ResponseEntity.ok(
+                    Map.of(
+                            "success", true,
+                            "message", "저장 완료"
+                    )
+            );
 
-        receiptService.saveReceipt(request);
+        } catch (Exception e) {
 
-        return ResponseEntity.ok("저장 완료");
+            return ResponseEntity.internalServerError()
+                    .body(
+                            Map.of(
+                                    "success", false,
+                                    "message", e.getMessage()
+                            )
+                    );
+        }
+    }
 
-    } catch (Exception e) {
-
-        e.printStackTrace();
-
-        return ResponseEntity.internalServerError()
-                .body(e.toString());
+    @PostMapping("/test")
+    public ResponseEntity<String> test(
+            @RequestBody ReceiptDto.ReceiptCreateRequest request
+    ) {
+        return ResponseEntity.ok(request.getReceiptNo());
     }
 }
-@PostMapping("/test")
-public ResponseEntity<String> test(
-       @RequestBody ReceiptDto.ReceiptCreateRequest request) {
-
-    return ResponseEntity.ok(
-            request.getReceiptNo()
-    );
-}
-    }

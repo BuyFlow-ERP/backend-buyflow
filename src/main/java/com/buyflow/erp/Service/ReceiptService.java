@@ -9,8 +9,24 @@ public interface ReceiptService {
 
     List<Receipt> getReceipts();
 
-    Receipt getReceipt(Long receiptId);
+    ReceiptDto.DetailResponse getReceipt(Long receiptId);
 
-    void saveReceipt(ReceiptDto.ReceiptCreateRequest request
-);
+    void saveReceipt(ReceiptDto.ReceiptCreateRequest request);
+
+    ReceiptDto.PageResponse<ReceiptDto.ListResponse> searchReceipts(
+            String activeTab,
+            String orderNumber,
+            String supplierKeyword,
+            String itemKeyword,
+            String warehouseName,
+            String expectedFrom,
+            String expectedTo,
+            String status,
+            int page,
+            int size
+    );
+
+    ReceiptDto.FilterOptionsResponse getFilterOptions();
+
+    ReceiptDto.SummaryResponse getSummary();
 }
