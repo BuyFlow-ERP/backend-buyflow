@@ -84,12 +84,9 @@ public class AdminUserService {
         User user = findUser(userId);
         user.setStatus("ACTIVE");
         user.setUseYn("Y");
-        user.setJobRank(normalizeJobRank(user.getJobRank()));
         user.setUpdatedAt(LocalDateTime.now());
-        syncRolesByJobRank(user, null);
         return toAdminUserResponse(user);
     }
-
     @Transactional
     public AdminUserResponse updateStatus(Long userId, AdminUserStatusUpdateRequest request) {
         User user = findUser(userId);
@@ -119,11 +116,7 @@ public class AdminUserService {
             user.setPositionName(normalizeText(request.positionName()));
         }
 
-        if (StringUtils.hasText(request.jobRank())) {
-            user.setJobRank(normalizeJobRank(request.jobRank()));
-            syncRolesByJobRank(user, currentLoginId);
-        }
-
+        
         user.setUpdatedAt(LocalDateTime.now());
         return toAdminUserResponse(user);
     }
@@ -164,7 +157,6 @@ public class AdminUserService {
                 .toList();
 
         userRoleRepository.saveAll(userRoles);
-        user.setJobRank(hasAdminRole ? JOB_RANK_ADMIN : JOB_RANK_USER);
         user.setUpdatedAt(now);
         return toAdminUserResponse(user);
     }
