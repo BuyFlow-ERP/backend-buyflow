@@ -29,6 +29,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
         String token = resolveToken(request);
+        String uri = request.getRequestURI();
+        // /roles/ 요청에만 로그 (OPTIONS 프리플라이트 제외) → 콘솔 폭주 방지
+        boolean debug = uri.contains("/roles/") && !"OPTIONS".equalsIgnoreCase(request.getMethod());
+
+        if (debug) {
+            System.out.println(">>> [요청 경로] " + uri
+                    + " / 토큰 있음? " + StringUtils.hasText(token));
+        }
 
         if (StringUtils.hasText(token)) {
             try {
@@ -44,7 +52,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(loginId, null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-            } catch (RuntimeException ignored) {
+
+                if (debug) {
+                    System.out.println(">>> [JWT 검증 성공] loginId=" + loginId
+                            + " / authorities=" + authorities);
+                }
+            } catch (RuntimeException e) {
+                if (debug) {
+                    System.out.println(">>> [JWT 검증 실패] "
+                            + e.getClass().getName() + ": " + e.getMessage());
+                }
                 SecurityContextHolder.clearContext();
             }
         }
@@ -62,4 +79,3 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return null;
     }
 }
-

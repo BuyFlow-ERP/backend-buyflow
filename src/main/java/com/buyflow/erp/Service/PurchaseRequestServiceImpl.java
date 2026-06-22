@@ -65,6 +65,7 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
     ) {
         int safePage = Math.max(page, 0);
         int safeSize = Math.max(size, 1);
+        String statusFilter = toRequestStatusLabel(status);
 
         List<PurchaseRequestDto.ListResponse> filtered = purchaseRequestRepository.findActiveRequestsOrderByRequestIdDesc()
                 .stream()
@@ -73,7 +74,7 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
                 .filter(row -> contains(row.title(), title))
                 .filter(row -> contains(row.requester(), requester))
                 .filter(row -> isAllOrEquals(department, "전체 부서", row.department()))
-                .filter(row -> isAllOrEquals(status, "전체", row.status()))
+                .filter(row -> isAllOrEquals(statusFilter, "전체", row.status()))
                 .filter(row -> isAllOrEquals(priority, "전체", row.priority()))
                 .filter(row -> isWithinRange(row.requestedAt(), requestedFrom, requestedTo))
                 .filter(row -> isWithinRange(row.desiredInboundAt(), desiredInboundFrom, desiredInboundTo))
@@ -394,6 +395,23 @@ public PurchaseRequestDto.DetailResponse cancelPurchaseRequest(Long requestId) {
     return getPurchaseRequestDetail(requestId);
 }
 
+@Override
+@Transactional
+public void deletePurchaseRequest(Long requestId) {
+    PurchaseRequest request = purchaseRequestRepository.findById(requestId)
+            .filter(this::isActive)
+            .orElseThrow(() -> new EntityNotFoundException(
+                    "구매 요청을 찾을 수 없습니다. ID: " + requestId
+            ));
+
+    validateDeletableStatus(request);
+
+    request.setDeletedYn("Y");
+    request.setUpdatedAt(LocalDateTime.now());
+
+    purchaseRequestRepository.save(request);
+}
+
     private PurchaseRequestDto.ListResponse toListResponse(PurchaseRequest request) {
         // 이 헬퍼 메서드가 구동될 때도 안전하게 실시간 자식 품목들을 긁어와 묶어주도록 연동합니다.
         List<PurchaseRequestDto.ItemResponse> items = getItemResponses(request.getRequestId());
@@ -411,10 +429,8 @@ public PurchaseRequestDto.DetailResponse cancelPurchaseRequest(Long requestId) {
                 formatDate(request.getUpdatedAt()),
                 itemCount, 
                 request.getTotalAmount() != null ? request.getTotalAmount() : BigDecimal.ZERO,
-                "일반",
-                request.getRequestStatus(),
-                
-                // 🚀 [14번째 완결]: 변경된 14개 레코드 포맷에 맞춰 찐 품목 리스트를 콤마 뒤에 안전하게 수혈 완료!
+                resolvePriorityLabel(request),
+                toRequestStatusLabel(request.getRequestStatus()),
                 items 
         );
     }
@@ -618,6 +634,24 @@ private void validateCancelableStatus(PurchaseRequest request) {
     }
 }
 
+private void validateDeletableStatus(PurchaseRequest request) {
+    String status = normalizeRequestStatus(request.getRequestStatus());
+
+    boolean deletable = Set.of(
+            "PENDING_APPROVAL",
+            "REJECTED",
+            "CANCELED"
+    ).contains(status);
+
+    if (!deletable) {
+        throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "승인 대기, 반려, 요청 취소 상태의 구매 요청만 삭제할 수 있습니다. 현재 상태: "
+                        + toRequestStatusLabel(status)
+        );
+    }
+}
+
     private BigDecimal toBigDecimal(Long value) {
         return value == null ? BigDecimal.ZERO : BigDecimal.valueOf(value);
     }
@@ -647,11 +681,9 @@ private void validateCancelableStatus(PurchaseRequest request) {
                             formatDate(request.getCreatedAt()),
                             formatDate(request.getUpdatedAt()),
                             actualItemCount,                             // 10. 찐 품목 개수 카운트
-                            request.getTotalAmount() != null ? request.getTotalAmount() : BigDecimal.ZERO, // 11. 찐 합계금액
-                            "일반",                                       // 12. 우선순위 기본값
-                            request.getRequestStatus(),                  // 13. 찐 상태값
-                            
-                            // 🔥 [14번째 인자 투하]: 하이픈이나 더미 없이 찐 품목 객체 리스트를 통째로 수송 완료!
+                            request.getTotalAmount() != null ? request.getTotalAmount() : BigDecimal.ZERO,
+                            resolvePriorityLabel(request),
+                            toRequestStatusLabel(request.getRequestStatus()),
                             actualItems 
                     );
                 })

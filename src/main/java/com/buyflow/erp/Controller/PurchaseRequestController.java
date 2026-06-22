@@ -91,4 +91,12 @@ public class PurchaseRequestController {
             purchaseRequestService.cancelPurchaseRequest(requestId)
             );
     }
+
+    @DeleteMapping("/{requestId}")
+    public ResponseEntity<Void> deletePurchaseRequest(
+        @PathVariable Long requestId
+    ) {
+        purchaseRequestService.deletePurchaseRequest(requestId);
+        return ResponseEntity.noContent().build();
+    }
 }
