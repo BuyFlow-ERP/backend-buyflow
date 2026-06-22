@@ -19,12 +19,15 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
     List<PurchaseOrder> findByOrderStatus(String status);
 
     @Query("SELECT p FROM PurchaseOrder p " +
-            "LEFT JOIN FETCH p.items " +
+            "LEFT JOIN FETCH p.items i " +
+            "LEFT JOIN FETCH i.product " +
             "LEFT JOIN FETCH p.supplier " +
             "LEFT JOIN FETCH p.user " + 
+            "LEFT JOIN FETCH p.purchaseRequest " +
             "WHERE p.orderId = :orderId")
     Optional<PurchaseOrder> findByIdWithItems(@Param("orderId") Long orderId);
 
+    
     @Query("SELECT DISTINCT p FROM PurchaseOrder p " +
             "LEFT JOIN p.supplier s " +
             "LEFT JOIN p.user u " +

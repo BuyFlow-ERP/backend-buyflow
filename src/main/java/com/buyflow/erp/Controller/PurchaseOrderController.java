@@ -49,26 +49,12 @@ public class PurchaseOrderController {
         
         // 1. DB에서 엔티티 원본을 가져옵니다.
         List<Supplier> actualSuppliers = supplierRepository.findAll(); 
-        
-//        System.out.println("==================================================");
-//        System.out.println("🔍 [백엔드 디버깅 1] DB에서 조회한 원본 Supplier 개수: " + actualSuppliers.size());
-//        System.out.println("==================================================");
 
         // 2. 루프를 돌며 데이터를 가공하고, 동시에 콘솔에 원본 값을 찍어봅니다.
         List<Map<String, Object>> robustSuppliers = new ArrayList<>();
         
         for (Supplier supplier : actualSuppliers) {
             Map<String, Object> map = new HashMap<>();
-            
-            // 🚨 각 엔티티에 찐 데이터가 들어있는지 콘솔에 인쇄
-//            System.out.println(String.format(
-//                "▶ [엔티티 확인] ID: %s | 업체명: %s | 담당자(Manager): %s | 연락처(Contact): %s",
-//                supplier.getSupplierId(),
-//                supplier.getSupplierName(),
-//                supplier.getManager(),
-//                supplier.getContact()
-//            ));
-            
             map.put("supplierId", supplier.getSupplierId());
             map.put("supplierName", supplier.getSupplierName());
             map.put("manager", supplier.getManager() != null ? supplier.getManager() : "-");
@@ -78,11 +64,6 @@ public class PurchaseOrderController {
         }
         
         options.put("suppliers", robustSuppliers);
-        
-        // 3. 최종적으로 프론트엔드에 던져줄 맵 객체의 속살 인쇄
-//        System.out.println("==================================================");
-//        System.out.println("🚀 [백엔드 디버깅 2] 최종 프론트로 나가는 options 주머니: " + options.get("suppliers"));
-//        System.out.println("==================================================");
 
         // 기존 로직 유지
         List<PurchaseRequestDto.ListResponse> approvedRequests = 
@@ -120,18 +101,6 @@ public class PurchaseOrderController {
         
         PageResponse<PurchaseOrderDto.Response> response = service.getOrderList(condition);
         return ResponseEntity.ok(response);
-    }
-    
- // PurchaseOrderController.java 내부의 getOrderFilterOptions 메서드 최종 교체
-
-    @GetMapping("/filter-options")
-    public ResponseEntity<Map<String, List<String>>> getOrderFilterOptions() {
-        
-        Map<String, List<String>> options = new HashMap<>();
-        options.put("statuses", Arrays.asList("전체", "PENDING", "APPROVED", "CANCELLED"));
-        options.put("suppliers", Arrays.asList("전체", "동양산업", "대한기계상사", "세진테크"));
-        
-        return ResponseEntity.ok(options);
     }
 
     // 3. 발주 등록

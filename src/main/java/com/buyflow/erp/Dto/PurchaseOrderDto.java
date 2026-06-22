@@ -31,7 +31,7 @@ public class PurchaseOrderDto {
 		private String userName;
 		private String userPhone;
 		
-		private int page = 0;
+		private int page = 1;
 		private int size = 10;
 	}
 
@@ -72,6 +72,11 @@ public class PurchaseOrderDto {
 		private Long productId;
 		private Long quantity;
 		private Double unitPrice;
+		
+		private String itemCode;
+	    private String itemName;
+	    private String specification;
+	    private String unit;
 	}
 
 	@Getter
@@ -102,59 +107,61 @@ public class PurchaseOrderDto {
 		private List<PurchaseOrderDto.Item> items;
 
 		public static Response from(PurchaseOrder order) {
-			if (order == null) return null;
+		    if (order == null) return null;
 
-			List<PurchaseOrderDto.Item> itemDtos = new ArrayList<>();
-			if (order.getItems() != null) {
-				itemDtos = order.getItems().stream()
-						.map(item -> PurchaseOrderDto.Item.builder()
-								.orderItemId(item.getOrderItemId())
-								.productId(item.getProductId())
-								.quantity(item.getQuantity())
-								.unitPrice(item.getUnitPrice())
-								.build())
-						.collect(Collectors.toList());
-			}
+		    List<PurchaseOrderDto.Item> itemDtos = new ArrayList<>();
+		    if (order.getItems() != null) {
+		        itemDtos = order.getItems().stream()
+		            .map(item -> {
+		                PurchaseOrderDto.Item.ItemBuilder builder = PurchaseOrderDto.Item.builder()
+		                    .orderItemId(item.getOrderItemId())
+		                    .productId(item.getProduct() != null ? item.getProduct().getProductId() : null)
+		                    .quantity(item.getQuantity())
+		                    .unitPrice(item.getUnitPrice());
 
-			// 🚀 [총 발주 금액 0원 뚫림 완전 방어선]
-			// 만약 DB에서 끄집어낸 totalAmount가 null이거나 0원인데 품목 정보는 살아있다면,
-			// 변환기가 실시간으로 수량 * 단가 + 부가세(10%)를 재계산하여 화면에 완벽 동기화해 사출합니다!
-			double checkedTotalAmount = order.getTotalAmount() != null ? order.getTotalAmount() : 0.0;
-			if (checkedTotalAmount == 0.0 && order.getItems() != null && !order.getItems().isEmpty()) {
-				long calcSupply = 0L;
-				for (PurchaseOrderItem orderItem : order.getItems()) {
-					long qty = orderItem.getQuantity() != null ? orderItem.getQuantity() : 0L;
-					double price = orderItem.getUnitPrice() != null ? orderItem.getUnitPrice() : 0.0;
-					calcSupply += (long) (qty * price);
-				}
-				checkedTotalAmount = (double) (calcSupply + (long) Math.floor(calcSupply * 0.1));
-			}
+		                // Product 정보 매핑
+		                if (item.getProduct() != null) {
+		                    builder
+		                        .itemCode(item.getProduct().getProductNo())
+		                        .itemName(item.getProduct().getProductName())
+		                        .specification(item.getProduct().getSpec())
+		                        .unit(item.getProduct().getUnit());
+		                }
 
-			return Response.builder()
-					.orderId(order.getOrderId())
-					.orderNo(order.getOrderNo())
-					
-					// 기존 팀원분들이 설계한 구매 요청 엔티티 탯줄 그대로 안전하게 우회 바인딩
-					.requestId(order.getPurchaseRequest() != null ? order.getPurchaseRequest().getRequestId() : null)
-					.requestNo(order.getPurchaseRequest() != null ? order.getPurchaseRequest().getRequestNo() : "-")
-					.requestTitle(order.getPurchaseRequest() != null ? order.getPurchaseRequest().getTitle() : "-")
-					
-					.supplierId(order.getSupplier() != null ? order.getSupplier().getSupplierId() : null)
-					.supplierName(order.getSupplier() != null ? order.getSupplier().getSupplierName() : "-")
-					.manager(order.getSupplier() != null ? order.getSupplier().getManager() : "-")
-					.createdBy(order.getUser() != null ? order.getUser().getUserId() : null)
-					.userName(order.getUser() != null ? order.getUser().getUserName() : "-")
-					.userPhone(order.getUser() != null ? order.getUser().getPhone() : "-")
-					
-					// 🚀 발주일 실시간 누락 안전 가드: 등록/조회 시점 날짜 보존
-					.createdAt(order.getCreatedAt() != null ? order.getCreatedAt() : LocalDateTime.now())
-					.orderStatus(order.getOrderStatus())
-					.dueDate(order.getDueDate())
-					
-					// 🚀 자동 복구된 금액 최종 탑재
-					.totalAmount(checkedTotalAmount)
-					.items(itemDtos)
-					.build();
+		                return builder.build();
+		            })
+		            .collect(Collectors.toList());
+		    }
+
+		    double checkedTotalAmount = order.getTotalAmount() != null ? order.getTotalAmount() : 0.0;
+		    if (checkedTotalAmount == 0.0 && order.getItems() != null && !order.getItems().isEmpty()) {
+		        long calcSupply = 0L;
+		        for (PurchaseOrderItem orderItem : order.getItems()) {
+		            long qty = orderItem.getQuantity() != null ? orderItem.getQuantity() : 0L;
+		            double price = orderItem.getUnitPrice() != null ? orderItem.getUnitPrice() : 0.0;
+		            calcSupply += (long) (qty * price);
+		        }
+		        checkedTotalAmount = (double) (calcSupply + (long) Math.floor(calcSupply * 0.1));
+		    }
+
+		    return Response.builder()
+		        .orderId(order.getOrderId())
+		        .orderNo(order.getOrderNo())
+		        .requestId(order.getPurchaseRequest() != null ? order.getPurchaseRequest().getRequestId() : null)
+		        .requestNo(order.getPurchaseRequest() != null ? order.getPurchaseRequest().getRequestNo() : "-")
+		        .requestTitle(order.getPurchaseRequest() != null ? order.getPurchaseRequest().getTitle() : "-")
+		        .supplierId(order.getSupplier() != null ? order.getSupplier().getSupplierId() : null)
+		        .supplierName(order.getSupplier() != null ? order.getSupplier().getSupplierName() : "-")
+		        .manager(order.getSupplier() != null ? order.getSupplier().getManager() : "-")
+		        .createdBy(order.getUser() != null ? order.getUser().getUserId() : null)
+		        .userName(order.getUser() != null ? order.getUser().getUserName() : "-")
+		        .userPhone(order.getUser() != null ? order.getUser().getPhone() : "-")
+		        .createdAt(order.getCreatedAt() != null ? order.getCreatedAt() : LocalDateTime.now())
+		        .orderStatus(order.getOrderStatus())
+		        .dueDate(order.getDueDate())
+		        .totalAmount(checkedTotalAmount)
+		        .items(itemDtos)
+		        .build();
 		}
 	}
 	
