@@ -52,12 +52,13 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(ErrorCode.FORBIDDEN));
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleException(Exception exception) {
-        log.error("Unhandled server error", exception);
+   @ExceptionHandler(Exception.class)
+public ResponseEntity<ErrorResponse> handleException(Exception exception) {
 
-        return ResponseEntity
-                .status(ErrorCode.INTERNAL_ERROR.getStatus())
-                .body(ErrorResponse.of(ErrorCode.INTERNAL_ERROR));
-    }
+    exception.printStackTrace();
+
+    return ResponseEntity
+            .status(ErrorCode.INTERNAL_ERROR.getStatus())
+            .body(ErrorResponse.of(ErrorCode.INTERNAL_ERROR));
+}
 }

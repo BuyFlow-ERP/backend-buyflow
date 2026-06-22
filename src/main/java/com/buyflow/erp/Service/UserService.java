@@ -103,10 +103,8 @@ public class UserService {
                 target.setPositionName(normalizeText(request.positionName()));
             }
 
-            if (StringUtils.hasText(request.jobRank())) {
-                target.setJobRank(normalizeJobRank(request.jobRank()));
-                syncRolesByJobRank(target, currentLoginId);
-            }
+            
+            
         }
 
         target.setUpdatedAt(LocalDateTime.now());

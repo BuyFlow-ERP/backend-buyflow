@@ -6,6 +6,7 @@ import com.buyflow.erp.Dto.RoleResponse;
 import com.buyflow.erp.Service.RolePermissionService;
 import com.buyflow.erp.Service.RoleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -18,6 +19,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/roles")
+@PreAuthorize("hasRole('ADMIN') or hasAuthority('roles.write')") // 권한관리 = ADMIN 전용
 public class RoleController {
 
     private final RoleService roleService;

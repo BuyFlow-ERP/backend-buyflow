@@ -14,7 +14,6 @@ import com.buyflow.erp.Entity.Receipt;
 import com.buyflow.erp.Repository.StockRepository;
 import com.buyflow.erp.Repository.ReceiptRepository;
 import com.buyflow.erp.Entity.PurchaseOrderItem;
-import com.buyflow.erp.Repository.PurchaseOrderItemRepository;
 
 import com.buyflow.erp.Entity.StockHistory;
 import com.buyflow.erp.Repository.StockHistoryRepository;
@@ -34,6 +33,15 @@ public class ReceiptItemServiceImpl
         public List<ReceiptItem> getReceiptItems() {
 
                 return receiptItemRepository.findAll();
+        }
+
+        @Override
+        public List<ReceiptItem> getReceiptItemsByStatus(
+                        String receiptItemStatus) {
+
+                return receiptItemRepository
+                                .findByReceiptItemStatus(
+                                                receiptItemStatus);
         }
 
         @Override
@@ -61,6 +69,8 @@ public class ReceiptItemServiceImpl
                 item.setRemark(request.getRemark());
                 item.setLoginId(request.getLoginId());
                 item.setCreatedAt(LocalDateTime.now());
+                item.setReceiptItemStatus(
+                                "ACTIVE");
 
                 receiptItemRepository.save(item);
                 Receipt receipt = receiptRepository.findById(
@@ -215,8 +225,45 @@ public class ReceiptItemServiceImpl
 
                 stockRepository.save(stock);
 
-                receiptItemRepository.save(item);
+                Long beforeQty = stock.getQuantity().longValue()
+                                - qtyDiff;
 
+                StockHistory history = new StockHistory();
+
+                history.setStockId(
+                                stock.getStockId());
+
+                history.setHistoryType(
+                                "UPDATE");
+
+                history.setChangeQty(
+                                qtyDiff);
+
+                history.setBeforeQty(
+                                beforeQty);
+
+                history.setAfterQty(
+                                stock.getQuantity().longValue());
+
+                history.setRelatedReceiptItemId(
+                                item.getReceiptItemId());
+
+                history.setRelatedOrderItemId(
+                                item.getOrderItemId());
+
+                history.setReason(
+                                "입고 수정");
+
+                history.setCreatedAt(
+                                LocalDateTime.now());
+
+                history.setCreatedBy(
+                                item.getLoginId());
+
+                stockHistoryRepository.save(
+                                history);
+
+                receiptItemRepository.save(item);
                 PurchaseOrderItem orderItem = purchaseOrderItemRepository
                                 .findById(
                                                 item.getOrderItemId())
@@ -241,4 +288,107 @@ public class ReceiptItemServiceImpl
                 receiptRepository.save(receipt);
         }
 
+        @Override
+        public void cancelReceiptItem(
+                        Long receiptItemId) {
+
+                ReceiptItem item = receiptItemRepository
+                                .findById(receiptItemId)
+                                .orElseThrow();
+
+                if ("CANCELLED".equals(
+                                item.getReceiptItemStatus())) {
+                        return;
+                }
+
+                Receipt receipt = receiptRepository
+                                .findById(item.getReceiptId())
+                                .orElseThrow();
+
+                String warehouseCode = receipt.getWarehouseCode();
+
+                Stock stock = stockRepository
+                                .findByProductIdAndWarehouseCode(
+                                                item.getProductId(),
+                                                warehouseCode)
+                                .orElseThrow();
+
+                Long acceptedQty = item.getAcceptedQty();
+
+                Long beforeQty = stock.getQuantity().longValue();
+
+                stock.setQuantity(
+                                stock.getQuantity()
+                                                - acceptedQty.intValue());
+
+                stock.setUpdatedAt(
+                                LocalDateTime.now());
+
+                stockRepository.save(stock);
+
+                StockHistory history = new StockHistory();
+
+                history.setStockId(
+                                stock.getStockId());
+
+                history.setHistoryType(
+                                "CANCEL");
+
+                history.setChangeQty(
+                                -acceptedQty);
+
+                history.setBeforeQty(
+                                beforeQty);
+
+                history.setAfterQty(
+                                stock.getQuantity().longValue());
+
+                history.setRelatedReceiptItemId(
+                                item.getReceiptItemId());
+
+                history.setRelatedOrderItemId(
+                                item.getOrderItemId());
+
+                history.setReason(
+                                "입고 취소");
+
+                history.setCreatedAt(
+                                LocalDateTime.now());
+
+                history.setCreatedBy(
+                                item.getLoginId());
+
+                stockHistoryRepository.save(
+                                history);
+
+                item.setReceiptItemStatus(
+                                "CANCELLED");
+
+                receiptItemRepository.save(
+                                item);
+
+                PurchaseOrderItem orderItem = purchaseOrderItemRepository
+                                .findById(
+                                                item.getOrderItemId())
+                                .orElseThrow();
+
+                Long orderedQty = orderItem.getQuantity();
+
+                Long acceptedQtySum = receiptItemRepository.getAcceptedQtySum(
+                                item.getOrderItemId());
+
+                if (acceptedQtySum >= orderedQty) {
+
+                        receipt.setReceiptStatus(
+                                        "COMPLETED");
+
+                } else {
+
+                        receipt.setReceiptStatus(
+                                        "PARTIAL");
+                }
+
+                receiptRepository.save(
+                                receipt);
+        }
 }

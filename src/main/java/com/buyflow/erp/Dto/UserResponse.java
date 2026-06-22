@@ -29,7 +29,7 @@ public record UserResponse(
                 user.getPhone(),
                 user.getDepartmentName(),
                 user.getPositionName(),
-                normalizeJobRank(user.getJobRank()),
+                user.getJobRank(),
                 toAccountType(user.getJobRank()),
                 user.getStatus(),
                 user.getUseYn(),

@@ -9,7 +9,7 @@ public interface ReceiptService {
 
     List<Receipt> getReceipts();
 
-    Receipt getReceipt(Long receiptId);
+    ReceiptDto.DetailResponse getReceipt(Long receiptId);
 
     void saveReceipt(ReceiptDto.ReceiptCreateRequest request);
 

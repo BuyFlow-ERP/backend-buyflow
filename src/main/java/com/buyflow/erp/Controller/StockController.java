@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -25,6 +26,26 @@ public class StockController {
     public ResponseEntity<List<StockDto.Response>> getStockList() {
         // 서비스에서 DTO가 담긴 List를 받아와서 화면으로 뿌려줌.
         List<Response> list = stockService.findAllStocks();
+        return ResponseEntity.ok(list);
+    }
+
+    @GetMapping("/product/{productId}")
+    public ResponseEntity<List<StockDto.Response>> getStockByProductId(
+            @PathVariable Long productId) {
+
+        List<Response> list = stockService.findStocksByProductId(
+                productId);
+
+        return ResponseEntity.ok(list);
+    }
+
+    @GetMapping("/warehouse/{warehouseCode}")
+    public ResponseEntity<List<StockDto.Response>> getStockByWarehouseCode(
+            @PathVariable String warehouseCode) {
+
+        List<Response> list = stockService.findStocksByWarehouseCode(
+                warehouseCode);
+
         return ResponseEntity.ok(list);
     }
 }

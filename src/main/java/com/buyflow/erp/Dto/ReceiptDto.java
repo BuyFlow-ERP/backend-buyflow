@@ -27,6 +27,7 @@ public class ReceiptDto {
     @AllArgsConstructor
     public static class ListResponse {
         private Long id;
+        private Long receiptId;
         private Long orderId;
         private String orderNumber;
         private String supplierName;
@@ -38,6 +39,33 @@ public class ReceiptDto {
         private Long receivedQuantity;
         private Long remainingQuantity;
         private String status;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DetailResponse {
+
+        private Long receiptId;
+        private Long orderId;
+
+        private String orderNumber;
+        private String supplierName;
+
+        private String orderedAt;
+        private String expectedReceiptAt;
+
+        private String warehouseName;
+
+        private Long orderQuantity;
+        private Long receivedQuantity;
+        private Long remainingQuantity;
+
+        private String status;
+
+        private List<Object> items;
+        private List<Object> histories;
     }
 
     @Getter
