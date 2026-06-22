@@ -25,11 +25,74 @@ public class ReceiptServiceImpl implements ReceiptService {
         return receiptRepository.findAll();
     }
 
-    @Override
-    public Receipt getReceipt(Long receiptId) {
-        return receiptRepository.findById(receiptId)
-                .orElseThrow();
-    }
+  @Override
+public ReceiptDto.DetailResponse getReceipt(Long receiptId) {
+
+    String sql = buildListBaseSql()
+            + " AND x.RECEIPT_ID = :receiptId";
+
+    Map<String, Object> params = new HashMap<>();
+    params.put("receiptId", receiptId);
+
+    return jdbcTemplate.queryForObject(
+            sql,
+            params,
+            (rs, rowNum) -> {
+
+                ReceiptDto.DetailResponse dto =
+                        new ReceiptDto.DetailResponse();
+
+                dto.setReceiptId(
+                        rs.getLong("RECEIPT_ID")
+                );
+
+                dto.setOrderId(
+                        rs.getLong("ORDER_ID")
+                );
+
+                dto.setOrderNumber(
+                        rs.getString("ORDER_NUMBER")
+                );
+
+                dto.setSupplierName(
+                        rs.getString("SUPPLIER_NAME")
+                );
+
+                dto.setOrderedAt(
+                        rs.getString("ORDERED_AT")
+                );
+
+                dto.setExpectedReceiptAt(
+                        rs.getString("EXPECTED_RECEIPT_AT")
+                );
+
+                dto.setWarehouseName(
+                        rs.getString("WAREHOUSE_NAME")
+                );
+
+                dto.setOrderQuantity(
+                        rs.getLong("ORDER_QUANTITY")
+                );
+
+                dto.setReceivedQuantity(
+                        rs.getLong("RECEIVED_QUANTITY")
+                );
+
+                dto.setRemainingQuantity(
+                        rs.getLong("REMAINING_QUANTITY")
+                );
+
+                dto.setStatus(
+                        rs.getString("STATUS")
+                );
+
+                dto.setItems(new ArrayList<>());
+                dto.setHistories(new ArrayList<>());
+
+                return dto;
+            }
+    );
+}
 
     @Override
     public void saveReceipt(ReceiptDto.ReceiptCreateRequest request) {
@@ -128,7 +191,8 @@ public class ReceiptServiceImpl implements ReceiptService {
                     ReceiptDto.ListResponse dto = new ReceiptDto.ListResponse();
 
                     dto.setId(rs.getLong("ID"));
-                    dto.setOrderId(rs.getLong("ORDER_ID"));
+dto.setReceiptId(rs.getLong("RECEIPT_ID"));
+dto.setOrderId(rs.getLong("ORDER_ID"));
                     dto.setOrderNumber(rs.getString("ORDER_NUMBER"));
                     dto.setSupplierName(rs.getString("SUPPLIER_NAME"));
                     dto.setOrderedAt(rs.getString("ORDERED_AT"));
@@ -290,11 +354,12 @@ public class ReceiptServiceImpl implements ReceiptService {
                         TRUNC(CAST(po.CREATED_AT AS DATE)),
                         TRUNC(CAST(po.DUE_DATE AS DATE))
                 ),
-                receipt_base AS (
-                    SELECT
-                        poi.ORDER_ID AS ORDER_ID,
-                        NVL(SUM(NVL(ri.ACCEPTED_QTY, ri.RECEIPT_QTY)), 0) AS RECEIVED_QUANTITY,
-                        MAX(w.WAREHOUSE_NAME) AS WAREHOUSE_NAME
+receipt_base AS (
+    SELECT
+        poi.ORDER_ID AS ORDER_ID,
+        MAX(r.RECEIPT_ID) AS RECEIPT_ID,
+        NVL(SUM(NVL(ri.ACCEPTED_QTY, ri.RECEIPT_QTY)), 0) AS RECEIVED_QUANTITY,
+        MAX(w.WAREHOUSE_NAME) AS WAREHOUSE_NAME
                     FROM PURCHASE_ORDER_ITEM poi
                     LEFT JOIN RECEIPT_ITEM ri
                         ON ri.ORDER_ITEM_ID = poi.ORDER_ITEM_ID
@@ -306,9 +371,10 @@ public class ReceiptServiceImpl implements ReceiptService {
                 ),
                 list_base AS (
                     SELECT
-                        ob.ID,
-                        ob.ORDER_ID,
-                        ob.ORDER_NUMBER,
+    ob.ID,
+    ob.ORDER_ID,
+    rb.RECEIPT_ID,
+    ob.ORDER_NUMBER,
                         ob.SUPPLIER_NAME,
                         ob.ORDERED_AT,
                         ob.EXPECTED_RECEIPT_AT,
@@ -337,10 +403,11 @@ public class ReceiptServiceImpl implements ReceiptService {
                     LEFT JOIN receipt_base rb
                         ON rb.ORDER_ID = ob.ORDER_ID
                 )
-                SELECT
-                    x.ID,
-                    x.ORDER_ID,
-                    x.ORDER_NUMBER,
+               SELECT
+    x.ID,
+    x.ORDER_ID,
+    x.RECEIPT_ID,
+    x.ORDER_NUMBER,
                     x.SUPPLIER_NAME,
                     x.ORDERED_AT,
                     x.EXPECTED_RECEIPT_AT,
