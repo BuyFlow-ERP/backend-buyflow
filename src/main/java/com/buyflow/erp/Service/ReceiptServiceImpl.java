@@ -1,98 +1,139 @@
 package com.buyflow.erp.Service;
 
 import com.buyflow.erp.Dto.ReceiptDto;
+import com.buyflow.erp.Entity.Product;
 import com.buyflow.erp.Entity.Receipt;
+import com.buyflow.erp.Repository.PurchaseOrderItemRepository;
+import com.buyflow.erp.Repository.ReceiptItemRepository;
 import com.buyflow.erp.Repository.ReceiptRepository;
 import lombok.RequiredArgsConstructor;
+import com.buyflow.erp.Entity.PurchaseOrderItem;
+import com.buyflow.erp.Repository.ProductRepository;
+
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 @Service
 @RequiredArgsConstructor
-public class ReceiptServiceImpl
-        implements ReceiptService {
+public class ReceiptServiceImpl implements ReceiptService {
 
     private final ReceiptRepository receiptRepository;
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final PurchaseOrderItemRepository purchaseOrderItemRepository;
+    private final ReceiptItemRepository receiptItemRepository;
+    private final ProductRepository productRepository;
 
     @Override
     public List<Receipt> getReceipts() {
         return receiptRepository.findAll();
     }
 
-  @Override
-public ReceiptDto.DetailResponse getReceipt(Long receiptId) {
+    @Override
+    public ReceiptDto.DetailResponse getReceipt(Long receiptId) {
 
-    String sql = buildListBaseSql()
-            + " AND x.RECEIPT_ID = :receiptId";
+        String sql = buildListBaseSql()
+                + " AND x.RECEIPT_ID = :receiptId";
 
-    Map<String, Object> params = new HashMap<>();
-    params.put("receiptId", receiptId);
+        Map<String, Object> params = new HashMap<>();
+        params.put("receiptId", receiptId);
 
-    return jdbcTemplate.queryForObject(
-            sql,
-            params,
-            (rs, rowNum) -> {
+        try {
+            return jdbcTemplate.queryForObject(
+                    sql,
+                    params,
+                    (rs, rowNum) -> {
 
-                ReceiptDto.DetailResponse dto =
-                        new ReceiptDto.DetailResponse();
+                        ReceiptDto.DetailResponse dto = new ReceiptDto.DetailResponse();
 
-                dto.setReceiptId(
-                        rs.getLong("RECEIPT_ID")
-                );
+                        dto.setReceiptId(rs.getLong("RECEIPT_ID"));
+                        dto.setOrderId(rs.getLong("ORDER_ID"));
+                        dto.setOrderNumber(rs.getString("ORDER_NUMBER"));
+                        dto.setSupplierName(rs.getString("SUPPLIER_NAME"));
+                        dto.setOrderedAt(rs.getString("ORDERED_AT"));
+                        dto.setExpectedReceiptAt(rs.getString("EXPECTED_RECEIPT_AT"));
+                        dto.setWarehouseName(rs.getString("WAREHOUSE_NAME"));
+                        dto.setOrderQuantity(rs.getLong("ORDER_QUANTITY"));
+                        dto.setReceivedQuantity(rs.getLong("RECEIVED_QUANTITY"));
+                        dto.setRemainingQuantity(rs.getLong("REMAINING_QUANTITY"));
+                        dto.setStatus(rs.getString("STATUS"));
 
-                dto.setOrderId(
-                        rs.getLong("ORDER_ID")
-                );
+                        dto.setItems(
+                                getReceiptItems(
+                                        rs.getLong("ORDER_ID")));
 
-                dto.setOrderNumber(
-                        rs.getString("ORDER_NUMBER")
-                );
+                        dto.setHistories(new ArrayList<>());
 
-                dto.setSupplierName(
-                        rs.getString("SUPPLIER_NAME")
-                );
+                        return dto;
+                    });
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
 
-                dto.setOrderedAt(
-                        rs.getString("ORDERED_AT")
-                );
+    @Override
+    public ReceiptDto.DetailResponse getReceiptByOrderId(Long orderId) {
 
-                dto.setExpectedReceiptAt(
-                        rs.getString("EXPECTED_RECEIPT_AT")
-                );
+        String sql = buildListBaseSql()
+                + " AND x.ORDER_ID = :orderId";
 
-                dto.setWarehouseName(
-                        rs.getString("WAREHOUSE_NAME")
-                );
+        Map<String, Object> params = new HashMap<>();
+        params.put("orderId", orderId);
 
-                dto.setOrderQuantity(
-                        rs.getLong("ORDER_QUANTITY")
-                );
+        return jdbcTemplate.queryForObject(
+                sql,
+                params,
+                (rs, rowNum) -> {
 
-                dto.setReceivedQuantity(
-                        rs.getLong("RECEIVED_QUANTITY")
-                );
+                    ReceiptDto.DetailResponse dto = new ReceiptDto.DetailResponse();
 
-                dto.setRemainingQuantity(
-                        rs.getLong("REMAINING_QUANTITY")
-                );
+                    dto.setReceiptId(
+                            rs.getLong("RECEIPT_ID"));
 
-                dto.setStatus(
-                        rs.getString("STATUS")
-                );
+                    dto.setOrderId(
+                            rs.getLong("ORDER_ID"));
 
-                dto.setItems(new ArrayList<>());
-                dto.setHistories(new ArrayList<>());
+                    dto.setOrderNumber(
+                            rs.getString("ORDER_NUMBER"));
 
-                return dto;
-            }
-    );
-}
+                    dto.setSupplierName(
+                            rs.getString("SUPPLIER_NAME"));
+
+                    dto.setOrderedAt(
+                            rs.getString("ORDERED_AT"));
+
+                    dto.setExpectedReceiptAt(
+                            rs.getString("EXPECTED_RECEIPT_AT"));
+
+                    dto.setWarehouseName(
+                            rs.getString("WAREHOUSE_NAME"));
+
+                    dto.setOrderQuantity(
+                            rs.getLong("ORDER_QUANTITY"));
+
+                    dto.setReceivedQuantity(
+                            rs.getLong("RECEIVED_QUANTITY"));
+
+                    dto.setRemainingQuantity(
+                            rs.getLong("REMAINING_QUANTITY"));
+
+                    dto.setStatus(
+                            rs.getString("STATUS"));
+
+                    dto.setItems(
+                            getReceiptItems(
+                                    rs.getLong("ORDER_ID")));
+
+                    dto.setHistories(new ArrayList<>());
+
+                    return dto;
+                });
+    }
 
     @Override
     public void saveReceipt(ReceiptDto.ReceiptCreateRequest request) {
@@ -131,8 +172,7 @@ public ReceiptDto.DetailResponse getReceipt(Long receiptId) {
             String expectedTo,
             String status,
             int page,
-            int size
-    ) {
+            int size) {
         int safePage = Math.max(page, 1);
         int safeSize = size <= 0 ? 10 : size;
         int offset = (safePage - 1) * safeSize;
@@ -149,8 +189,7 @@ public ReceiptDto.DetailResponse getReceipt(Long receiptId) {
                 expectedFrom,
                 expectedTo,
                 status,
-                params
-        );
+                params);
 
         String countSql = """
                 SELECT COUNT(*)
@@ -162,8 +201,7 @@ public ReceiptDto.DetailResponse getReceipt(Long receiptId) {
         Long totalElements = jdbcTemplate.queryForObject(
                 countSql,
                 params,
-                Long.class
-        );
+                Long.class);
 
         params.put("offset", offset);
         params.put("size", safeSize);
@@ -171,18 +209,18 @@ public ReceiptDto.DetailResponse getReceipt(Long receiptId) {
         String listSql = baseSql
                 + whereSql
                 + """
-                ORDER BY
-                    CASE x.STATUS
-                        WHEN 'DELAYED' THEN 1
-                        WHEN 'EXPECTED' THEN 2
-                        WHEN 'PARTIAL' THEN 3
-                        WHEN 'COMPLETED' THEN 4
-                        ELSE 5
-                    END,
-                    x.EXPECTED_RECEIPT_AT NULLS LAST,
-                    x.ID DESC
-                OFFSET :offset ROWS FETCH NEXT :size ROWS ONLY
-                """;
+                        ORDER BY
+                            CASE x.STATUS
+                                WHEN 'DELAYED' THEN 1
+                                WHEN 'EXPECTED' THEN 2
+                                WHEN 'PARTIAL' THEN 3
+                                WHEN 'COMPLETED' THEN 4
+                                ELSE 5
+                            END,
+                            x.EXPECTED_RECEIPT_AT NULLS LAST,
+                            x.ID DESC
+                        OFFSET :offset ROWS FETCH NEXT :size ROWS ONLY
+                        """;
 
         List<ReceiptDto.ListResponse> items = jdbcTemplate.query(
                 listSql,
@@ -191,8 +229,8 @@ public ReceiptDto.DetailResponse getReceipt(Long receiptId) {
                     ReceiptDto.ListResponse dto = new ReceiptDto.ListResponse();
 
                     dto.setId(rs.getLong("ID"));
-dto.setReceiptId(rs.getLong("RECEIPT_ID"));
-dto.setOrderId(rs.getLong("ORDER_ID"));
+                    dto.setReceiptId(rs.getLong("RECEIPT_ID"));
+                    dto.setOrderId(rs.getLong("ORDER_ID"));
                     dto.setOrderNumber(rs.getString("ORDER_NUMBER"));
                     dto.setSupplierName(rs.getString("SUPPLIER_NAME"));
                     dto.setOrderedAt(rs.getString("ORDERED_AT"));
@@ -205,8 +243,7 @@ dto.setOrderId(rs.getLong("ORDER_ID"));
                     dto.setStatus(rs.getString("STATUS"));
 
                     return dto;
-                }
-        );
+                });
 
         long safeTotalElements = totalElements == null ? 0 : totalElements;
         int totalPages = (int) Math.max(1, Math.ceil((double) safeTotalElements / safeSize));
@@ -217,8 +254,7 @@ dto.setOrderId(rs.getLong("ORDER_ID"));
         pagination.setTotalElements(safeTotalElements);
         pagination.setTotalPages(totalPages);
 
-        ReceiptDto.PageResponse<ReceiptDto.ListResponse> response =
-                new ReceiptDto.PageResponse<>();
+        ReceiptDto.PageResponse<ReceiptDto.ListResponse> response = new ReceiptDto.PageResponse<>();
 
         response.setItems(items);
         response.setPagination(pagination);
@@ -241,11 +277,9 @@ dto.setOrderId(rs.getLong("ORDER_ID"));
         List<String> warehouses = jdbcTemplate.query(
                 warehouseSql,
                 Map.of(),
-                (rs, rowNum) -> rs.getString("WAREHOUSE_NAME")
-        );
+                (rs, rowNum) -> rs.getString("WAREHOUSE_NAME"));
 
-        ReceiptDto.FilterOptionsResponse response =
-                new ReceiptDto.FilterOptionsResponse();
+        ReceiptDto.FilterOptionsResponse response = new ReceiptDto.FilterOptionsResponse();
 
         response.setWarehouses(warehouses);
         response.setStatuses(List.of(
@@ -253,8 +287,7 @@ dto.setOrderId(rs.getLong("ORDER_ID"));
                 "EXPECTED",
                 "DELAYED",
                 "PARTIAL",
-                "COMPLETED"
-        ));
+                "COMPLETED"));
 
         return response;
     }
@@ -329,97 +362,97 @@ dto.setOrderId(rs.getLong("ORDER_ID"));
 
     private String buildListBaseSql() {
         return """
-                WITH order_base AS (
+                                WITH order_base AS (
+                                    SELECT
+                                        po.ORDER_ID AS ID,
+                                        po.ORDER_ID AS ORDER_ID,
+                                        NVL(
+                                            po.ORDER_NO,
+                                            'PO-2026-' || LPAD(TO_CHAR(po.ORDER_ID), 4, '0')
+                                        ) AS ORDER_NUMBER,
+                                        NVL(s.SUPPLIER_NAME, '-') AS SUPPLIER_NAME,
+                                        TO_CHAR(TRUNC(CAST(po.CREATED_AT AS DATE)), 'YYYY-MM-DD') AS ORDERED_AT,
+                                        TO_CHAR(TRUNC(CAST(po.DUE_DATE AS DATE)), 'YYYY-MM-DD') AS EXPECTED_RECEIPT_AT,
+                                        COUNT(DISTINCT poi.ORDER_ITEM_ID) AS ITEM_COUNT,
+                                        NVL(SUM(NVL(poi.QUANTITY, 0)), 0) AS ORDER_QUANTITY
+                                    FROM PURCHASE_ORDER po
+                                    LEFT JOIN SUPPLIER s
+                                        ON s.SUPPLIER_ID = po.SUPPLIER_ID
+                                    LEFT JOIN PURCHASE_ORDER_ITEM poi
+                                        ON poi.ORDER_ID = po.ORDER_ID
+                                    GROUP BY
+                                        po.ORDER_ID,
+                                        po.ORDER_NO,
+                                        s.SUPPLIER_NAME,
+                                        TRUNC(CAST(po.CREATED_AT AS DATE)),
+                                        TRUNC(CAST(po.DUE_DATE AS DATE))
+                                ),
+                receipt_base AS (
                     SELECT
-                        po.ORDER_ID AS ID,
-                        po.ORDER_ID AS ORDER_ID,
-                        NVL(
-                            po.ORDER_NO,
-                            'PO-2026-' || LPAD(TO_CHAR(po.ORDER_ID), 4, '0')
-                        ) AS ORDER_NUMBER,
-                        NVL(s.SUPPLIER_NAME, '-') AS SUPPLIER_NAME,
-                        TO_CHAR(TRUNC(CAST(po.CREATED_AT AS DATE)), 'YYYY-MM-DD') AS ORDERED_AT,
-                        TO_CHAR(TRUNC(CAST(po.DUE_DATE AS DATE)), 'YYYY-MM-DD') AS EXPECTED_RECEIPT_AT,
-                        COUNT(DISTINCT poi.ORDER_ITEM_ID) AS ITEM_COUNT,
-                        NVL(SUM(NVL(poi.QUANTITY, 0)), 0) AS ORDER_QUANTITY
-                    FROM PURCHASE_ORDER po
-                    LEFT JOIN SUPPLIER s
-                        ON s.SUPPLIER_ID = po.SUPPLIER_ID
-                    LEFT JOIN PURCHASE_ORDER_ITEM poi
-                        ON poi.ORDER_ID = po.ORDER_ID
-                    GROUP BY
-                        po.ORDER_ID,
-                        po.ORDER_NO,
-                        s.SUPPLIER_NAME,
-                        TRUNC(CAST(po.CREATED_AT AS DATE)),
-                        TRUNC(CAST(po.DUE_DATE AS DATE))
-                ),
-receipt_base AS (
-    SELECT
-        poi.ORDER_ID AS ORDER_ID,
-        MAX(r.RECEIPT_ID) AS RECEIPT_ID,
-        NVL(SUM(NVL(ri.ACCEPTED_QTY, ri.RECEIPT_QTY)), 0) AS RECEIVED_QUANTITY,
-        MAX(w.WAREHOUSE_NAME) AS WAREHOUSE_NAME
-                    FROM PURCHASE_ORDER_ITEM poi
-                    LEFT JOIN RECEIPT_ITEM ri
-                        ON ri.ORDER_ITEM_ID = poi.ORDER_ITEM_ID
-                    LEFT JOIN RECEIPT r
-                        ON r.RECEIPT_ID = ri.RECEIPT_ID
-                    LEFT JOIN WAREHOUSE w
-                        ON w.WAREHOUSE_CODE = r.WAREHOUSE_CODE
-                    GROUP BY poi.ORDER_ID
-                ),
-                list_base AS (
-                    SELECT
-    ob.ID,
-    ob.ORDER_ID,
-    rb.RECEIPT_ID,
-    ob.ORDER_NUMBER,
-                        ob.SUPPLIER_NAME,
-                        ob.ORDERED_AT,
-                        ob.EXPECTED_RECEIPT_AT,
-                        NVL(rb.WAREHOUSE_NAME, '-') AS WAREHOUSE_NAME,
-                        ob.ITEM_COUNT,
-                        ob.ORDER_QUANTITY,
-                        NVL(rb.RECEIVED_QUANTITY, 0) AS RECEIVED_QUANTITY,
-                        GREATEST(
-                            ob.ORDER_QUANTITY - NVL(rb.RECEIVED_QUANTITY, 0),
-                            0
-                        ) AS REMAINING_QUANTITY,
-                        CASE
-                            WHEN NVL(rb.RECEIVED_QUANTITY, 0) >= ob.ORDER_QUANTITY
-                             AND ob.ORDER_QUANTITY > 0
-                            THEN 'COMPLETED'
+                        poi.ORDER_ID AS ORDER_ID,
+                        MAX(r.RECEIPT_ID) AS RECEIPT_ID,
+                        NVL(SUM(NVL(ri.ACCEPTED_QTY, ri.RECEIPT_QTY)), 0) AS RECEIVED_QUANTITY,
+                        MAX(w.WAREHOUSE_NAME) AS WAREHOUSE_NAME
+                                    FROM PURCHASE_ORDER_ITEM poi
+                                    LEFT JOIN RECEIPT_ITEM ri
+                                        ON ri.ORDER_ITEM_ID = poi.ORDER_ITEM_ID
+                                    LEFT JOIN RECEIPT r
+                                        ON r.RECEIPT_ID = ri.RECEIPT_ID
+                                    LEFT JOIN WAREHOUSE w
+                                        ON w.WAREHOUSE_CODE = r.WAREHOUSE_CODE
+                                    GROUP BY poi.ORDER_ID
+                                ),
+                                list_base AS (
+                                    SELECT
+                    ob.ID,
+                    ob.ORDER_ID,
+                    rb.RECEIPT_ID,
+                    ob.ORDER_NUMBER,
+                                        ob.SUPPLIER_NAME,
+                                        ob.ORDERED_AT,
+                                        ob.EXPECTED_RECEIPT_AT,
+                                        NVL(rb.WAREHOUSE_NAME, '-') AS WAREHOUSE_NAME,
+                                        ob.ITEM_COUNT,
+                                        ob.ORDER_QUANTITY,
+                                        NVL(rb.RECEIVED_QUANTITY, 0) AS RECEIVED_QUANTITY,
+                                        GREATEST(
+                                            ob.ORDER_QUANTITY - NVL(rb.RECEIVED_QUANTITY, 0),
+                                            0
+                                        ) AS REMAINING_QUANTITY,
+                                        CASE
+                                            WHEN NVL(rb.RECEIVED_QUANTITY, 0) >= ob.ORDER_QUANTITY
+                                             AND ob.ORDER_QUANTITY > 0
+                                            THEN 'COMPLETED'
 
-                            WHEN NVL(rb.RECEIVED_QUANTITY, 0) > 0
-                            THEN 'PARTIAL'
+                                            WHEN NVL(rb.RECEIVED_QUANTITY, 0) > 0
+                                            THEN 'PARTIAL'
 
-                            WHEN ob.EXPECTED_RECEIPT_AT < TO_CHAR(TRUNC(SYSDATE), 'YYYY-MM-DD')
-                            THEN 'DELAYED'
+                                            WHEN ob.EXPECTED_RECEIPT_AT < TO_CHAR(TRUNC(SYSDATE), 'YYYY-MM-DD')
+                                            THEN 'DELAYED'
 
-                            ELSE 'EXPECTED'
-                        END AS STATUS
-                    FROM order_base ob
-                    LEFT JOIN receipt_base rb
-                        ON rb.ORDER_ID = ob.ORDER_ID
-                )
-               SELECT
-    x.ID,
-    x.ORDER_ID,
-    x.RECEIPT_ID,
-    x.ORDER_NUMBER,
-                    x.SUPPLIER_NAME,
-                    x.ORDERED_AT,
-                    x.EXPECTED_RECEIPT_AT,
-                    x.WAREHOUSE_NAME,
-                    x.ITEM_COUNT,
-                    x.ORDER_QUANTITY,
-                    x.RECEIVED_QUANTITY,
-                    x.REMAINING_QUANTITY,
-                    x.STATUS
-                FROM list_base x
-                WHERE 1 = 1
-                """;
+                                            ELSE 'EXPECTED'
+                                        END AS STATUS
+                                    FROM order_base ob
+                                    LEFT JOIN receipt_base rb
+                                        ON rb.ORDER_ID = ob.ORDER_ID
+                                )
+                               SELECT
+                    x.ID,
+                    x.ORDER_ID,
+                    x.RECEIPT_ID,
+                    x.ORDER_NUMBER,
+                                    x.SUPPLIER_NAME,
+                                    x.ORDERED_AT,
+                                    x.EXPECTED_RECEIPT_AT,
+                                    x.WAREHOUSE_NAME,
+                                    x.ITEM_COUNT,
+                                    x.ORDER_QUANTITY,
+                                    x.RECEIVED_QUANTITY,
+                                    x.REMAINING_QUANTITY,
+                                    x.STATUS
+                                FROM list_base x
+                                WHERE 1 = 1
+                                """;
     }
 
     private String buildWhereSql(
@@ -431,8 +464,7 @@ receipt_base AS (
             String expectedFrom,
             String expectedTo,
             String status,
-            Map<String, Object> params
-    ) {
+            Map<String, Object> params) {
         StringBuilder sql = new StringBuilder();
 
         if (!isBlank(status) && !"전체 상태".equals(status)) {
@@ -507,5 +539,44 @@ receipt_base AS (
         }
 
         return Long.parseLong(String.valueOf(value));
+    }
+
+    private List<ReceiptDto.ReceiptItemResponse> getReceiptItems(Long orderId) {
+
+        return purchaseOrderItemRepository
+                .findByPurchaseOrder_OrderId(orderId)
+                .stream()
+                .map(orderItem -> {
+
+                    System.out.println(orderItem);
+                    Product product = productRepository
+                            .findById(orderItem.getProductId())
+                            .orElse(null);
+
+                    if (product == null) {
+                        return null;
+                    }
+
+                    Long receivedQty = receiptItemRepository.getAcceptedQtySum(
+                            orderItem.getOrderItemId());
+
+                    if (receivedQty == null) {
+                        receivedQty = 0L;
+                    }
+
+                    return new ReceiptDto.ReceiptItemResponse(
+                            orderItem.getOrderItemId(),
+                            product.getProductNo(),
+                            product.getProductName(),
+                            product.getSpec(),
+                            orderItem.getQuantity(),
+                            receivedQty,
+                            Math.max(
+                                    orderItem.getQuantity() - receivedQty,
+                                    0),
+                            product.getUnit());
+                })
+                .filter(java.util.Objects::nonNull)
+                .toList();
     }
 }

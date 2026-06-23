@@ -13,7 +13,6 @@ public class ReceiptDto {
     @Getter
     @Setter
     public static class ReceiptCreateRequest {
-
         private Long orderId;
         private String warehouseCode;
         private String receiptNo;
@@ -40,6 +39,7 @@ public class ReceiptDto {
         private Long receivedQuantity;
         private Long remainingQuantity;
         private String status;
+
     }
 
     @Getter
@@ -65,8 +65,31 @@ public class ReceiptDto {
 
         private String status;
 
-        private List<Object> items;
+        private List<ReceiptItemResponse> items;
         private List<Object> histories;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ReceiptItemResponse {
+
+        private Long orderItemId;
+
+        private String itemCode;
+
+        private String itemName;
+
+        private String specification;
+
+        private Long orderQuantity;
+
+        private Long cumulativeReceivedQuantity;
+
+        private Long remainingQuantity;
+
+        private String unit;
     }
 
     @Getter

@@ -41,4 +41,5 @@ public class PurchaseOrderItem {
 
     @Column(name = "UNIT_PRICE", nullable = false)
     private Double unitPrice;
+
 }
