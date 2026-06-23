@@ -7,9 +7,9 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class InventoryListResponse {
+public class StockListResponse {
 
-    private List<InventoryDto> items;
+    private List<StockDto> items;
 
     private Pagination pagination;
 

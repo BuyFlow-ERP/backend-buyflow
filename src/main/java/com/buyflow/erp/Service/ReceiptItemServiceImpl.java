@@ -120,7 +120,7 @@ public class ReceiptItemServiceImpl
                                 stock.getStockId());
 
                 history.setHistoryType(
-                                "INBOUND");
+                                "RECEIPT");
 
                 history.setChangeQty(
                                 item.getAcceptedQty());

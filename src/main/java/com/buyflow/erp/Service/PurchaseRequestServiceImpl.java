@@ -58,8 +58,8 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
             String priority,
             String requestedFrom,
             String requestedTo,
-            String desiredInboundFrom,
-            String desiredInboundTo,
+            String desiredReceiptFrom,
+            String desiredReceiptTo,
             int page,
             int size
     ) {
@@ -77,7 +77,7 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
                 .filter(row -> isAllOrEquals(statusFilter, "전체", row.status()))
                 .filter(row -> isAllOrEquals(priority, "전체", row.priority()))
                 .filter(row -> isWithinRange(row.requestedAt(), requestedFrom, requestedTo))
-                .filter(row -> isWithinRange(row.desiredInboundAt(), desiredInboundFrom, desiredInboundTo))
+                .filter(row -> isWithinRange(row.desiredReceiptAt(), desiredReceiptFrom, desiredReceiptTo))
                 .toList();
 
         long totalElements = filtered.size();

@@ -105,7 +105,7 @@ public class InspectionServiceImpl implements InspectionService {
     Pageable pageable = PageRequest.of(safePage, safeSize);
 
     String inspectionNumber = blankToNull(condition.getInspectionNumber());
-    String inboundNumber = blankToNull(condition.getInboundNumber());
+    String receiptNumber = blankToNull(condition.getReceiptNumber());
     String orderNumber = blankToNull(condition.getOrderNumber());
     String supplierName = optionToNull(condition.getSupplierName(), "전체 공급업체");
     String warehouseName = optionToNull(condition.getWarehouseName(), "전체 창고");
@@ -121,7 +121,7 @@ public class InspectionServiceImpl implements InspectionService {
 
     Page<Receipt> receiptPage = receiptRepository.searchPendingReceipts(
         inspectionNumber,
-        inboundNumber,
+        receiptNumber,
         orderNumber,
         supplierName,
         warehouseName,
@@ -161,7 +161,7 @@ public class InspectionServiceImpl implements InspectionService {
         Pageable pageable = PageRequest.of(safePage, safeSize);
 
         String inspectionNumber = blankToNull(condition.getInspectionNumber());
-        String inboundNumber = blankToNull(condition.getInboundNumber());
+        String receiptNumber = blankToNull(condition.getReceiptNumber());
         String orderNumber = blankToNull(condition.getOrderNumber());
         String supplierName = optionToNull(condition.getSupplierName(), "전체 공급업체");
         String warehouseName = optionToNull(condition.getWarehouseName(), "전체 창고");
@@ -179,7 +179,7 @@ public class InspectionServiceImpl implements InspectionService {
 
         Page<Receipt> receiptPage = receiptRepository.searchCompletedReceipts(
             inspectionNumber,
-            inboundNumber,
+            receiptNumber,
             orderNumber,
             supplierName,
             warehouseName,
@@ -263,7 +263,7 @@ public class InspectionServiceImpl implements InspectionService {
     return InspectionDto.Response.builder()
             .id(receipt.getReceiptId())
             .inspectionNumber("IQC-2026-" + String.format("%04d", receipt.getReceiptId()))
-            .inboundNumber(receipt.getReceiptNo())
+            .receiptNumber(receipt.getReceiptNo())
             .orderNumber(order != null
                     ? "PO-2026-" + String.format("%04d", order.getOrderId())
                     : "-")
@@ -557,7 +557,7 @@ private String optionToNull(String value, String allOptionText) {
                         ? java.time.LocalDate.now()
                         : request.getInspectedAt().toLocalDate()
         );
-        createRequest.setInspectionType("INBOUND");
+        createRequest.setInspectionType("RECEIPT");
         createRequest.setQuantity(itemRequest.getReceivedQuantity());
         createRequest.setAcceptedQuantity(itemRequest.getAcceptedQuantity());
         createRequest.setDefectQuantity(itemRequest.getDefectiveQuantity());

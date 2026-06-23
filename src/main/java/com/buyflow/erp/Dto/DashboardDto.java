@@ -8,11 +8,12 @@ public class DashboardDto {
             String lastUpdated,
             List<SummaryItem> summary,
             List<MonthlyReceiptItem> monthlyReceipt,
-            List<InventoryStatusItem> inventoryStatus,
+            List<StockStatusItem> stockStatus,
             List<RecentPurchaseRequestItem> recentRequests,
             long recentRequestTotal,
             List<LowStockItem> lowStockItems,
-            long lowStockTotal
+            long lowStockTotal,
+            SummaryDetails summaryDetails
     ) {
     }
 
@@ -32,7 +33,7 @@ public class DashboardDto {
     ) {
     }
 
-    public record InventoryStatusItem(
+    public record StockStatusItem(
             String name,
             int value,
             String fill
@@ -58,6 +59,57 @@ public class DashboardDto {
             long current,
             long safety,
             long shortage
-     ) {
-     }
+    ) {
+    }
+
+    public record SummaryDetails(
+            List<DelayedOrderItem> delayedOrders,
+            List<PendingApprovalItem> pendingApprovals,
+            List<ScheduledReceiptItem> scheduledReceipts,
+            List<PendingInspectionItem> pendingInspections,
+            List<LowStockItem> lowStockItems
+    ) {
+    }
+
+    public record DelayedOrderItem(
+            Long orderId,
+            String orderNo,
+            String supplierName,
+            String dueDate,
+            String status,
+            String amount
+    ) {
+    }
+
+    public record PendingApprovalItem(
+            Long requestId,
+            String requestNo,
+            String requester,
+            String team,
+            String createdAt,
+            String amount,
+            String status
+    ) {
+    }
+
+    public record ScheduledReceiptItem(
+            Long orderId,
+            String orderNo,
+            String supplierName,
+            String dueDate,
+            String status,
+            String amount
+    ) {
+    }
+
+    public record PendingInspectionItem(
+            Long receiptId,
+            String receiptNo,
+            String orderNo,
+            String warehouseName,
+            String receiptDate,
+            long itemCount,
+            long receiptQuantity
+    ) {
+    }
 }
