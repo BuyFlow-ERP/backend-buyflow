@@ -26,7 +26,7 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
                              WHERE i.RECEIPT_ITEM_ID = ri.RECEIPT_ITEM_ID
                        )
              )
-               AND (:inboundNumber IS NULL OR r.RECEIPT_NO LIKE '%' || :inboundNumber || '%')
+               AND (:receiptNumber IS NULL OR r.RECEIPT_NO LIKE '%' || :receiptNumber || '%')
                AND (:orderNumber IS NULL OR TO_CHAR(po.ORDER_ID) LIKE '%' || :orderNumber || '%')
                AND (:supplierName IS NULL OR s.SUPPLIER_NAME = :supplierName)
                AND (:warehouseName IS NULL OR w.WAREHOUSE_NAME = :warehouseName)
@@ -50,7 +50,7 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
                              WHERE i.RECEIPT_ITEM_ID = ri.RECEIPT_ITEM_ID
                        )
              )
-               AND (:inboundNumber IS NULL OR r.RECEIPT_NO LIKE '%' || :inboundNumber || '%')
+               AND (:receiptNumber IS NULL OR r.RECEIPT_NO LIKE '%' || :receiptNumber || '%')
                AND (:orderNumber IS NULL OR TO_CHAR(po.ORDER_ID) LIKE '%' || :orderNumber || '%')
                AND (:supplierName IS NULL OR s.SUPPLIER_NAME = :supplierName)
                AND (:warehouseName IS NULL OR w.WAREHOUSE_NAME = :warehouseName)
@@ -60,7 +60,7 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
         nativeQuery = true
     )
     Page<Receipt> searchPendingReceipts(
-            @Param("inboundNumber") String inboundNumber,
+            @Param("receiptNumber") String receiptNumber,
             @Param("orderNumber") String orderNumber,
             @Param("supplierName") String supplierName,
             @Param("warehouseName") String warehouseName,
@@ -170,7 +170,7 @@ long countPendingOverdueReceipts();
                 OR ('IQC-2026-' || LPAD(TO_CHAR(r.RECEIPT_ID), 4, '0')) LIKE '%' || :inspectionNumber || '%'
                 OR TO_CHAR(r.RECEIPT_ID) LIKE '%' || :inspectionNumber || '%'
            )
-           AND (:inboundNumber IS NULL OR r.RECEIPT_NO LIKE '%' || :inboundNumber || '%')
+           AND (:receiptNumber IS NULL OR r.RECEIPT_NO LIKE '%' || :receiptNumber || '%')
            AND (
                 :orderNumber IS NULL
                 OR ('PO-2026-' || LPAD(TO_CHAR(po.ORDER_ID), 4, '0')) LIKE '%' || :orderNumber || '%'
@@ -215,7 +215,7 @@ long countPendingOverdueReceipts();
                 OR ('IQC-2026-' || LPAD(TO_CHAR(r.RECEIPT_ID), 4, '0')) LIKE '%' || :inspectionNumber || '%'
                 OR TO_CHAR(r.RECEIPT_ID) LIKE '%' || :inspectionNumber || '%'
            )
-           AND (:inboundNumber IS NULL OR r.RECEIPT_NO LIKE '%' || :inboundNumber || '%')
+           AND (:receiptNumber IS NULL OR r.RECEIPT_NO LIKE '%' || :receiptNumber || '%')
            AND (
                 :orderNumber IS NULL
                 OR ('PO-2026-' || LPAD(TO_CHAR(po.ORDER_ID), 4, '0')) LIKE '%' || :orderNumber || '%'
@@ -242,7 +242,7 @@ long countPendingOverdueReceipts();
 )
   Page<Receipt> searchPendingReceipts(
         @Param("inspectionNumber") String inspectionNumber,
-        @Param("inboundNumber") String inboundNumber,
+        @Param("receiptNumber") String receiptNumber,
         @Param("orderNumber") String orderNumber,
         @Param("supplierName") String supplierName,
         @Param("warehouseName") String warehouseName,
@@ -366,7 +366,7 @@ long countCompletedDefectReceipts();
                 OR ('IQC-2026-' || LPAD(TO_CHAR(r.RECEIPT_ID), 4, '0')) LIKE '%' || :inspectionNumber || '%'
                 OR TO_CHAR(r.RECEIPT_ID) LIKE '%' || :inspectionNumber || '%'
            )
-           AND (:inboundNumber IS NULL OR r.RECEIPT_NO LIKE '%' || :inboundNumber || '%')
+           AND (:receiptNumber IS NULL OR r.RECEIPT_NO LIKE '%' || :receiptNumber || '%')
            AND (
                 :orderNumber IS NULL
                 OR ('PO-2026-' || LPAD(TO_CHAR(po.ORDER_ID), 4, '0')) LIKE '%' || :orderNumber || '%'
@@ -427,7 +427,7 @@ long countCompletedDefectReceipts();
                 OR ('IQC-2026-' || LPAD(TO_CHAR(r.RECEIPT_ID), 4, '0')) LIKE '%' || :inspectionNumber || '%'
                 OR TO_CHAR(r.RECEIPT_ID) LIKE '%' || :inspectionNumber || '%'
            )
-           AND (:inboundNumber IS NULL OR r.RECEIPT_NO LIKE '%' || :inboundNumber || '%')
+           AND (:receiptNumber IS NULL OR r.RECEIPT_NO LIKE '%' || :receiptNumber || '%')
            AND (
                 :orderNumber IS NULL
                 OR ('PO-2026-' || LPAD(TO_CHAR(po.ORDER_ID), 4, '0')) LIKE '%' || :orderNumber || '%'
@@ -465,7 +465,7 @@ long countCompletedDefectReceipts();
 )
 Page<Receipt> searchCompletedReceipts(
         @Param("inspectionNumber") String inspectionNumber,
-        @Param("inboundNumber") String inboundNumber,
+        @Param("receiptNumber") String receiptNumber,
         @Param("orderNumber") String orderNumber,
         @Param("supplierName") String supplierName,
         @Param("warehouseName") String warehouseName,

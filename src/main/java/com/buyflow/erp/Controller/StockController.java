@@ -164,7 +164,7 @@ result.put("warehouses", warehouses);
                 "movementTypes",
                 List.of(
                         "전체",
-                        "INBOUND",
+                        "RECEIPT",
                         "UPDATE",
                         "DELETE",
                         "CANCEL"));

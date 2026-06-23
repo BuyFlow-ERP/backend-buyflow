@@ -58,7 +58,7 @@ public class InspectionDto {
 	@Builder
 	public static class SearchCondition {
 		private String inspectionNumber;
-	    private String inboundNumber;
+	    private String receiptNumber;
 	    private String orderNumber;
 	    private String supplierName;
 	    private String warehouseName;
@@ -84,7 +84,7 @@ public class InspectionDto {
     public static class Response {
         private Long id;                    // 검수 ID (엔티티의 inspectionId)
         private String inspectionNumber;    // 검수 대기 번호 (예: IQC-2026-0001)
-        private String inboundNumber;       // 입고 번호
+        private String receiptNumber;       // 입고 번호
         private String orderNumber;         // 발주 번호
         private String supplierName;        // 공급업체명
         private String warehouseName;       // 입고 창고명
