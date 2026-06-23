@@ -8,7 +8,7 @@ public class DashboardDto {
             String lastUpdated,
             List<SummaryItem> summary,
             List<MonthlyReceiptItem> monthlyReceipt,
-            List<InventoryStatusItem> inventoryStatus,
+            List<StockStatusItem> stockStatus,
             List<RecentPurchaseRequestItem> recentRequests,
             long recentRequestTotal,
             List<LowStockItem> lowStockItems,
@@ -33,7 +33,7 @@ public class DashboardDto {
     ) {
     }
 
-    public record InventoryStatusItem(
+    public record StockStatusItem(
             String name,
             int value,
             String fill

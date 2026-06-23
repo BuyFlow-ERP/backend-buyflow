@@ -50,7 +50,7 @@ public class DashboardServiceImpl implements DashboardService {
                         lowStockTotal
                 ),
                 getMonthlyReceipt(),
-                getInventoryStatus(),
+                getStockStatus(),
                 getRecentPurchaseRequests(),
                 recentRequestTotal,
                 getLowStockItems(5),
@@ -400,7 +400,7 @@ public class DashboardServiceImpl implements DashboardService {
         return result;
     }
 
-    private List<DashboardDto.InventoryStatusItem> getInventoryStatus() {
+    private List<DashboardDto.StockStatusItem> getStockStatus() {
         Object[] row = (Object[]) entityManager.createNativeQuery("""
                 SELECT COUNT(*) AS TOTAL_COUNT,
                        SUM(
@@ -426,17 +426,17 @@ public class DashboardServiceImpl implements DashboardService {
         long normal = Math.max(total - outOfStock - lowStock, 0);
 
         return List.of(
-                new DashboardDto.InventoryStatusItem(
+                new DashboardDto.StockStatusItem(
                         "정상",
                         toPercent(normal, total),
                         "#2f80ed"
                 ),
-                new DashboardDto.InventoryStatusItem(
+                new DashboardDto.StockStatusItem(
                         "안전재고 이하",
                         toPercent(lowStock, total),
                         "#ef4444"
                 ),
-                new DashboardDto.InventoryStatusItem(
+                new DashboardDto.StockStatusItem(
                         "재고 없음",
                         toPercent(outOfStock, total),
                         "#111827"
