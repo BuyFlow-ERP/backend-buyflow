@@ -15,6 +15,11 @@ public class ReceiptController {
 
         private final ReceiptService receiptService;
 
+        @GetMapping("/test")
+        public String test() {
+                return "receipt ok";
+        }
+
         @GetMapping
         public ResponseEntity<ReceiptDto.PageResponse<ReceiptDto.ListResponse>> getReceipts(
                         @RequestParam(required = false) String activeTab,
