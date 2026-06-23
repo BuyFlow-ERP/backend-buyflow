@@ -39,6 +39,7 @@ public class ReceiptDto {
         private Long receivedQuantity;
         private Long remainingQuantity;
         private String status;
+        
     }
 
     @Getter

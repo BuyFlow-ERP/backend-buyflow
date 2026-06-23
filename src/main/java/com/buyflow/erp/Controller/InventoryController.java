@@ -135,9 +135,15 @@ public InventoryListResponse getInventories(
                 "categories",
                 List.of("전체", "기타"));
 
-        result.put(
-                "warehouses",
-                List.of("전체", "WH001"));
+result.put(
+        "warehouses",
+        List.of(
+                Map.of(
+                        "value", "전체",
+                        "label", "전체"),
+                Map.of(
+                        "value", "WH001",
+                        "label", "애니메이트")));
 
         result.put(
                 "stockStatuses",
