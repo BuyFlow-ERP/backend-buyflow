@@ -12,6 +12,7 @@ import com.buyflow.erp.Dto.UserResponse;
 import com.buyflow.erp.Entity.Role;
 import com.buyflow.erp.Entity.User;
 import com.buyflow.erp.Entity.UserRole;
+import com.buyflow.erp.Repository.DepartmentRoleAssignmentRuleRepository;
 import com.buyflow.erp.Repository.RoleRepository;
 import com.buyflow.erp.Repository.AuthUserRepository;
 import com.buyflow.erp.Repository.UserRoleRepository;
@@ -31,19 +32,35 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class AdminUserService {
 
-    private static final String JOB_RANK_ADMIN = "ADMIN";
-    private static final String JOB_RANK_USER = "USER";
+    private static final String LEADER_KEYWORD = "팀장";
     private static final String ROLE_ADMIN = "ADMIN";
-    private static final String ROLE_REQUESTER = "REQUESTER";
+    private static final String ROLE_SECURITY_ADMIN = "SECURITY_ADMIN";
+    private static final String ROLE_TEAM_MANAGER = "TEAM_MANAGER";
+    private static final Set<String> PROTECTED_ROLE_CODES = Set.of(
+            ROLE_ADMIN,
+            ROLE_SECURITY_ADMIN,
+            ROLE_TEAM_MANAGER
+    );
 
     private final AuthUserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
+    private final DepartmentRoleAssignmentRuleRepository departmentRoleAssignmentRuleRepository;
     private final RbacQueryService rbacQueryService;
 
     @Transactional(readOnly = true)
-    public List<AdminUserResponse> findAll() {
-        return userRepository.findAllByOrderByCreatedAtDesc()
+    public List<AdminUserResponse> findAll(String currentLoginId) {
+        User currentUser = findUserByLoginId(currentLoginId);
+
+        if (isAdmin(currentUser)) {
+            return userRepository.findAllByOrderByCreatedAtDesc()
+                    .stream()
+                    .map(this::toAdminUserResponse)
+                    .toList();
+        }
+
+        String departmentName = requireTeamManagerDepartment(currentUser);
+        return userRepository.findByDepartmentNameScoped(departmentName)
                 .stream()
                 .map(this::toAdminUserResponse)
                 .toList();
@@ -52,12 +69,20 @@ public class AdminUserService {
     @Transactional(readOnly = true)
     public PageResponse<AdminUserResponse> search(
             String keyword,
+            String departmentName,
             String status,
             String useYn,
             String jobRank,
+            String roleCode,
             int page,
-            int size
+            int size,
+            String currentLoginId
     ) {
+        User currentUser = findUserByLoginId(currentLoginId);
+        String effectiveDepartmentName = isAdmin(currentUser)
+                ? normalizeText(departmentName)
+                : requireTeamManagerDepartment(currentUser);
+
         PageRequest pageRequest = PageRequest.of(
                 Math.max(page, 0),
                 normalizeSize(size),
@@ -66,16 +91,20 @@ public class AdminUserService {
 
         return PageResponse.from(userRepository.search(
                 normalizeText(keyword),
+                effectiveDepartmentName,
                 normalizeText(status),
                 normalizeText(useYn),
                 normalizeJobRankFilter(jobRank),
+                normalizeRoleCode(roleCode),
                 pageRequest
         ).map(this::toAdminUserResponse));
     }
 
     @Transactional(readOnly = true)
-    public AdminUserResponse findById(Long userId) {
+    public AdminUserResponse findById(Long userId, String currentLoginId) {
+        User currentUser = findUserByLoginId(currentLoginId);
         User user = findUser(userId);
+        validateReadableTarget(currentUser, user);
         return toAdminUserResponse(user);
     }
 
@@ -107,17 +136,28 @@ public class AdminUserService {
             String currentLoginId
     ) {
         User user = findUser(userId);
+        String nextDepartmentName = request.departmentName() != null
+                ? normalizeText(request.departmentName())
+                : normalizeText(user.getDepartmentName());
+        String nextPositionName = request.positionName() != null
+                ? normalizeText(request.positionName())
+                : normalizeText(user.getPositionName());
+        String nextJobRank = request.jobRank() != null
+                ? normalizeText(request.jobRank())
+                : normalizeText(user.getJobRank());
+
+        validateDepartmentLeaderUniqueness(user.getUserId(), nextDepartmentName, nextPositionName, nextJobRank);
 
         if (request.departmentName() != null) {
-            user.setDepartmentName(normalizeText(request.departmentName()));
+            user.setDepartmentName(nextDepartmentName);
         }
 
         if (request.positionName() != null) {
-            user.setPositionName(normalizeText(request.positionName()));
+            user.setPositionName(nextPositionName);
         }
 
         if (request.jobRank() != null) {              // ← 추가
-            user.setJobRank(normalizeText(request.jobRank()));
+            user.setJobRank(nextJobRank);
         }
         
         user.setUpdatedAt(LocalDateTime.now());
@@ -126,6 +166,7 @@ public class AdminUserService {
 
     @Transactional
     public AdminUserResponse updateRoles(Long userId, AdminUserRoleUpdateRequest request, String currentLoginId) {
+        User currentUser = findUserByLoginId(currentLoginId);
         User user = findUser(userId);
         Set<Long> roleIds = new LinkedHashSet<>(request.roleIds());
 
@@ -146,6 +187,54 @@ public class AdminUserService {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "본인 관리자 권한은 직접 해제할 수 없습니다.");
         }
 
+        if (!isAdmin(currentUser)) {
+            validateDelegatedRoleUpdate(currentUser, user, roles);
+        }
+
+        replaceUserRoles(userId, roles);
+        user.setUpdatedAt(LocalDateTime.now());
+        return toAdminUserResponse(user);
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> findDepartments(String currentLoginId) {
+        User currentUser = findUserByLoginId(currentLoginId);
+
+        if (!isAdmin(currentUser)) {
+            return List.of(requireTeamManagerDepartment(currentUser));
+        }
+
+        return userRepository.findDistinctDepartmentNames()
+                .stream()
+                .map(this::normalizeText)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<RoleResponse> findAssignableRoles(String currentLoginId) {
+        User currentUser = findUserByLoginId(currentLoginId);
+
+        if (isAdmin(currentUser)) {
+            return roleRepository.findByUseYnOrderBySortOrderAscRoleCodeAsc("Y")
+                    .stream()
+                    .map(RoleResponse::from)
+                    .toList();
+        }
+
+        Set<String> roleCodes = grantableRoleCodesForDepartment(requireTeamManagerDepartment(currentUser));
+        if (roleCodes.isEmpty()) {
+            return List.of();
+        }
+
+        return roleRepository.findByRoleCodeInAndUseYnOrderBySortOrderAscRoleCodeAsc(roleCodes, "Y")
+                .stream()
+                .map(RoleResponse::from)
+                .toList();
+    }
+
+    private void replaceUserRoles(Long userId, List<Role> roles) {
         LocalDateTime now = LocalDateTime.now();
         userRoleRepository.deleteByUserId(userId);
 
@@ -160,44 +249,6 @@ public class AdminUserService {
                 .toList();
 
         userRoleRepository.saveAll(userRoles);
-        user.setUpdatedAt(now);
-        return toAdminUserResponse(user);
-    }
-
-    private void syncRolesByJobRank(User user, String currentLoginId) {
-        String jobRank = normalizeJobRank(user.getJobRank());
-        user.setJobRank(jobRank);
-
-        if (JOB_RANK_ADMIN.equals(jobRank)) {
-            ensureRole(user.getUserId(), ROLE_ADMIN);
-            return;
-        }
-
-        if (isSameUser(user, currentLoginId) && hasRole(user.getUserId(), ROLE_ADMIN)) {
-            throw new BusinessException(ErrorCode.INVALID_REQUEST, "본인 관리자 직급은 직접 낮출 수 없습니다.");
-        }
-
-        removeRole(user.getUserId(), ROLE_ADMIN);
-        ensureRole(user.getUserId(), ROLE_REQUESTER);
-    }
-
-    private void ensureRole(Long userId, String roleCode) {
-        Role role = findActiveRole(roleCode);
-
-        if (userRoleRepository.existsByUserIdAndRoleId(userId, role.getRoleId())) {
-            return;
-        }
-
-        UserRole userRole = new UserRole();
-        userRole.setUserId(userId);
-        userRole.setRoleId(role.getRoleId());
-        userRole.setCreatedAt(LocalDateTime.now());
-        userRoleRepository.save(userRole);
-    }
-
-    private void removeRole(Long userId, String roleCode) {
-        roleRepository.findByRoleCodeAndUseYn(roleCode, "Y")
-                .ifPresent(role -> userRoleRepository.deleteByUserIdAndRoleId(userId, role.getRoleId()));
     }
 
     private boolean hasRole(Long userId, String roleCode) {
@@ -206,17 +257,138 @@ public class AdminUserService {
                 .orElse(false);
     }
 
-    private Role findActiveRole(String roleCode) {
-        return roleRepository.findByRoleCodeAndUseYn(roleCode, "Y")
-                .orElseThrow(() -> new BusinessException(
-                        ErrorCode.NOT_FOUND,
-                        "활성화된 역할을 찾을 수 없습니다: " + roleCode
-                ));
+    private Set<String> findRoleCodes(Long userId) {
+        return new LinkedHashSet<>(rbacQueryService.findRoleCodesByUserId(userId));
+    }
+
+    private boolean isAdmin(User user) {
+        return hasRole(user.getUserId(), ROLE_ADMIN);
+    }
+
+    private boolean isTeamManager(User user) {
+        return hasRole(user.getUserId(), ROLE_TEAM_MANAGER);
+    }
+
+    private void validateReadableTarget(User currentUser, User targetUser) {
+        if (isAdmin(currentUser)) {
+            return;
+        }
+
+        requireTeamManagerDepartment(currentUser);
+        if (!isSameDepartment(currentUser, targetUser)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "자기 부서 사용자만 조회할 수 있습니다.");
+        }
+    }
+
+    private void validateDelegatedRoleUpdate(User currentUser, User targetUser, List<Role> requestedRoles) {
+        String departmentName = requireTeamManagerDepartment(currentUser);
+
+        if (isSameUser(targetUser, currentUser.getLoginId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "본인의 역할은 직접 변경할 수 없습니다.");
+        }
+
+        if (!isSameDepartment(currentUser, targetUser)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "자기 부서 사용자에게만 역할을 부여할 수 있습니다.");
+        }
+
+        Set<String> grantableRoleCodes = grantableRoleCodesForDepartment(departmentName);
+        Set<String> requestedRoleCodes = requestedRoles.stream()
+                .map(Role::getRoleCode)
+                .map(this::normalizeRoleCode)
+                .collect(LinkedHashSet::new, LinkedHashSet::add, LinkedHashSet::addAll);
+
+        if (requestedRoleCodes.stream().anyMatch(PROTECTED_ROLE_CODES::contains)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "관리자 또는 위임 관리자 역할은 부여할 수 없습니다.");
+        }
+
+        if (!grantableRoleCodes.containsAll(requestedRoleCodes)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "해당 부서에서 부여할 수 없는 역할이 포함되어 있습니다.");
+        }
+
+        Set<String> existingRoleCodes = findRoleCodes(targetUser.getUserId());
+        if (existingRoleCodes.stream().anyMatch(PROTECTED_ROLE_CODES::contains)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "관리자 또는 위임 관리자 역할 보유자는 수정할 수 없습니다.");
+        }
+
+        if (!grantableRoleCodes.containsAll(existingRoleCodes)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "현재 부서 위임 범위를 벗어난 기존 역할이 있습니다.");
+        }
+    }
+
+    private String requireTeamManagerDepartment(User currentUser) {
+        if (!isTeamManager(currentUser)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "부서 팀장 역할이 필요합니다.");
+        }
+
+        String departmentName = normalizeText(currentUser.getDepartmentName());
+        if (!StringUtils.hasText(departmentName)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "부서 정보가 없는 팀장은 역할을 위임할 수 없습니다.");
+        }
+
+        return departmentName;
+    }
+
+    private Set<String> grantableRoleCodesForDepartment(String departmentName) {
+        String normalized = normalizeText(departmentName);
+        if (!StringUtils.hasText(normalized)) {
+            return Set.of();
+        }
+
+        return departmentRoleAssignmentRuleRepository.findRoleCodesByDepartmentName(normalized, "Y")
+                .stream()
+                .map(this::normalizeRoleCode)
+                .filter(StringUtils::hasText)
+                .filter(roleCode -> !PROTECTED_ROLE_CODES.contains(roleCode))
+                .collect(LinkedHashSet::new, LinkedHashSet::add, LinkedHashSet::addAll);
+    }
+
+    private boolean isSameDepartment(User left, User right) {
+        String leftDepartment = normalizeText(left.getDepartmentName());
+        String rightDepartment = normalizeText(right.getDepartmentName());
+        return StringUtils.hasText(leftDepartment) && leftDepartment.equals(rightDepartment);
+    }
+
+    private void validateDepartmentLeaderUniqueness(
+            Long userId,
+            String departmentName,
+            String positionName,
+            String jobRank
+    ) {
+        if (!isLeaderTitle(positionName) && !isLeaderTitle(jobRank)) {
+            return;
+        }
+
+        if (!StringUtils.hasText(departmentName)) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "부서 팀장은 부서 정보가 필요합니다.");
+        }
+
+        long count = userRepository.countActiveDepartmentLeaders(
+                departmentName,
+                LEADER_KEYWORD,
+                userId
+        );
+
+        if (count > 0) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "해당 부서에는 이미 팀장 직급 사용자가 있습니다.");
+        }
+    }
+
+    private boolean isLeaderTitle(String value) {
+        return StringUtils.hasText(value) && value.contains(LEADER_KEYWORD);
     }
 
     private User findUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다."));
+    }
+
+    private User findUserByLoginId(String loginId) {
+        if (!StringUtils.hasText(loginId)) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
+        return userRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
     }
 
     private AdminUserResponse toAdminUserResponse(User user) {
@@ -251,20 +423,17 @@ public class AdminUserService {
         return value.trim();
     }
 
-    private String normalizeJobRank(String jobRank) {
-        if (!StringUtils.hasText(jobRank)) {
-            return JOB_RANK_USER;
-        }
-
-        return JOB_RANK_ADMIN.equalsIgnoreCase(jobRank.trim()) ? JOB_RANK_ADMIN : JOB_RANK_USER;
-    }
-
-    private String normalizeJobRankFilter(String jobRank) {
-        if (!StringUtils.hasText(jobRank)) {
+    private String normalizeRoleCode(String roleCode) {
+        String normalized = normalizeText(roleCode);
+        if (normalized == null) {
             return null;
         }
 
-        return normalizeJobRank(jobRank);
+        return normalized.replaceFirst("^ROLE_", "").toUpperCase();
+    }
+
+    private String normalizeJobRankFilter(String jobRank) {
+        return normalizeText(jobRank);
     }
 
     private int normalizeSize(int size) {

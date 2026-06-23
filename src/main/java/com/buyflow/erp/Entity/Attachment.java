@@ -11,7 +11,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -19,8 +21,10 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
+@Table(name = "ATTACHMENT")
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Attachment {
 	
 	@Id
@@ -36,22 +40,22 @@ public class Attachment {
 	@Column(name = "ATTACHMENT_ID")
 	private Long attachmentId;
 	
-	@Column(name = "ORIGINAL_NAME")
+	@Column(name = "ORIGINAL_NAME", nullable = false)
 	private String originalName;
 	
-	@Column(name = "SAVED_NAME")
+	@Column(name = "SAVED_NAME", nullable = false)
 	private String savedName;
 	
-	@Column(name = "FILE_PATH")
+	@Column(name = "FILE_PATH", nullable = false)
 	private String filePath;
 	
 	@Column(name = "FILE_SIZE")
 	private Long fileSize;
 	
-	@Column(name = "EXTENSION")
+	@Column(name = "EXTENSION", length = 20)
 	private String extension;
 	
-	@Column(name = "UPLOADED_BY")
+	@Column(name = "UPLOADED_BY", length = 50)
 	private String uploadedBy;
 	
 	@Column(name = "UPLOADED_AT")

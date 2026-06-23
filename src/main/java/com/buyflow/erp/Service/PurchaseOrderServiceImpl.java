@@ -1,32 +1,5 @@
 package com.buyflow.erp.Service;
 
-import com.buyflow.erp.Dto.PageResponse;
-import com.buyflow.erp.Dto.PurchaseOrderDto;
-import com.buyflow.erp.Dto.PurchaseOrderItemDto;
-import com.buyflow.erp.Entity.Product;
-import com.buyflow.erp.Entity.PurchaseOrder;
-import com.buyflow.erp.Entity.PurchaseOrderItem;
-import com.buyflow.erp.Entity.PurchaseRequest;
-import com.buyflow.erp.Entity.PurchaseRequestItem;
-import com.buyflow.erp.Entity.Supplier;
-import com.buyflow.erp.Entity.Users;
-import com.buyflow.erp.Repository.PurchaseOrderRepository;
-import com.buyflow.erp.Repository.PurchaseRequestItemRepository;
-import com.buyflow.erp.Repository.PurchaseRequestRepository;
-import com.buyflow.erp.Repository.SupplierRepository;
-import com.buyflow.erp.Repository.UserRepository;
-import com.buyflow.erp.Repository.ProductRepository;
-import com.buyflow.erp.Repository.PurchaseOrderItemRepository; 
-import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
-
-import org.hibernate.Hibernate;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -36,6 +9,35 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import org.hibernate.Hibernate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.buyflow.erp.Dto.PageResponse;
+import com.buyflow.erp.Dto.PurchaseOrderDto;
+import com.buyflow.erp.Entity.Product;
+import com.buyflow.erp.Entity.PurchaseOrder;
+import com.buyflow.erp.Entity.PurchaseOrderItem;
+import com.buyflow.erp.Entity.PurchaseRequest;
+import com.buyflow.erp.Entity.PurchaseRequestItem;
+import com.buyflow.erp.Entity.Supplier;
+import com.buyflow.erp.Entity.Users;
+import com.buyflow.erp.Repository.AttachmentRepository;
+import com.buyflow.erp.Repository.ProductRepository;
+import com.buyflow.erp.Repository.PurchaseOrderItemRepository;
+import com.buyflow.erp.Repository.PurchaseOrderRepository;
+import com.buyflow.erp.Repository.PurchaseRequestItemRepository;
+import com.buyflow.erp.Repository.PurchaseRequestRepository;
+import com.buyflow.erp.Repository.SupplierRepository;
+import com.buyflow.erp.Repository.UserRepository;
+
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -49,6 +51,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final ProductRepository productRepository;
     private final PurchaseRequestRepository purchaseRequestRepository;
     private final PurchaseRequestItemRepository purchaseRequestItemRepository;
+    private final AttachmentRepository attachmentRepository;
 
     @Override
     @Transactional
@@ -122,6 +125,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 .dueDate(finalDueDate)
                 .expectedReceiptFrom(finalExpectedFrom)
                 .totalAmount(0.0) 
+                .memo(request.getMemo())
+                .attachment(request.getAttachmentId() != null ? attachmentRepository.findById(request.getAttachmentId()).orElse(null) : null)
                 .build();
         
         long totalSupplyAmount = 0L;
@@ -153,9 +158,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         
         PurchaseOrder refreshedOrder = orderRepository.findByIdWithItems(savedOrder.getOrderId())
                 .orElse(savedOrder);
-        
-        System.out.println("=== Create 후 refreshed Debug ===");
-        System.out.println("PurchaseRequest exists: " + (refreshedOrder.getPurchaseRequest() != null));
         
         return PurchaseOrderDto.Response.from(refreshedOrder);
     }
@@ -252,8 +254,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 status,
                 pageable
         );
-        // 🎯 [정밀 디버깅 선로]: DB에서 날것으로 뽑아온 찐 데이터 상태를 이클립스 콘솔에 출력합니다.
-        System.out.println("====== 🔥 [목록 쿼리 최종 추적 현장산] ======");
         if (orderPage != null && orderPage.getContent() != null) {
             for (PurchaseOrder po : orderPage.getContent()) {
                 System.out.println(String.format(
@@ -265,13 +265,11 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 ));
             }
         }
-        System.out.println("=========================================");
 
         List<PurchaseOrderDto.Response> dtoList = orderPage.getContent().stream()
                         .map(PurchaseOrderDto.Response::from)
                         .toList();
         
-        // 🚀 [타입 추론 에러 진압]: 제네릭과 페이징 객체를 명확히 선언하여 빨간 줄을 완벽하게 차단합니다.
         return new PageResponse<>(
                 dtoList,
                 new PageResponse.Pagination(
@@ -322,6 +320,12 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         if (request.getMemo() != null) {
             order.setMemo(request.getMemo());
         }
+        
+        if (request.getAttachmentId() != null) {
+            com.buyflow.erp.Entity.Attachment attachment = attachmentRepository.findById(request.getAttachmentId())
+                    .orElse(null); // 파일이 없으면 null 처리
+            order.setAttachment(attachment);
+        }
 
         // 공급업체 변경
         if (request.getSupplierId() != null) {
@@ -365,12 +369,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         // 업데이트 후 저장
         PurchaseOrder updatedOrder = orderRepository.save(order);
 
-        // 🚀 refreshedOrder: LAZY 관계까지 모두 로딩된 상태로 DTO 변환
         PurchaseOrder refreshedOrder = orderRepository.findByIdWithItems(updatedOrder.getOrderId())
                 .orElse(updatedOrder);
-
-        System.out.println("=== Create 후 refreshed Debug ===");
-        System.out.println("PurchaseRequest exists: " + (refreshedOrder.getPurchaseRequest() != null));
         
         return PurchaseOrderDto.Response.from(refreshedOrder);
     }
@@ -402,5 +402,10 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         PurchaseOrder saved = orderRepository.save(order);
 
         return PurchaseOrderDto.Response.from(saved);
+    }
+    
+    @Override
+    public List<PurchaseOrder> getAllOrdersForExcel() {
+    	return orderRepository.findAll(Sort.by(Sort.Direction.DESC, "orderId"));
     }
 }

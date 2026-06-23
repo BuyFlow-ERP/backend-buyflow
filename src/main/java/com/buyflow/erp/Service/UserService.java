@@ -58,9 +58,11 @@ public class UserService {
 
         return PageResponse.from(userRepository.search(
                 normalizeText(keyword),
+                null,
                 normalizeText(status),
                 normalizeText(useYn),
                 normalizeJobRankFilter(jobRank),
+                null,
                 pageRequest
         ).map(UserResponse::from));
     }

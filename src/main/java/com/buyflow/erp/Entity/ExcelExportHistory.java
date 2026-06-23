@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -35,14 +36,14 @@ public class ExcelExportHistory {
 	@Column(name = "EXPORT_ID")
 	private Long exportId;
 	
-	@ManyToOne
-	@JoinColumn(name = "ATTACHMENT_ID")
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "ATTACHMENT_ID", nullable = false)
 	private Attachment attachment;
 	
-	@Column(name = "EXPORT_TYPE")
+	@Column(name = "EXPORT_TYPE", length = 50)
 	private String exportType;
 	
-	@Column(name = "STATUS")
+	@Column(name = "STATUS", length = 20)
 	private String status;
 	
 	@Column(name = "CREATED_AT")
