@@ -66,7 +66,9 @@ public class ReceiptServiceImpl implements ReceiptService {
                                 getReceiptItems(
                                         rs.getLong("ORDER_ID")));
 
-                        dto.setHistories(new ArrayList<>());
+                        dto.setHistories(
+                                getReceiptHistories(
+                                        rs.getLong("ORDER_ID")));
 
                         return dto;
                     });
@@ -129,7 +131,9 @@ public class ReceiptServiceImpl implements ReceiptService {
                             getReceiptItems(
                                     rs.getLong("ORDER_ID")));
 
-                    dto.setHistories(new ArrayList<>());
+                    dto.setHistories(
+                            getReceiptHistories(
+                                    rs.getLong("ORDER_ID")));
 
                     return dto;
                 });
@@ -577,6 +581,34 @@ public class ReceiptServiceImpl implements ReceiptService {
                             product.getUnit());
                 })
                 .filter(java.util.Objects::nonNull)
+                .toList();
+    }
+
+    private List<ReceiptDto.HistoryResponse> getReceiptHistories(Long orderId) {
+
+        return receiptRepository.findByOrderId(orderId)
+                .stream()
+                .map(receipt -> {
+
+                    Long totalQty = receiptItemRepository
+                            .findByReceiptId(receipt.getReceiptId())
+                            .stream()
+                            .mapToLong(item -> item.getAcceptedQty() != null
+                                    ? item.getAcceptedQty()
+                                    : 0L)
+                            .sum();
+
+                    return new ReceiptDto.HistoryResponse(
+                            receipt.getReceiptId(),
+                            receipt.getReceiptNo(),
+                            receipt.getReceiptDate() != null
+                                    ? receipt.getReceiptDate().toString()
+                                    : "",
+                            receipt.getLoginId(),
+                            totalQty,
+                            "",
+                            new ArrayList<>());
+                })
                 .toList();
     }
 }

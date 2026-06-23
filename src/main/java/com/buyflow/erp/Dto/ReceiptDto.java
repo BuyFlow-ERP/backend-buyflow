@@ -66,7 +66,28 @@ public class ReceiptDto {
         private String status;
 
         private List<ReceiptItemResponse> items;
-        private List<Object> histories;
+        private List<HistoryResponse> histories;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class HistoryResponse {
+
+        private Long id;
+
+        private String receiptNumber;
+
+        private String receivedAt;
+
+        private String receiverName;
+
+        private Long totalReceivedQuantity;
+
+        private String memo;
+
+        private List<Object> attachments;
     }
 
     @Getter

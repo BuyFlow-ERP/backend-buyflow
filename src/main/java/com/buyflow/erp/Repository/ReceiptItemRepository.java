@@ -18,6 +18,8 @@ public interface ReceiptItemRepository
         Long getAcceptedQtySum(
                         @Param("orderItemId") Long orderItemId);
 
+        List<ReceiptItem> findByReceiptId(Long receiptId);
+
         List<ReceiptItem> findByReceiptItemStatus(
                         String receiptItemStatus);
 }
