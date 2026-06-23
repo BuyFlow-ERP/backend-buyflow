@@ -29,6 +29,8 @@ public interface ReceiptService {
 
     ReceiptDto.FilterOptionsResponse getFilterOptions();
 
+    ReceiptDto.FormOptionsResponse getFormOptions();
+
     ReceiptDto.SummaryResponse getSummary();
 
 }

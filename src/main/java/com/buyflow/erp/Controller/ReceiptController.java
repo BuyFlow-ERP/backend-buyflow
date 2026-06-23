@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.Map;
 
 @RestController
@@ -45,6 +46,13 @@ public class ReceiptController {
         @GetMapping("/filter-options")
         public ResponseEntity<ReceiptDto.FilterOptionsResponse> getFilterOptions() {
                 return ResponseEntity.ok(receiptService.getFilterOptions());
+        }
+
+        @GetMapping("/form-options")
+        public ResponseEntity<ReceiptDto.FormOptionsResponse> getFormOptions() {
+
+                return ResponseEntity.ok(
+                                receiptService.getFormOptions());
         }
 
         @GetMapping("/summary")

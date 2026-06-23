@@ -164,6 +164,9 @@ public class ReceiptServiceImpl implements ReceiptService {
             String status,
             int page,
             int size) {
+
+        System.out.println("searchReceipts 시작");
+
         int safePage = Math.max(page, 1);
         int safeSize = size <= 0 ? 10 : size;
         int offset = (safePage - 1) * safeSize;
@@ -279,6 +282,37 @@ public class ReceiptServiceImpl implements ReceiptService {
                 "DELAYED",
                 "PARTIAL",
                 "COMPLETED"));
+
+        return response;
+    }
+
+    @Override
+    public ReceiptDto.FormOptionsResponse getFormOptions() {
+
+        ReceiptDto.FormOptionsResponse response = new ReceiptDto.FormOptionsResponse();
+
+        response.setNextReceiptNumber(
+                "RC-" + System.currentTimeMillis());
+
+        var orders = searchReceipts(
+                "EXPECTED",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                1,
+                10);
+
+        List<ReceiptDto.ListResponse> eligibleOrders = orders.getItems()
+                .stream()
+                .filter(item -> item.getRemainingQuantity() > 0)
+                .toList();
+
+        response.setEligibleOrders(
+                eligibleOrders);
 
         return response;
     }

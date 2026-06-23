@@ -145,6 +145,17 @@ public class ReceiptDto {
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
+    public static class FormOptionsResponse {
+
+        private String nextReceiptNumber;
+
+        private List<ListResponse> eligibleOrders;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class SummaryResponse {
         private long todayExpected;
         private long yesterdayDifference;
