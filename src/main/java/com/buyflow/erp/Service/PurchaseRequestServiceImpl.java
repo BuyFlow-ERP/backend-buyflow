@@ -4,6 +4,7 @@ import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Dto.PurchaseRequestDto;
 import com.buyflow.erp.Entity.ApprovalHistory;
 import com.buyflow.erp.Entity.Product;
+import com.buyflow.erp.Entity.PurchaseOrder;
 import com.buyflow.erp.Entity.PurchaseRequest;
 import com.buyflow.erp.Entity.PurchaseRequestItem;
 import com.buyflow.erp.Entity.Users;
@@ -16,6 +17,8 @@ import com.buyflow.erp.Repository.UserRepository;
 import com.buyflow.erp.Repository.AttachmentRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -777,6 +780,11 @@ private void validateDeletableStatus(PurchaseRequest request) {
                     );
                 })
                 .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<PurchaseRequest> getAllRequestsForExcel() {
+    	return purchaseRequestRepository.findAll(Sort.by(Sort.Direction.DESC, "requestId"));
     }
 
 }

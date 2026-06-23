@@ -7,6 +7,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Map;
 
+import com.buyflow.erp.Dto.PageResponse;
+import com.buyflow.erp.Dto.PurchaseRequestDto;
+import com.buyflow.erp.Entity.PurchaseRequest;
+
 public interface PurchaseRequestService {
 
     PageResponse<PurchaseRequestDto.ListResponse> getPurchaseRequests(
@@ -48,5 +52,7 @@ public interface PurchaseRequestService {
     PurchaseRequestDto.DetailResponse cancelPurchaseRequest(Long requestId);
 
     void deletePurchaseRequest(Long requestId);
+    
+	List<PurchaseRequest> getAllRequestsForExcel();
 
 }
