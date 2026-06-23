@@ -29,26 +29,9 @@ import com.buyflow.erp.Repository.WarehouseRepository;
 @RequestMapping({ "/stocks", "/inventories" })
 public class StockController {
 
-    @PostConstruct
-    public void init() {
-        System.out.println("★★★★★ StockController Loaded ★★★★★");
-    }
-
-    @GetMapping("/hello")
-    public String hello() {
-        System.out.println("hello 호출");
-        return "hello";
-    }
-
-    @GetMapping("/test")
-    public String test() {
-        return "stock ok";
-    }
-
     @GetMapping
     public ResponseEntity<List<StockDto.Response>> getStockList() {
-        System.out.println("getStockList 호출");
-        // 서비스에서 DTO가 담긴 List를 받아와서 화면으로 뿌려줌.
+          // 서비스에서 DTO가 담긴 List를 받아와서 화면으로 뿌려줌.
         List<Response> list = stockService.findAllStocks();
         return ResponseEntity.ok(list);
     }
