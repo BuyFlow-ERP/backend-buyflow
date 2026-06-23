@@ -1,14 +1,46 @@
 package com.buyflow.erp.Controller;
 
-import com.buyflow.erp.Dto.PageResponse;
-import com.buyflow.erp.Dto.PurchaseRequestDto;
-import com.buyflow.erp.Service.PurchaseRequestService;
-import lombok.RequiredArgsConstructor;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestPart;
 
-import java.util.Map;
+import com.buyflow.erp.Dto.PageResponse;
+import com.buyflow.erp.Dto.PurchaseRequestDto;
+import com.buyflow.erp.Entity.PurchaseRequest;
+import com.buyflow.erp.Service.PurchaseRequestService;
+
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+
+import com.buyflow.erp.Entity.Attachment;
+import com.buyflow.erp.Repository.AttachmentRepository;
+
+import org.springframework.core.io.PathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @RestController
 @RequiredArgsConstructor
@@ -16,6 +48,7 @@ import java.util.Map;
 public class PurchaseRequestController {
 
     private final PurchaseRequestService purchaseRequestService;
+    private final AttachmentRepository attachmentRepository;
 
     @GetMapping
     public ResponseEntity<PageResponse<PurchaseRequestDto.ListResponse>> getPurchaseRequests(
@@ -65,23 +98,28 @@ public class PurchaseRequestController {
         return ResponseEntity.ok(purchaseRequestService.getPurchaseRequestDetail(requestId));
     }
 
-    @PostMapping
-    public ResponseEntity<PurchaseRequestDto.DetailResponse> createPurchaseRequest(
-            @RequestBody PurchaseRequestDto.CreateRequest request
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        public ResponseEntity<PurchaseRequestDto.DetailResponse> createPurchaseRequest(
+        @RequestPart("data") PurchaseRequestDto.CreateRequest request,
+        @RequestPart(value = "file", required = false) MultipartFile file
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(purchaseRequestService.createPurchaseRequest(request));
-    }
+            .body(purchaseRequestService.createPurchaseRequest(request, file));
+}
 
-    @PutMapping("/{requestId}")
-    public ResponseEntity<PurchaseRequestDto.DetailResponse> updatePurchaseRequest(
+    @PutMapping(
+        value = "/{requestId}",
+        consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+        public ResponseEntity<PurchaseRequestDto.DetailResponse> updatePurchaseRequest(
             @PathVariable(name = "requestId") Long requestId,
-            @RequestBody PurchaseRequestDto.UpdateRequest request
+            @RequestPart("data") PurchaseRequestDto.UpdateRequest request,
+            @RequestPart(value = "file", required = false) MultipartFile file
     ) {
         return ResponseEntity.ok(
-            purchaseRequestService.updatePurchaseRequest(requestId, request)
-            );
-        }
+            purchaseRequestService.updatePurchaseRequest(requestId, request, file)
+    );
+}
 
     @PatchMapping("/{requestId}/cancel")
     public ResponseEntity<PurchaseRequestDto.DetailResponse> cancelPurchaseRequest(
@@ -93,10 +131,65 @@ public class PurchaseRequestController {
     }
 
     @DeleteMapping("/{requestId}")
-    public ResponseEntity<Void> deletePurchaseRequest(
-        @PathVariable(name = "requestId") Long requestId
+        public ResponseEntity<Void> deletePurchaseRequest(
+            @PathVariable(name = "requestId") Long requestId
     ) {
-        purchaseRequestService.deletePurchaseRequest(requestId);
-        return ResponseEntity.noContent().build();
+            purchaseRequestService.deletePurchaseRequest(requestId);
+            return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/attachments/{attachmentId}/download")
+        public ResponseEntity<Resource> downloadAttachment(
+            @PathVariable(name = "attachmentId") Long attachmentId
+    ) throws Exception {
+        Attachment attachment = attachmentRepository.findById(attachmentId)
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "첨부파일을 찾을 수 없습니다. attachmentId=" + attachmentId
+            ));
+
+    Path path = Path.of(attachment.getFilePath());
+
+        if (!Files.exists(path)) {
+            throw new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "첨부파일 실제 파일을 찾을 수 없습니다."
+        );
+    }
+
+    Resource resource = new PathResource(path);
+
+    String encodedFileName = URLEncoder.encode(
+            attachment.getOriginalName(),
+            StandardCharsets.UTF_8
+    ).replaceAll("\\+", "%20");
+
+        return ResponseEntity.ok()
+            .contentType(MediaType.APPLICATION_OCTET_STREAM)
+            .header(
+                    HttpHeaders.CONTENT_DISPOSITION,
+                    ContentDisposition.attachment()
+                            .filename(encodedFileName, StandardCharsets.UTF_8)
+                            .build()
+                            .toString()
+            )
+            .body(resource);
+  }
+    
+    @GetMapping("/excel")
+    public void exportExcel(HttpServletResponse response) throws IOException {
+        // 1. 구매요청 목록 데이터 전체 조회 (서비스 호출)
+        List<PurchaseRequest> requests = purchaseRequestService.getAllRequestsForExcel();
+        
+        // 2. Apache POI XSSFWorkbook 생성 및 데이터 채우기 (아까 하셨던 방식과 동일)
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        // ... 생략 ...
+        
+        // 3. 응답 헤더 세팅 및 출력
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=\"PurchaseRequests.xlsx\"");
+        
+        workbook.write(response.getOutputStream());
+        workbook.close();
     }
 }

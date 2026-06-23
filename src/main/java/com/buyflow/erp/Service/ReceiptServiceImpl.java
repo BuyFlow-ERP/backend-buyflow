@@ -36,47 +36,14 @@ public class ReceiptServiceImpl implements ReceiptService {
 
     @Override
     public ReceiptDto.DetailResponse getReceipt(Long receiptId) {
+        Receipt receipt = receiptRepository.findById(receiptId).orElse(null);
 
-        String sql = buildListBaseSql()
-                + " AND x.RECEIPT_ID = :receiptId";
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("receiptId", receiptId);
-
-        try {
-            return jdbcTemplate.queryForObject(
-                    sql,
-                    params,
-                    (rs, rowNum) -> {
-
-                        ReceiptDto.DetailResponse dto = new ReceiptDto.DetailResponse();
-
-                        dto.setReceiptId(rs.getLong("RECEIPT_ID"));
-                        dto.setOrderId(rs.getLong("ORDER_ID"));
-                        dto.setOrderNumber(rs.getString("ORDER_NUMBER"));
-                        dto.setSupplierName(rs.getString("SUPPLIER_NAME"));
-                        dto.setOrderedAt(rs.getString("ORDERED_AT"));
-                        dto.setExpectedReceiptAt(rs.getString("EXPECTED_RECEIPT_AT"));
-                        dto.setWarehouseName(rs.getString("WAREHOUSE_NAME"));
-                        dto.setOrderQuantity(rs.getLong("ORDER_QUANTITY"));
-                        dto.setReceivedQuantity(rs.getLong("RECEIVED_QUANTITY"));
-                        dto.setRemainingQuantity(rs.getLong("REMAINING_QUANTITY"));
-                        dto.setStatus(rs.getString("STATUS"));
-
-                        dto.setItems(
-                                getReceiptItems(
-                                        rs.getLong("ORDER_ID")));
-
-                        dto.setHistories(
-                                getReceiptHistories(
-                                        rs.getLong("ORDER_ID")));
-
-                        return dto;
-                    });
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw e;
+        if (receipt != null && receipt.getOrderId() != null) {
+            return getReceiptByOrderId(receipt.getOrderId());
         }
+
+        // The receipt detail page is order-scoped. Existing list links pass ORDER_ID.
+        return getReceiptByOrderId(receiptId);
     }
 
     @Override

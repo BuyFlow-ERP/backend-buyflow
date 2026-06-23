@@ -34,6 +34,8 @@ dependencies {
 	implementation 'org.bouncycastle:bcprov-jdk18on:1.78'
 	implementation 'com.oracle.database.security:oraclepki:23.3.0.23.09'
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+	implementation 'org.apache.poi:poi:5.2.5'
+	implementation 'org.apache.poi:poi-ooxml:5.2.5'
 
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.oracle.database.jdbc:ojdbc11-production:23.3.0.23.09'

@@ -4,20 +4,26 @@ import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Dto.PurchaseRequestDto;
 import com.buyflow.erp.Entity.ApprovalHistory;
 import com.buyflow.erp.Entity.Product;
+import com.buyflow.erp.Entity.PurchaseOrder;
 import com.buyflow.erp.Entity.PurchaseRequest;
 import com.buyflow.erp.Entity.PurchaseRequestItem;
 import com.buyflow.erp.Entity.Users;
+import com.buyflow.erp.Entity.Attachment;
 import com.buyflow.erp.Repository.ApprovalHistoryRepository;
 import com.buyflow.erp.Repository.ProductRepository;
 import com.buyflow.erp.Repository.PurchaseRequestItemRepository;
 import com.buyflow.erp.Repository.PurchaseRequestRepository;
 import com.buyflow.erp.Repository.UserRepository;
+import com.buyflow.erp.Repository.AttachmentRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -47,6 +53,8 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final ApprovalHistoryRepository approvalHistoryRepository;
+    private final AttachmentRepository attachmentRepository;
+    private final FileService fileService;
 
     @Override
     public PageResponse<PurchaseRequestDto.ListResponse> getPurchaseRequests(
@@ -117,7 +125,7 @@ BigDecimal calculatedTotalAmount = items.stream()
                 nullToEmpty(request.getReason()),
                 request.getTotalAmount() != null ? request.getTotalAmount() : calculatedTotalAmount,
                 items,
-                List.of()
+                getAttachmentResponses(requestId)
                 );
          }
 
@@ -164,7 +172,10 @@ BigDecimal calculatedTotalAmount = items.stream()
 
     @Override
     @Transactional
-    public PurchaseRequestDto.DetailResponse createPurchaseRequest(PurchaseRequestDto.CreateRequest dto) {
+    public PurchaseRequestDto.DetailResponse createPurchaseRequest(
+        PurchaseRequestDto.CreateRequest dto,
+        MultipartFile file
+    ) {
         LocalDateTime now = LocalDateTime.now();
 
         PurchaseRequest request = new PurchaseRequest();
@@ -215,27 +226,61 @@ BigDecimal calculatedTotalAmount = items.stream()
             request.setRequestNo(createRequestNumber(requestId));
         }
 
+        List<PurchaseRequestDto.CreateItemRequest> itemDtos =
+        dto.items() == null ? List.of() : dto.items();
+
+            if (itemDtos.isEmpty()) {
+            throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST,
+            "구매 요청 품목은 1개 이상 필요합니다."
+        );
+    }
+
         List<PurchaseRequestItem> items = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
 
-        for (PurchaseRequestDto.CreateItemRequest itemDto : dto.items() == null ? List.<PurchaseRequestDto.CreateItemRequest>of() : dto.items()) {
-            int quantity = itemDto.requestQuantity() != null ? itemDto.requestQuantity() : 0;
-            BigDecimal unitPrice = itemDto.estimatedUnitPrice() != null
+        for (PurchaseRequestDto.CreateItemRequest itemDto : itemDtos) {
+    if (itemDto.productId() == null) {
+        throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "품목 ID는 필수입니다."
+        );
+    }
+
+        Product product = productRepository.findById(itemDto.productId())
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "존재하지 않는 품목 ID입니다: " + itemDto.productId()
+            ));
+
+            int quantity = itemDto.requestQuantity() != null
+            ? itemDto.requestQuantity()
+            : 0;
+
+            if (quantity <= 0) {
+                throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "요청 수량은 1개 이상이어야 합니다."
+        );
+    }
+
+        BigDecimal unitPrice = itemDto.estimatedUnitPrice() != null
             ? itemDto.estimatedUnitPrice()
-            : BigDecimal.ZERO;
+            : toBigDecimal(product.getUnitPrice());
 
             totalAmount = totalAmount.add(calculateAmount(quantity, unitPrice));
 
-            PurchaseRequestItem item = new PurchaseRequestItem();
+        PurchaseRequestItem item = new PurchaseRequestItem();
             item.setRequestId(requestId);
             item.setProductId(itemDto.productId());
             item.setRequestQuantity(quantity);
             item.setEstimatedUnitPrice(unitPrice);
-            item.setRemark(itemDto.remark());
+            item.setRemark(nullToEmpty(itemDto.remark()));
             item.setCreatedAt(now);
             item.setUpdatedAt(now);
+
             items.add(item);
-}
+    }
 
 		    request.setTotalAmount(totalAmount);
 		    purchaseRequestRepository.save(request);
@@ -254,15 +299,32 @@ BigDecimal calculatedTotalAmount = items.stream()
 		    approvalHistoryRepository.save(approvalHistory);
     }
 
+        try {
+                if (file != null && !file.isEmpty()) {
+                fileService.uploadFile(
+                file,
+                requestorId,
+                getUserName(requestorId),
+                requestId
+        );
+      }
+    } catch (Exception error) {
+        throw new ResponseStatusException(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "첨부파일 저장에 실패했습니다.",
+            error
+    );
+}
+
 		    return getPurchaseRequestDetail(requestId);
 }
 
-    @Override
     @Transactional
     public PurchaseRequestDto.DetailResponse updatePurchaseRequest(
         Long requestId,
-        PurchaseRequestDto.UpdateRequest dto
-) {
+        PurchaseRequestDto.UpdateRequest dto,
+        MultipartFile file
+    ) {
         PurchaseRequest request = purchaseRequestRepository.findById(requestId)
                 .filter(this::isActive)
                 .orElseThrow(() -> new EntityNotFoundException(
@@ -359,7 +421,24 @@ BigDecimal calculatedTotalAmount = items.stream()
     purchaseRequestRepository.save(request);
     purchaseRequestItemRepository.saveAll(nextItems);
 
-    return getPurchaseRequestDetail(requestId);
+try {
+    if (file != null && !file.isEmpty()) {
+        fileService.uploadFile(
+                file,
+                request.getRequestorId(),
+                getUserName(request.getRequestorId()),
+                requestId
+        );
+    }
+} catch (Exception error) {
+    throw new ResponseStatusException(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "첨부파일 저장에 실패했습니다.",
+            error
+    );
+}
+
+return getPurchaseRequestDetail(requestId);
 }
 
 @Override
@@ -449,6 +528,19 @@ public void deletePurchaseRequest(Long requestId) {
         return items.stream()
                 .map(item -> toItemResponse(item, productMap.get(item.getProductId())))
                 .toList();
+    }
+
+    private List<PurchaseRequestDto.AttachmentResponse>     getAttachmentResponses(Long requestId) {
+        return attachmentRepository.findByRequestIdOrderByAttachmentIdAsc(requestId)
+            .stream()
+            .map(attachment -> new PurchaseRequestDto.AttachmentResponse(
+                    attachment.getAttachmentId(),
+                    attachment.getOriginalName(),
+                    "/api/purchase-requests/attachments/"
+                            + attachment.getAttachmentId()
+                            + "/download"
+            ))
+            .toList();
     }
 
         private PurchaseRequestDto.ItemResponse toItemResponse(PurchaseRequestItem item, Product product) {
@@ -688,6 +780,11 @@ private void validateDeletableStatus(PurchaseRequest request) {
                     );
                 })
                 .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<PurchaseRequest> getAllRequestsForExcel() {
+    	return purchaseRequestRepository.findAll(Sort.by(Sort.Direction.DESC, "requestId"));
     }
 
 }

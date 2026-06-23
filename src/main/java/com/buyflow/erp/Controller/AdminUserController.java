@@ -6,6 +6,7 @@ import com.buyflow.erp.Dto.AdminUserResponse;
 import com.buyflow.erp.Dto.AdminUserRoleUpdateRequest;
 import com.buyflow.erp.Dto.AdminUserStatusUpdateRequest;
 import com.buyflow.erp.Dto.PageResponse;
+import com.buyflow.erp.Dto.RoleResponse;
 import com.buyflow.erp.Service.AdminUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,42 +26,68 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/admin/users")
-@PreAuthorize("hasRole('ADMIN') or hasAuthority('USER_MANAGE')")
 public class AdminUserController {
 
     private final AdminUserService adminUserService;
 
     @GetMapping
-    public ApiResponse<List<AdminUserResponse>> findAll() {
-        return ApiResponse.success("관리자 사용자 목록 조회 성공", adminUserService.findAll());
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TEAM_MANAGER')")
+    public ApiResponse<List<AdminUserResponse>> findAll(Authentication authentication) {
+        return ApiResponse.success(
+                "관리자 사용자 목록 조회 성공",
+                adminUserService.findAll(authentication.getName())
+        );
     }
 
     @GetMapping("/page")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TEAM_MANAGER')")
     public ApiResponse<PageResponse<AdminUserResponse>> search(
             @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "department", required = false) String department,
             @RequestParam(name = "status", required = false) String status,
             @RequestParam(name = "useYn", required = false) String useYn,
             @RequestParam(name = "jobRank", required = false) String jobRank,
+            @RequestParam(name = "roleCode", required = false) String roleCode,
             @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "20") int size
+            @RequestParam(name = "size", defaultValue = "20") int size,
+            Authentication authentication
     ) {
         return ApiResponse.success(
                 "관리자 사용자 목록 조회 성공",
-                adminUserService.search(keyword, status, useYn, jobRank, page, size)
+                adminUserService.search(
+                        keyword,
+                        department,
+                        status,
+                        useYn,
+                        jobRank,
+                        roleCode,
+                        page,
+                        size,
+                        authentication.getName()
+                )
         );
     }
 
     @GetMapping("/{userId}")
-    public ApiResponse<AdminUserResponse> findById(@PathVariable(name = "userId") Long userId) {
-        return ApiResponse.success("관리자 사용자 상세 조회 성공", adminUserService.findById(userId));
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TEAM_MANAGER')")
+    public ApiResponse<AdminUserResponse> findById(
+            @PathVariable(name = "userId") Long userId,
+            Authentication authentication
+    ) {
+        return ApiResponse.success(
+                "관리자 사용자 상세 조회 성공",
+                adminUserService.findById(userId, authentication.getName())
+        );
     }
 
     @PatchMapping("/{userId}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<AdminUserResponse> approve(@PathVariable(name = "userId") Long userId) {
         return ApiResponse.success("사용자 승인 성공", adminUserService.approve(userId));
     }
 
     @PatchMapping("/{userId}/status")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<AdminUserResponse> updateStatus(
             @PathVariable(name = "userId") Long userId,
             @Valid @RequestBody AdminUserStatusUpdateRequest request
@@ -69,6 +96,7 @@ public class AdminUserController {
     }
 
     @PutMapping("/{userId}/profile")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<AdminUserResponse> updateProfile(
             @PathVariable(name = "userId") Long userId,
             @Valid @RequestBody AdminUserProfileUpdateRequest request,
@@ -81,6 +109,7 @@ public class AdminUserController {
     }
 
     @PutMapping("/{userId}/roles")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TEAM_MANAGER')")
     public ApiResponse<AdminUserResponse> updateRoles(
             @PathVariable(name = "userId") Long userId,
             @Valid @RequestBody AdminUserRoleUpdateRequest request,
@@ -89,6 +118,24 @@ public class AdminUserController {
         return ApiResponse.success(
                 "사용자 역할 수정 성공",
                 adminUserService.updateRoles(userId, request, authentication.getName())
+        );
+    }
+
+    @GetMapping("/departments")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TEAM_MANAGER')")
+    public ApiResponse<List<String>> findDepartments(Authentication authentication) {
+        return ApiResponse.success(
+                "부서 목록 조회 성공",
+                adminUserService.findDepartments(authentication.getName())
+        );
+    }
+
+    @GetMapping("/assignable-roles")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TEAM_MANAGER')")
+    public ApiResponse<List<RoleResponse>> findAssignableRoles(Authentication authentication) {
+        return ApiResponse.success(
+                "부여 가능 역할 목록 조회 성공",
+                adminUserService.findAssignableRoles(authentication.getName())
         );
     }
 }

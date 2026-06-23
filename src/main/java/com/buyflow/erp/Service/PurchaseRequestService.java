@@ -2,9 +2,14 @@ package com.buyflow.erp.Service;
 
 import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Dto.PurchaseRequestDto;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
+
+import com.buyflow.erp.Dto.PageResponse;
+import com.buyflow.erp.Dto.PurchaseRequestDto;
+import com.buyflow.erp.Entity.PurchaseRequest;
 
 public interface PurchaseRequestService {
 
@@ -30,12 +35,14 @@ public interface PurchaseRequestService {
     Map<String, Object> getFilterOptions();
 
     PurchaseRequestDto.DetailResponse createPurchaseRequest(
-            PurchaseRequestDto.CreateRequest request
+        PurchaseRequestDto.CreateRequest request,
+        MultipartFile file
     );
 
     PurchaseRequestDto.DetailResponse updatePurchaseRequest(
-            Long requestId,
-            PurchaseRequestDto.UpdateRequest request
+        Long requestId,
+        PurchaseRequestDto.UpdateRequest request,
+        MultipartFile file
     );
 
     
@@ -45,5 +52,7 @@ public interface PurchaseRequestService {
     PurchaseRequestDto.DetailResponse cancelPurchaseRequest(Long requestId);
 
     void deletePurchaseRequest(Long requestId);
+    
+	List<PurchaseRequest> getAllRequestsForExcel();
 
 }
