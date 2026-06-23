@@ -110,12 +110,42 @@ public class ProductServiceImpl implements ProductService {
         product.setProductName(firstNotBlank(request.getProductName(), request.getName()));
         product.setCompanyName(firstNotBlank(request.getCompanyName(), request.getManufacturer()));
         product.setCategoryName(firstNotBlank(request.getCategoryName(), request.getCategory()));
+
+        product.setBizRegNo(normalizeText(request.getBizRegNo()));
+        product.setParentCategory(normalizeText(request.getParentCategory()));
+
         product.setUnit(normalizeText(request.getUnit()));
         product.setUnitPrice(request.getUnitPrice() == null ? 0L : Math.max(0L, request.getUnitPrice()));
         product.setSpec(normalizeText(request.getSpec()));
+
+        product.setOrigin(normalizeText(request.getOrigin()));
         product.setDescription(normalizeText(request.getDescription()));
-        product.setUseYn(Boolean.FALSE.equals(request.getIsActive()) ? "N" : "Y");
+
+        product.setCompetingProduct(resolveYn(request.getCompetingProduct()));
+
+        product.setValidStartDate(request.getValidStartDate());
+        product.setValidEndDate(request.getValidEndDate());
+
+        product.setUseYn(resolveUseYn(request));
+}
+
+    private String resolveYn(String value) {
+        return "Y".equalsIgnoreCase(normalizeText(value)) ? "Y" : "N";
     }
+
+    private String resolveUseYn(ProductDto.CreateRequest request) {
+        if (request.getIsActive() != null) {
+            return Boolean.FALSE.equals(request.getIsActive()) ? "N" : "Y";
+    }
+
+        String useYn = normalizeText(request.getUseYn());
+
+        if ("N".equalsIgnoreCase(useYn)) {
+            return "N";
+    }
+
+        return "Y";
+}
 
     private String convertActiveStatusToUseYn(String activeStatus) {
         String value = normalizeSelect(activeStatus);
