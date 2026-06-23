@@ -31,7 +31,7 @@ public class StockController {
 
     @GetMapping("/product/{productId}")
     public ResponseEntity<List<StockDto.Response>> getStockByProductId(
-            @PathVariable Long productId) {
+            @PathVariable(name = "productId") Long productId) {
 
         List<Response> list = stockService.findStocksByProductId(
                 productId);
@@ -41,7 +41,7 @@ public class StockController {
 
     @GetMapping("/warehouse/{warehouseCode}")
     public ResponseEntity<List<StockDto.Response>> getStockByWarehouseCode(
-            @PathVariable String warehouseCode) {
+            @PathVariable(name = "warehouseCode") String warehouseCode) {
 
         List<Response> list = stockService.findStocksByWarehouseCode(
                 warehouseCode);
