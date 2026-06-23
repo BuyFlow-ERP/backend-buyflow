@@ -18,47 +18,69 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class FileServiceImpl implements FileService {
-	private final AttachmentRepository attachmentRepository;
-	private final UserRepository usersRepository;
-	
-	// 로컬 저장 경로
-	private final String UPLOAD_DIR = "C:/erp/uploads/";
-	
-	public Attachment uploadFile(MultipartFile file, Long userId, String userName) throws IOException {
-		if (file == null || file.isEmpty()) return null;
-		
-		// 디렉토리 생성
-		File dir = new File(UPLOAD_DIR);
-		if (!dir.exists()) dir.mkdirs();
-		
-		String originalName = file.getOriginalFilename();
-		String extension = "";
-		if (originalName != null && originalName.contains(".")) {
-			extension = originalName.substring(originalName.lastIndexOf("."));
-		}
-		String savedName = UUID.randomUUID().toString() + extension;
-		String filePath = UPLOAD_DIR + savedName;
-		
-		// 물리적 파일 저장
-		file.transferTo(new File(filePath));
-		
-		Users user = null;
-		if (userId != null) {
-			user = usersRepository.getReferenceById(userId);
-		}
-		
-		// DB 기록
-		Attachment attachment = Attachment.builder()
-				.originalName(originalName)
-				.savedName(savedName)
-				.filePath(filePath)
-				.fileSize(file.getSize())
-				.extension(extension)
-				.uploadedBy(userName)
-				.uploadedAt(LocalDateTime.now())
-				.user(user)
-				.build();
-		return attachmentRepository.save(attachment);
-	}
 
+    private final AttachmentRepository attachmentRepository;
+    private final UserRepository usersRepository;
+
+    // 기존 프로젝트 저장 경로 유지
+    private final String UPLOAD_DIR = "C:/erp/uploads/";
+
+    @Override
+    public Attachment uploadFile(
+            MultipartFile file,
+            Long userId,
+            String userName
+    ) throws IOException {
+        return uploadFile(file, userId, userName, null);
+    }
+
+    @Override
+    public Attachment uploadFile(
+            MultipartFile file,
+            Long userId,
+            String userName,
+            Long requestId
+    ) throws IOException {
+        if (file == null || file.isEmpty()) {
+            return null;
+        }
+
+        File dir = new File(UPLOAD_DIR);
+
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+
+        String originalName = file.getOriginalFilename();
+        String extension = "";
+
+        if (originalName != null && originalName.contains(".")) {
+            extension = originalName.substring(originalName.lastIndexOf("."));
+        }
+
+        String savedName = UUID.randomUUID() + extension;
+        String filePath = UPLOAD_DIR + savedName;
+
+        file.transferTo(new File(filePath));
+
+        Users user = null;
+
+        if (userId != null) {
+            user = usersRepository.getReferenceById(userId);
+        }
+
+        Attachment attachment = Attachment.builder()
+                .originalName(originalName)
+                .savedName(savedName)
+                .filePath(filePath)
+                .fileSize(file.getSize())
+                .extension(extension)
+                .uploadedBy(userName)
+                .uploadedAt(LocalDateTime.now())
+                .requestId(requestId)
+                .user(user)
+                .build();
+
+        return attachmentRepository.save(attachment);
+    }
 }

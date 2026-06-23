@@ -2,6 +2,7 @@ package com.buyflow.erp.Service;
 
 import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Dto.PurchaseRequestDto;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -30,12 +31,14 @@ public interface PurchaseRequestService {
     Map<String, Object> getFilterOptions();
 
     PurchaseRequestDto.DetailResponse createPurchaseRequest(
-            PurchaseRequestDto.CreateRequest request
+        PurchaseRequestDto.CreateRequest request,
+        MultipartFile file
     );
 
     PurchaseRequestDto.DetailResponse updatePurchaseRequest(
-            Long requestId,
-            PurchaseRequestDto.UpdateRequest request
+        Long requestId,
+        PurchaseRequestDto.UpdateRequest request,
+        MultipartFile file
     );
 
     

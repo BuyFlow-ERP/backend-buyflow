@@ -60,6 +60,9 @@ public class Attachment {
 	
 	@Column(name = "UPLOADED_AT")
 	private LocalDateTime uploadedAt;
+
+	@Column(name = "REQUEST_ID")
+  private Long requestId;
 	
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "USER_ID")
