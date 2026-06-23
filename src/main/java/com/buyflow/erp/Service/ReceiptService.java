@@ -12,6 +12,8 @@ public interface ReceiptService {
     ReceiptDto.DetailResponse getReceipt(Long receiptId);
     ReceiptDto.DetailResponse getReceiptByOrderId(Long orderId);
 
+    ReceiptDto.DetailResponse getReceiptByOrderId(Long orderId);
+
     void saveReceipt(ReceiptDto.ReceiptCreateRequest request);
 
     ReceiptDto.PageResponse<ReceiptDto.ListResponse> searchReceipts(
@@ -29,6 +31,7 @@ public interface ReceiptService {
 
     ReceiptDto.FilterOptionsResponse getFilterOptions();
 
-    ReceiptDto.SummaryResponse getSummary();
+    ReceiptDto.FormOptionsResponse getFormOptions();
 
+    ReceiptDto.SummaryResponse getSummary();
 }
