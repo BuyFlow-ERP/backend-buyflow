@@ -4,6 +4,7 @@ import com.buyflow.erp.Entity.Product;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 public class ProductDto {
@@ -30,18 +31,30 @@ public class ProductDto {
         private String spec;
         private String description;
         private Boolean isActive;
+
+        private String bizRegNo;
+
+        // 품목 수정 화면에서 다시 불러오기
+        private String parentCategory;
+        private String origin;
+        private String competingProduct;
+
+        private LocalDate validStartDate;
+        private LocalDate validEndDate;
+
+        private String useYn;
     }
 
     @Getter
     @Setter
     public static class SearchCondition {
-       private int page = 0;
-       private int size = 15;
-       private String itemCode;
-       private String itemName;
-       private String category;
-       private String unit;
-       private String activeStatus;
+        private int page = 0;
+        private int size = 15;
+        private String itemCode;
+        private String itemName;
+        private String category;
+        private String unit;
+        private String activeStatus;
     }
 
     @Getter
@@ -58,6 +71,15 @@ public class ProductDto {
         private final String useYn;
         private final String createdAt;
         private final String updatedAt;
+
+        // 추가 상세 필드
+        private final String bizRegNo;
+        private final String parentCategory;
+        private final String origin;
+        private final String competingProduct;
+
+        private final LocalDate validStartDate;
+        private final LocalDate validEndDate;
 
         // 프론트에서 바로 쓰는 별칭
         private final Long id;
@@ -88,6 +110,16 @@ public class ProductDto {
                     ? ""
                     : product.getUpdatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
+            // 추가 상세 필드 매핑
+            this.bizRegNo = product.getBizRegNo();
+            this.parentCategory = product.getParentCategory();
+            this.origin = product.getOrigin();
+            this.competingProduct = product.getCompetingProduct();
+
+            this.validStartDate = product.getValidStartDate();
+            this.validEndDate = product.getValidEndDate();
+
+            // 프론트 호환용 별칭
             this.id = product.getProductId();
             this.code = product.getProductNo();
             this.name = product.getProductName();

@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -81,4 +82,23 @@ public class Product {
             this.useYn = "Y";
         }
     }
+
+    @Column(name = "BIZ_REG_NO")
+    private String bizRegNo;
+
+    @Column(name = "PARENT_CATEGORY")
+    private String parentCategory;
+
+    @Column(name = "ORIGIN")
+    private String origin;
+
+    @Column(name = "COMPETING_PRODUCT")
+    private String competingProduct;
+
+    @Column(name = "VALID_START_DATE")
+    private LocalDate validStartDate;
+
+    @Column(name = "VALID_END_DATE")
+    private LocalDate validEndDate;
+
 }
