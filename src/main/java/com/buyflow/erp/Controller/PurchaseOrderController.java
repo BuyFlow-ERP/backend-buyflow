@@ -46,7 +46,7 @@ public class PurchaseOrderController {
     public ResponseEntity<Map<String, Object>> getFormOptions() {
         Map<String, Object> options = new HashMap<>();
         
-        options.put("statuses", Arrays.asList("전체", "PENDING", "APPROVED", "CANCELLED"));
+        options.put("statuses", Arrays.asList("전체", "ORDERED", "CONFIRMED", "CANCELLED"));
         
         // 1. DB에서 엔티티 원본을 가져옵니다.
         List<Supplier> actualSuppliers = supplierRepository.findAll(); 

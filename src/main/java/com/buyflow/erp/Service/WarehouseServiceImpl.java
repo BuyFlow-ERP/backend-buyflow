@@ -38,6 +38,7 @@ public class WarehouseServiceImpl implements WarehouseService {
     }
     
     @Override
+    @Transactional(readOnly = true)
 	public PageResponse<WarehouseDto.HouseList> searchWarehouses(WarehouseDto.SearchCondition condition) {
         // 안전한 페이지 번호와 사이즈 가공
         int safePage = Math.max(condition.getPage(), 0);

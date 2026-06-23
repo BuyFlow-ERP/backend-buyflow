@@ -232,12 +232,13 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<PurchaseOrderDto.Response> getOrderList(PurchaseOrderDto.SearchCondition condition) {
-        int safePage = Math.max(condition.getPage(), 1);
+        int safePage = Math.max(condition.getPage(), 0);
         int safeSize = Math.max(condition.getSize(), 1);
-        Pageable pageable = PageRequest.of(safePage - 1, safeSize);
+        
+        Pageable pageable = PageRequest.of(safePage, safeSize);
         
         String orderNo = (condition.getOrderNo() == null || condition.getOrderNo().isEmpty()) ? null : condition.getOrderNo();
-        String requestNumber = (condition.getReqeustNumber() == null || condition.getReqeustNumber().isEmpty()) ? null : condition.getReqeustNumber();
+        String requestNo = (condition.getRequestNo() == null || condition.getRequestNo().isEmpty()) ? null : condition.getRequestNo();
         String supplierName = (condition.getSupplierName() == null || condition.getSupplierName().isEmpty() || condition.getSupplierName().equals("전체 공급업체")) ? null : condition.getSupplierName();
         String userName = (condition.getUserName() == null || condition.getUserName().isEmpty()) ? null : condition.getUserName();
         String status = (condition.getOrderStatus() == null || condition.getOrderStatus().isEmpty() || condition.getOrderStatus().equals("전체")) ? null : condition.getOrderStatus();
@@ -245,7 +246,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         // 🟢 기존의 커스텀 레포지토리 쿼리를 안전하게 호출
         Page<PurchaseOrder> orderPage = orderRepository.searchOrdersAdvanced(
                 orderNo,
-                requestNumber,
+                requestNo,
                 supplierName,
                 userName,
                 status,
@@ -256,7 +257,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         if (orderPage != null && orderPage.getContent() != null) {
             for (PurchaseOrder po : orderPage.getContent()) {
                 System.out.println(String.format(
-                    "📌 발주번호: %s | DB에서 읽어온 금액(TotalAmount): %s | DB에서 읽어온 날짜(CreatedAt): %s | 품목개수: %d",
+                	"📌 발주번호: %s | TotalAmount: %s | CreatedAt: %s | 품목개수: %d",
                     po.getOrderNo(),
                     po.getTotalAmount(),
                     po.getCreatedAt(),

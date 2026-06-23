@@ -168,6 +168,7 @@ public class PurchaseOrderDto {
 		        .totalAmount(checkedTotalAmount)
 		        .items(itemDtos)
 		        .expectedReceiptFrom(order.getExpectedReceiptFrom())
+		        .memo(order.getMemo())
 		        .build();
 		}
 	}
