@@ -16,6 +16,7 @@ import com.buyflow.erp.Dto.StockListResponse;
 import com.buyflow.erp.Entity.Stock;
 import com.buyflow.erp.Repository.StockRepository;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import java.util.Map;
 
@@ -25,12 +26,15 @@ import com.buyflow.erp.Repository.WarehouseRepository;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/inventories")
+@RequestMapping({ "/stocks", "/inventories" })
 public class StockController {
 
-    private final StockRepository stockRepository;
-    private final ProductRepository productRepository;
-    private final WarehouseRepository warehouseRepository;
+    @GetMapping
+    public ResponseEntity<List<StockDto.Response>> getStockList() {
+          // 서비스에서 DTO가 담긴 List를 받아와서 화면으로 뿌려줌.
+        List<Response> list = stockService.findAllStocks();
+        return ResponseEntity.ok(list);
+    }
 
 @GetMapping
 public StockListResponse getInventories(

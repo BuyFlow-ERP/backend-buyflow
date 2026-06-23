@@ -16,6 +16,11 @@ public class ReceiptController {
 
         private final ReceiptService receiptService;
 
+        @GetMapping("/test")
+        public String test() {
+                return "receipt ok";
+        }
+
         @GetMapping
         public ResponseEntity<ReceiptDto.PageResponse<ReceiptDto.ListResponse>> getReceipts(
                         @RequestParam(required = false) String activeTab,
@@ -45,7 +50,14 @@ public class ReceiptController {
 
         @GetMapping("/filter-options")
         public ResponseEntity<ReceiptDto.FilterOptionsResponse> getFilterOptions() {
-                return ResponseEntity.ok(receiptService.getFilterOptions());
+                return ResponseEntity.ok(
+                                receiptService.getFilterOptions());
+        }
+
+        @GetMapping("/form-options")
+        public ResponseEntity<ReceiptDto.FormOptionsResponse> getFormOptions() {
+                return ResponseEntity.ok(
+                                receiptService.getFormOptions());
         }
 
         @GetMapping("/form-options")
@@ -57,12 +69,14 @@ public class ReceiptController {
 
         @GetMapping("/summary")
         public ResponseEntity<ReceiptDto.SummaryResponse> getSummary() {
-                return ResponseEntity.ok(receiptService.getSummary());
+                return ResponseEntity.ok(
+                                receiptService.getSummary());
         }
 
         @GetMapping("/{receiptId:\\d+}")
         public ResponseEntity<ReceiptDto.DetailResponse> getReceipt(
                         @PathVariable Long receiptId) {
+
                 return ResponseEntity.ok(
                                 receiptService.getReceipt(receiptId));
         }
@@ -70,6 +84,7 @@ public class ReceiptController {
         @GetMapping("/order/{orderId}")
         public ResponseEntity<ReceiptDto.DetailResponse> getReceiptByOrderId(
                         @PathVariable Long orderId) {
+
                 return ResponseEntity.ok(
                                 receiptService.getReceiptByOrderId(orderId));
         }
@@ -77,7 +92,9 @@ public class ReceiptController {
         @PostMapping
         public ResponseEntity<Map<String, Object>> saveReceipt(
                         @RequestBody ReceiptDto.ReceiptCreateRequest request) {
+
                 try {
+
                         receiptService.saveReceipt(request);
 
                         return ResponseEntity.ok(
@@ -86,6 +103,8 @@ public class ReceiptController {
                                                         "message", "저장 완료"));
 
                 } catch (Exception e) {
+
+                        e.printStackTrace();
 
                         return ResponseEntity.internalServerError()
                                         .body(
@@ -98,7 +117,7 @@ public class ReceiptController {
         @PostMapping("/test")
         public ResponseEntity<String> test(
                         @RequestBody ReceiptDto.ReceiptCreateRequest request) {
-                return ResponseEntity.ok(request.getReceiptNo());
-        }
 
+                return ResponseEntity.ok("OK");
+        }
 }
