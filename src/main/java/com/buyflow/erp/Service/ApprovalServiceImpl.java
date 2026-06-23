@@ -16,6 +16,8 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -96,6 +98,8 @@ public class ApprovalServiceImpl implements ApprovalService {
         ApprovalHistory approval = findApproval(approvalId);
         PurchaseRequest request = findRequest(approval.getRequestId());
 
+        validatePendingApproval(request);
+
         approval.setApprovalStatus("APPROVED");
         approval.setCommentText(dto != null ? dto.comment() : null);
         approval.setApprovedAt(LocalDateTime.now());
@@ -114,6 +118,8 @@ public class ApprovalServiceImpl implements ApprovalService {
         ApprovalHistory approval = findApproval(approvalId);
         PurchaseRequest request = findRequest(approval.getRequestId());
 
+        validatePendingApproval(request);
+
         approval.setApprovalStatus("REJECTED");
         approval.setCommentText(dto != null ? dto.comment() : null);
         approval.setApprovedAt(LocalDateTime.now());
@@ -131,6 +137,8 @@ public class ApprovalServiceImpl implements ApprovalService {
     public ApprovalHistoryDto.DetailResponse cancelRequest(Long approvalId) {
         ApprovalHistory approval = findApproval(approvalId);
         PurchaseRequest request = findRequest(approval.getRequestId());
+
+        validatePendingApproval(request);
 
         LocalDateTime now = LocalDateTime.now();
 
@@ -159,7 +167,7 @@ public class ApprovalServiceImpl implements ApprovalService {
         nullToEmpty(request.getRequestNo()),
         nullToEmpty(request.getTitle()),
         getUserName(request.getRequestorId()),
-        "-",
+        getDepartmentName(request.getRequestorId()),
         formatDate(request.getCreatedAt()),
         formatDate(request.getDueDate()),
         formatDateTime(request.getCreatedAt()),
@@ -173,16 +181,16 @@ public class ApprovalServiceImpl implements ApprovalService {
 );
     }
 
-private ApprovalHistoryDto.DetailResponse toDetailResponse(ApprovalHistory approval, PurchaseRequest request) {
-    Users requester = request.getRequestorId() == null
+    private ApprovalHistoryDto.DetailResponse toDetailResponse(ApprovalHistory approval, PurchaseRequest request) {
+        Users requester = request.getRequestorId() == null
             ? null
             : userRepository.findById(request.getRequestorId()).orElse(null);
 
-    Users approver = approval.getApproverId() == null
+        Users approver = approval.getApproverId() == null
             ? null
             : userRepository.findById(approval.getApproverId()).orElse(null);
 
-    return new ApprovalHistoryDto.DetailResponse(
+        return new ApprovalHistoryDto.DetailResponse(
             approval.getApprovalId(),
             request.getRequestId(),
             nullToEmpty(request.getRequestNo()),
@@ -192,7 +200,7 @@ private ApprovalHistoryDto.DetailResponse toDetailResponse(ApprovalHistory appro
                     requester != null ? nullToEmpty(requester.getUserName()) : getUserName(request.getRequestorId()),
                     ""
             ),
-            new ApprovalHistoryDto.DepartmentInfo(null, "-"),
+            new ApprovalHistoryDto.DepartmentInfo(null, getDepartmentName(request.getRequestorId())),
             formatDate(request.getCreatedAt()),
             formatDate(request.getDueDate()),
             formatDateTime(request.getCreatedAt()),
@@ -401,5 +409,28 @@ return new ApprovalHistoryDto.ApprovalItemResponse(
 
     private String formatDateTime(LocalDateTime value) {
     return value == null ? "" : value.format(DATE_TIME_FORMATTER);
-}
+    }
+
+    private String getDepartmentName(Long userId) {
+    if (userId == null) {
+        return "-";
+    }
+
+    return userRepository.findById(userId)
+            .map(Users::getDepartmentName)
+            .filter(name -> !isBlank(name))
+            .orElse("-");
+    }
+
+    private void validatePendingApproval(PurchaseRequest request) {
+        String status = toStatusCode(request.getRequestStatus());
+
+        if (!"PENDING_APPROVAL".equals(status)) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "승인 대기 상태의 요청만 처리할 수 있습니다. 현재 상태: "
+                        + toRequestStatusLabel(status)
+            );
+        }
+    }
 }
