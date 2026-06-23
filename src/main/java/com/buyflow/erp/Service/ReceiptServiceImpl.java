@@ -29,10 +29,10 @@ public class ReceiptServiceImpl implements ReceiptService {
 public ReceiptDto.DetailResponse getReceipt(Long receiptId) {
 
 String sql = buildListBaseSql()
-        + " AND x.ORDER_ID = :orderId";
+        + " AND x.RECEIPT_ID = :receiptId";
 
 Map<String, Object> params = new HashMap<>();
-    params.put("receiptId", receiptId);
+params.put("receiptId", receiptId);
 
     try {
     return jdbcTemplate.queryForObject(
