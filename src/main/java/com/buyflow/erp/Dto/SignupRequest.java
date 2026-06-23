@@ -26,6 +26,9 @@ public record SignupRequest(
         String departmentName,
 
         @Size(max = 50, message = "직책명은 50자 이하로 입력하세요.")
-        String positionName
+        String positionName,
+
+        @Size(max = 30, message = "직급은 30자 이하로 입력하세요.")
+        String jobRank
 ) {
 }

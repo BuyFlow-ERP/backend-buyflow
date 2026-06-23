@@ -28,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -60,8 +60,10 @@ public class AuthService {
         user.setEmail(request.email());
         user.setPhone(request.phone());
         user.setDepartmentName(request.departmentName());
-        user.setPositionName(request.positionName());
-        user.setJobRank("USER");
+        user.setPositionName(
+                StringUtils.hasText(request.positionName()) ? request.positionName() : "담당자");
+        user.setJobRank(
+                StringUtils.hasText(request.jobRank()) ? request.jobRank().trim() : "사원");
         user.setStatus("PENDING");
         user.setUseYn("Y");
         user.setCreatedAt(now);
@@ -69,7 +71,7 @@ public class AuthService {
 
         User savedUser = userRepository.save(user);
 
-        roleRepository.findByRoleCodeAndUseYn("REQUESTER", "Y")
+        roleRepository.findByRoleCodeAndUseYn("VIEWER", "Y")
                 .map(Role::getRoleId)
                 .ifPresent(roleId -> {
                     UserRole userRole = new UserRole();
