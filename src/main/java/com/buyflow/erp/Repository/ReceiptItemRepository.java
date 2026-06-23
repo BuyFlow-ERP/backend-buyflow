@@ -33,7 +33,9 @@ List<ReceiptItem> findByRequestId(
         @Param("requestId") Long requestId
 );
 
+List<ReceiptItem> findByReceiptId(Long receiptId);
+
 List<ReceiptItem> findByReceiptItemStatus(
         String receiptItemStatus
 );
-                }
+}
