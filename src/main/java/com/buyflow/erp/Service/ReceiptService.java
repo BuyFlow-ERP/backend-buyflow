@@ -30,4 +30,5 @@ public interface ReceiptService {
     ReceiptDto.FilterOptionsResponse getFilterOptions();
 
     ReceiptDto.SummaryResponse getSummary();
+
 }

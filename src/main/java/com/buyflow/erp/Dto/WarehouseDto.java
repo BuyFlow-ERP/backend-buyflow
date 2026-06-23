@@ -19,6 +19,7 @@ public class WarehouseDto {
         private String useYn;
         private String createdAt;
         private String managerName;
+        private String userName;
 
         // 페이징
         private int page = 0;

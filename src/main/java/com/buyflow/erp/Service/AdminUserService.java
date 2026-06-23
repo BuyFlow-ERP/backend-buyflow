@@ -116,6 +116,9 @@ public class AdminUserService {
             user.setPositionName(normalizeText(request.positionName()));
         }
 
+        if (request.jobRank() != null) {              // ← 추가
+            user.setJobRank(normalizeText(request.jobRank()));
+        }
         
         user.setUpdatedAt(LocalDateTime.now());
         return toAdminUserResponse(user);
