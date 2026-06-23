@@ -215,27 +215,61 @@ BigDecimal calculatedTotalAmount = items.stream()
             request.setRequestNo(createRequestNumber(requestId));
         }
 
+        List<PurchaseRequestDto.CreateItemRequest> itemDtos =
+        dto.items() == null ? List.of() : dto.items();
+
+            if (itemDtos.isEmpty()) {
+            throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST,
+            "구매 요청 품목은 1개 이상 필요합니다."
+        );
+    }
+
         List<PurchaseRequestItem> items = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
 
-        for (PurchaseRequestDto.CreateItemRequest itemDto : dto.items() == null ? List.<PurchaseRequestDto.CreateItemRequest>of() : dto.items()) {
-            int quantity = itemDto.requestQuantity() != null ? itemDto.requestQuantity() : 0;
-            BigDecimal unitPrice = itemDto.estimatedUnitPrice() != null
+        for (PurchaseRequestDto.CreateItemRequest itemDto : itemDtos) {
+    if (itemDto.productId() == null) {
+        throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "품목 ID는 필수입니다."
+        );
+    }
+
+        Product product = productRepository.findById(itemDto.productId())
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "존재하지 않는 품목 ID입니다: " + itemDto.productId()
+            ));
+
+            int quantity = itemDto.requestQuantity() != null
+            ? itemDto.requestQuantity()
+            : 0;
+
+            if (quantity <= 0) {
+                throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "요청 수량은 1개 이상이어야 합니다."
+        );
+    }
+
+        BigDecimal unitPrice = itemDto.estimatedUnitPrice() != null
             ? itemDto.estimatedUnitPrice()
-            : BigDecimal.ZERO;
+            : toBigDecimal(product.getUnitPrice());
 
             totalAmount = totalAmount.add(calculateAmount(quantity, unitPrice));
 
-            PurchaseRequestItem item = new PurchaseRequestItem();
+        PurchaseRequestItem item = new PurchaseRequestItem();
             item.setRequestId(requestId);
             item.setProductId(itemDto.productId());
             item.setRequestQuantity(quantity);
             item.setEstimatedUnitPrice(unitPrice);
-            item.setRemark(itemDto.remark());
+            item.setRemark(nullToEmpty(itemDto.remark()));
             item.setCreatedAt(now);
             item.setUpdatedAt(now);
+
             items.add(item);
-}
+    }
 
 		    request.setTotalAmount(totalAmount);
 		    purchaseRequestRepository.save(request);
