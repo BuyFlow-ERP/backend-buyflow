@@ -31,5 +31,4 @@ public interface ReceiptService {
 
     ReceiptDto.SummaryResponse getSummary();
 
-    ReceiptDto.DetailResponse getReceiptByOrderId(Long orderId);
 }

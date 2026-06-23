@@ -37,53 +37,11 @@ public class ReceiptServiceImpl implements ReceiptService {
     @Override
     public ReceiptDto.DetailResponse getReceipt(Long receiptId) {
 
-String sql = buildListBaseSql()
-        + " AND x.RECEIPT_ID = :receiptId";
+        String sql = buildListBaseSql()
+                + " AND x.RECEIPT_ID = :receiptId";
 
-Map<String, Object> params = new HashMap<>();
-params.put("receiptId", receiptId);
-
-    try {
-    return jdbcTemplate.queryForObject(
-            sql,
-            params,
-            (rs, rowNum) -> {
-
-                ReceiptDto.DetailResponse dto =
-                        new ReceiptDto.DetailResponse();
-
-                dto.setReceiptId(rs.getLong("RECEIPT_ID"));
-                dto.setOrderId(rs.getLong("ORDER_ID"));
-                dto.setOrderNumber(rs.getString("ORDER_NUMBER"));
-                dto.setSupplierName(rs.getString("SUPPLIER_NAME"));
-                dto.setOrderedAt(rs.getString("ORDERED_AT"));
-                dto.setExpectedReceiptAt(rs.getString("EXPECTED_RECEIPT_AT"));
-                dto.setWarehouseName(rs.getString("WAREHOUSE_NAME"));
-                dto.setOrderQuantity(rs.getLong("ORDER_QUANTITY"));
-                dto.setReceivedQuantity(rs.getLong("RECEIVED_QUANTITY"));
-                dto.setRemainingQuantity(rs.getLong("REMAINING_QUANTITY"));
-                dto.setStatus(rs.getString("STATUS"));
-
-                dto.setItems(new ArrayList<>());
-                dto.setHistories(new ArrayList<>());
-
-                return dto;
-            }
-    );
-} catch (Exception e) {
-    e.printStackTrace();
-    throw e;
-}
-}
-
-@Override
-public ReceiptDto.DetailResponse getReceiptByOrderId(Long orderId) {
-
-    String sql = buildListBaseSql()
-            + " AND x.ORDER_ID = :orderId";
-
-    Map<String, Object> params = new HashMap<>();
-    params.put("orderId", orderId);
+        Map<String, Object> params = new HashMap<>();
+        params.put("receiptId", receiptId);
 
         try {
             return jdbcTemplate.queryForObject(
@@ -130,56 +88,42 @@ public ReceiptDto.DetailResponse getReceiptByOrderId(Long orderId) {
         Map<String, Object> params = new HashMap<>();
         params.put("orderId", orderId);
 
-        return jdbcTemplate.queryForObject(
-                sql,
-                params,
-                (rs, rowNum) -> {
+        try {
+            return jdbcTemplate.queryForObject(
+                    sql,
+                    params,
+                    (rs, rowNum) -> {
 
-                    ReceiptDto.DetailResponse dto = new ReceiptDto.DetailResponse();
+                        ReceiptDto.DetailResponse dto = new ReceiptDto.DetailResponse();
 
-                    dto.setReceiptId(
-                            rs.getLong("RECEIPT_ID"));
+                        dto.setReceiptId(rs.getLong("RECEIPT_ID"));
+                        dto.setOrderId(rs.getLong("ORDER_ID"));
+                        dto.setOrderNumber(rs.getString("ORDER_NUMBER"));
+                        dto.setSupplierName(rs.getString("SUPPLIER_NAME"));
+                        dto.setOrderedAt(rs.getString("ORDERED_AT"));
+                        dto.setExpectedReceiptAt(rs.getString("EXPECTED_RECEIPT_AT"));
+                        dto.setWarehouseName(rs.getString("WAREHOUSE_NAME"));
+                        dto.setOrderQuantity(rs.getLong("ORDER_QUANTITY"));
+                        dto.setReceivedQuantity(rs.getLong("RECEIVED_QUANTITY"));
+                        dto.setRemainingQuantity(rs.getLong("REMAINING_QUANTITY"));
+                        dto.setStatus(rs.getString("STATUS"));
 
-                    dto.setOrderId(
-                            rs.getLong("ORDER_ID"));
+                        dto.setItems(
+                                getReceiptItems(
+                                        rs.getLong("ORDER_ID")));
 
-                    dto.setOrderNumber(
-                            rs.getString("ORDER_NUMBER"));
+                        System.out.println("ORDER_ID = " + rs.getLong("ORDER_ID"));
 
-                    dto.setSupplierName(
-                            rs.getString("SUPPLIER_NAME"));
+                        dto.setHistories(
+                                getReceiptHistories(
+                                        rs.getLong("ORDER_ID")));
 
-                    dto.setOrderedAt(
-                            rs.getString("ORDERED_AT"));
-
-                    dto.setExpectedReceiptAt(
-                            rs.getString("EXPECTED_RECEIPT_AT"));
-
-                    dto.setWarehouseName(
-                            rs.getString("WAREHOUSE_NAME"));
-
-                    dto.setOrderQuantity(
-                            rs.getLong("ORDER_QUANTITY"));
-
-                    dto.setReceivedQuantity(
-                            rs.getLong("RECEIVED_QUANTITY"));
-
-                    dto.setRemainingQuantity(
-                            rs.getLong("REMAINING_QUANTITY"));
-
-                    dto.setStatus(
-                            rs.getString("STATUS"));
-
-                    dto.setItems(
-                            getReceiptItems(
-                                    rs.getLong("ORDER_ID")));
-
-                    dto.setHistories(
-                            getReceiptHistories(
-                                    rs.getLong("ORDER_ID")));
-
-                    return dto;
-                });
+                        return dto;
+                    });
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     @Override
@@ -596,9 +540,7 @@ public ReceiptDto.DetailResponse getReceiptByOrderId(Long orderId) {
                 .map(orderItem -> {
 
                     System.out.println(orderItem);
-                    Product product = productRepository
-                            .findById(orderItem.getProductId())
-                            .orElse(null);
+                    Product product = orderItem.getProduct();
 
                     if (product == null) {
                         return null;
@@ -629,7 +571,18 @@ public ReceiptDto.DetailResponse getReceiptByOrderId(Long orderId) {
 
     private List<ReceiptDto.HistoryResponse> getReceiptHistories(Long orderId) {
 
-        return receiptRepository.findByOrderId(orderId)
+        System.out.println(
+                "history size = " +
+                        receiptRepository.findByOrderId(orderId).size());
+
+        System.out.println("getReceiptHistories 호출");
+        System.out.println("orderId = " + orderId);
+
+        List<Receipt> receipts = receiptRepository.findByOrderId(orderId);
+
+        System.out.println("receipt 개수 = " + receipts.size());
+
+        return receipts
                 .stream()
                 .map(receipt -> {
 

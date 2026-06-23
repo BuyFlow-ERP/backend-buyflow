@@ -24,8 +24,6 @@ Long getAcceptedQtySum(
         Long orderItemId
 );
 
-List<ReceiptItem> findByReceiptId(Long receiptId);
-
 Page<ReceiptItem> findAll(Pageable pageable);
 
 @Query("SELECT ri FROM ReceiptItem ri WHERE ri.receiptId = :requestId")
