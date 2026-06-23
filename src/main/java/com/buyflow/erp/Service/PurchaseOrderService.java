@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Dto.PurchaseOrderDto;
+import com.buyflow.erp.Entity.PurchaseOrder;
 
 public interface PurchaseOrderService {
 
@@ -23,4 +24,6 @@ public interface PurchaseOrderService {
 
 	// 발주 취소
 	PurchaseOrderDto.Response cancelOrder(Long orderId, String cancelReason);
+	
+	List<PurchaseOrder> getAllOrdersForExcel();
 }
