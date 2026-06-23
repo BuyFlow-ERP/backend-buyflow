@@ -3,6 +3,7 @@ package com.buyflow.erp.Service;
 import com.buyflow.erp.Dto.DashboardDto;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,8 +53,9 @@ public class DashboardServiceImpl implements DashboardService {
                 getInventoryStatus(),
                 getRecentPurchaseRequests(),
                 recentRequestTotal,
-                getLowStockItems(),
-                lowStockTotal
+                getLowStockItems(5),
+                lowStockTotal,
+                getSummaryDetails()
         );
     }
 
@@ -197,6 +199,170 @@ public class DashboardServiceImpl implements DashboardService {
         return ((Number) result).longValue();
     }
 
+    private DashboardDto.SummaryDetails getSummaryDetails() {
+        return new DashboardDto.SummaryDetails(
+            getDelayedOrderItems(),
+            getPendingApprovalItems(),
+            getScheduledReceiptItems(),
+            getPendingInspectionItems(),
+            getLowStockItems(null)
+    );
+}
+
+    @SuppressWarnings("unchecked")
+    private List<DashboardDto.DelayedOrderItem> getDelayedOrderItems() {
+        List<Object[]> rows = entityManager.createNativeQuery("""
+            SELECT po.ORDER_ID,
+                   NVL(po.ORDER_NO, 'PO-' || po.ORDER_ID) AS ORDER_NO,
+                   NVL(s.SUPPLIER_NAME, '-') AS SUPPLIER_NAME,
+                   po.DUE_DATE,
+                   NVL(po.ORDER_STATUS, '-') AS ORDER_STATUS,
+                   NVL(po.TOTAL_AMOUNT, 0) AS TOTAL_AMOUNT
+              FROM PURCHASE_ORDER po
+              LEFT JOIN SUPPLIER s
+                ON s.SUPPLIER_ID = po.SUPPLIER_ID
+             WHERE po.DUE_DATE IS NOT NULL
+               AND po.DUE_DATE < SYSTIMESTAMP
+               AND NVL(po.ORDER_STATUS, '-') NOT IN (
+                    'RECEIVED',
+                    'COMPLETED',
+                    'CANCELED',
+                    'CANCELLED'
+               )
+             ORDER BY po.DUE_DATE ASC, po.ORDER_ID DESC
+            """).getResultList();
+
+        return rows.stream()
+            .map(row -> new DashboardDto.DelayedOrderItem(
+                    toLong(row[0]),
+                    stringValue(row[1], "PO-" + row[0]),
+                    stringValue(row[2], "-"),
+                    formatDate(row[3]),
+                    toOrderStatusLabel(stringValue(row[4], "")),
+                    formatWon(row[5])
+            ))
+            .toList();
+}
+
+    @SuppressWarnings("unchecked")
+    private List<DashboardDto.PendingApprovalItem> getPendingApprovalItems() {
+        List<Object[]> rows = entityManager.createNativeQuery("""
+            SELECT pr.REQUEST_ID,
+                   NVL(pr.REQUEST_NO, 'PR-' || pr.REQUEST_ID) AS REQUEST_NO,
+                   NVL(u.USER_NAME, '-') AS USER_NAME,
+                   NVL(
+                       u.DEPARTMENT_NAME,
+                       NVL(u.POSITION_NAME, NVL(u.JOB_RANK, '-'))
+                   ) AS TEAM,
+                   pr.CREATED_AT,
+                   NVL(pr.TOTAL_AMOUNT, 0) AS TOTAL_AMOUNT,
+                   NVL(pr.REQUEST_STATUS, '-') AS REQUEST_STATUS
+              FROM PURCHASE_REQUESTS pr
+              LEFT JOIN USERS u
+                ON u.USER_ID = pr.REQUESTOR_ID
+             WHERE NVL(pr.DELETED_YN, 'N') = 'N'
+               AND UPPER(NVL(pr.REQUEST_STATUS, 'PENDING')) IN (
+                    'PENDING',
+                    'PENDING_APPROVAL',
+                    'WAITING',
+                    'REQUESTED'
+               )
+             ORDER BY pr.CREATED_AT DESC, pr.REQUEST_ID DESC
+            """).getResultList();
+
+        return rows.stream()
+            .map(row -> new DashboardDto.PendingApprovalItem(
+                    toLong(row[0]),
+                    stringValue(row[1], "PR-" + row[0]),
+                    stringValue(row[2], "-"),
+                    stringValue(row[3], "-"),
+                    formatDate(row[4]),
+                    formatWon(row[5]),
+                    toRequestStatusLabel(stringValue(row[6], ""))
+            ))
+            .toList();
+}
+
+    @SuppressWarnings("unchecked")
+    private List<DashboardDto.ScheduledReceiptItem> getScheduledReceiptItems() {
+        List<Object[]> rows = entityManager.createNativeQuery("""
+            SELECT po.ORDER_ID,
+                   NVL(po.ORDER_NO, 'PO-' || po.ORDER_ID) AS ORDER_NO,
+                   NVL(s.SUPPLIER_NAME, '-') AS SUPPLIER_NAME,
+                   po.DUE_DATE,
+                   NVL(po.ORDER_STATUS, '-') AS ORDER_STATUS,
+                   NVL(po.TOTAL_AMOUNT, 0) AS TOTAL_AMOUNT
+              FROM PURCHASE_ORDER po
+              LEFT JOIN SUPPLIER s
+                ON s.SUPPLIER_ID = po.SUPPLIER_ID
+             WHERE po.DUE_DATE IS NOT NULL
+               AND po.DUE_DATE >= SYSTIMESTAMP
+               AND po.DUE_DATE < SYSTIMESTAMP + INTERVAL '7' DAY
+               AND NVL(po.ORDER_STATUS, '-') NOT IN (
+                    'RECEIVED',
+                    'COMPLETED',
+                    'CANCELED',
+                    'CANCELLED'
+               )
+             ORDER BY po.DUE_DATE ASC, po.ORDER_ID DESC
+            """).getResultList();
+
+        return rows.stream()
+            .map(row -> new DashboardDto.ScheduledReceiptItem(
+                    toLong(row[0]),
+                    stringValue(row[1], "PO-" + row[0]),
+                    stringValue(row[2], "-"),
+                    formatDate(row[3]),
+                    toOrderStatusLabel(stringValue(row[4], "")),
+                    formatWon(row[5])
+            ))
+            .toList();
+}
+
+    @SuppressWarnings("unchecked")
+    private List<DashboardDto.PendingInspectionItem> getPendingInspectionItems() {
+        List<Object[]> rows = entityManager.createNativeQuery("""
+            SELECT r.RECEIPT_ID,
+                   NVL(r.RECEIPT_NO, 'RCP-' || r.RECEIPT_ID) AS RECEIPT_NO,
+                   NVL(po.ORDER_NO, '-') AS ORDER_NO,
+                   NVL(w.WAREHOUSE_NAME, r.WAREHOUSE_CODE) AS WAREHOUSE_NAME,
+                   r.RECEIPT_DATE,
+                   COUNT(ri.RECEIPT_ITEM_ID) AS ITEM_COUNT,
+                   NVL(SUM(ri.RECEIPT_QTY), 0) AS RECEIPT_QTY
+              FROM RECEIPT r
+              JOIN RECEIPT_ITEM ri
+                ON ri.RECEIPT_ID = r.RECEIPT_ID
+              LEFT JOIN PURCHASE_ORDER po
+                ON po.ORDER_ID = r.ORDER_ID
+              LEFT JOIN WAREHOUSE w
+                ON w.WAREHOUSE_CODE = r.WAREHOUSE_CODE
+             WHERE NOT EXISTS (
+                    SELECT 1
+                      FROM INSPECTION i
+                     WHERE i.RECEIPT_ITEM_ID = ri.RECEIPT_ITEM_ID
+             )
+             GROUP BY r.RECEIPT_ID,
+                      r.RECEIPT_NO,
+                      po.ORDER_NO,
+                      w.WAREHOUSE_NAME,
+                      r.WAREHOUSE_CODE,
+                      r.RECEIPT_DATE
+             ORDER BY r.RECEIPT_DATE DESC, r.RECEIPT_ID DESC
+            """).getResultList();
+
+        return rows.stream()
+            .map(row -> new DashboardDto.PendingInspectionItem(
+                    toLong(row[0]),
+                    stringValue(row[1], "RCP-" + row[0]),
+                    stringValue(row[2], "-"),
+                    stringValue(row[3], "-"),
+                    formatDate(row[4]),
+                    toLong(row[5]),
+                    toLong(row[6])
+            ))
+            .toList();
+}
+
     @SuppressWarnings("unchecked")
     private List<DashboardDto.MonthlyReceiptItem> getMonthlyReceipt() {
         List<Object[]> rows = entityManager.createNativeQuery("""
@@ -315,8 +481,8 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @SuppressWarnings("unchecked")
-    private List<DashboardDto.LowStockItem> getLowStockItems() {
-    List<Object[]> rows = entityManager.createNativeQuery("""
+    private List<DashboardDto.LowStockItem> getLowStockItems(Integer maxResults) {
+        Query query = entityManager.createNativeQuery("""
             SELECT s.STOCK_ID,
                    NVL(p.PRODUCT_NO, 'ITEM-' || s.PRODUCT_ID) AS PRODUCT_NO,
                    NVL(p.PRODUCT_NAME, '-') AS PRODUCT_NAME,
@@ -333,22 +499,26 @@ public class DashboardServiceImpl implements DashboardService {
              WHERE NVL(s.SAFETY_STOCK, 0) > 0
                AND NVL(s.QUANTITY, 0) < NVL(s.SAFETY_STOCK, 0)
              ORDER BY SHORTAGE_QTY DESC, s.STOCK_ID DESC
-            """)
-            .setMaxResults(5)
-            .getResultList();
+            """);
 
-    return rows.stream()
-            .map(row -> new DashboardDto.LowStockItem(
-                    toLong(row[0]),
-                    stringValue(row[1], "ITEM-" + row[0]),
-                    stringValue(row[2], "-"),
-                    stringValue(row[3], "-"),
-                    stringValue(row[4], "전체"),
-                    toLong(row[5]),
-                    toLong(row[6]),
-                    toLong(row[7])
-            ))
-            .toList();
+        if (maxResults != null) {
+        query.setMaxResults(maxResults);
+    }
+
+        List<Object[]> rows = query.getResultList();
+
+        return rows.stream()
+        .map(row -> new DashboardDto.LowStockItem(
+                toLong(row[0]),
+                stringValue(row[1], "ITEM-" + row[0]),
+                stringValue(row[2], "-"),
+                stringValue(row[3], "-"),
+                stringValue(row[4], ""),
+                toLong(row[5]),
+                toLong(row[6]),
+                toLong(row[7])
+        ))
+        .toList();
 }
 
     private int toPercent(long count, long total) {
@@ -444,4 +614,20 @@ public class DashboardServiceImpl implements DashboardService {
             default -> status;
         };
     }
+
+     private String toOrderStatusLabel(String status) {
+    if (status == null || status.isBlank()) {
+        return "-";
+    }
+
+        return switch (status.trim().toUpperCase()) {
+            case "DRAFT" -> "임시저장";
+            case "PENDING" -> "발주대기";
+            case "EXPECTED" -> "입고예정";
+            case "RECEIVED" -> "입고완료";
+            case "COMPLETED" -> "완료";
+            case "CANCELED", "CANCELLED" -> "취소";
+            default -> status;
+    };
+}
 }
