@@ -78,4 +78,8 @@ List<String> findDistinctCategoryNames();
      nativeQuery = true
 )
      List<String> findDistinctUnits();
+
+     boolean existsByProductNo(String productNo);
+
+     boolean existsByProductNoAndProductIdNot(String productNo, Long productId);
 }
