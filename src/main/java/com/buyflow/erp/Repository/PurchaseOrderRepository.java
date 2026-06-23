@@ -23,6 +23,7 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
             "LEFT JOIN FETCH i.product " +
             "LEFT JOIN FETCH p.supplier " +
             "LEFT JOIN FETCH p.user " + 
+            "LEFT JOIN FETCH p.attachment " +
             "WHERE p.orderId = :orderId")
     Optional<PurchaseOrder> findByIdWithItems(@Param("orderId") Long orderId);
 

@@ -73,6 +73,10 @@ public class PurchaseOrder {
     
     @Column(name = "EXPECTED_RECEIPT_FROM")
     private LocalDate expectedReceiptFrom;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ATTACHMENT_ID")
+    private Attachment attachment;
 
     @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
