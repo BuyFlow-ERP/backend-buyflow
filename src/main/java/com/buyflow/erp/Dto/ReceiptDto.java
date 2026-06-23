@@ -180,17 +180,7 @@ public class ReceiptDto {
         private TabCounts tabCounts;
     }
 
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class FormOptionsResponse {
-
-        private String nextReceiptNumber;
-
-        private List<ListResponse> eligibleOrders;
-    }
-
+    
     @Getter
     @Setter
     @NoArgsConstructor

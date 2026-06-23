@@ -29,10 +29,12 @@ import com.buyflow.erp.Repository.WarehouseRepository;
 @RequestMapping({ "/stocks", "/inventories" })
 public class StockController {
 
-    private final StockRepository stockRepository;
-    private final ProductRepository productRepository;
-    private final WarehouseRepository warehouseRepository;
-
+    @GetMapping
+    public ResponseEntity<List<StockDto.Response>> getStockList() {
+          // 서비스에서 DTO가 담긴 List를 받아와서 화면으로 뿌려줌.
+        List<Response> list = stockService.findAllStocks();
+        return ResponseEntity.ok(list);
+    }
 
 @GetMapping
 public StockListResponse getInventories(

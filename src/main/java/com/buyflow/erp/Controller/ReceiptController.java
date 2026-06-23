@@ -60,13 +60,7 @@ public class ReceiptController {
                                 receiptService.getFormOptions());
         }
 
-        @GetMapping("/form-options")
-        public ResponseEntity<ReceiptDto.FormOptionsResponse> getFormOptions() {
-
-                return ResponseEntity.ok(
-                                receiptService.getFormOptions());
-        }
-
+        
         @GetMapping("/summary")
         public ResponseEntity<ReceiptDto.SummaryResponse> getSummary() {
                 return ResponseEntity.ok(

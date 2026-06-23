@@ -142,7 +142,7 @@ public class ReceiptServiceImpl implements ReceiptService {
                     orderItem.getOrderItemId());
 
             receiptItem.setProductId(
-                    orderItem.getProductId());
+        orderItem.getProduct().getProductId());
 
             receiptItem.setReceiptQty(
                     itemRequest.getReceivedQuantity());
@@ -330,37 +330,7 @@ public class ReceiptServiceImpl implements ReceiptService {
         return response;
     }
 
-    @Override
-    public ReceiptDto.FormOptionsResponse getFormOptions() {
-
-        ReceiptDto.FormOptionsResponse response = new ReceiptDto.FormOptionsResponse();
-
-        response.setNextReceiptNumber(
-                "RC-" + System.currentTimeMillis());
-
-        var orders = searchReceipts(
-                "EXPECTED",
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                1,
-                10);
-
-        List<ReceiptDto.ListResponse> eligibleOrders = orders.getItems()
-                .stream()
-                .filter(item -> item.getRemainingQuantity() > 0)
-                .toList();
-
-        response.setEligibleOrders(
-                eligibleOrders);
-
-        return response;
-    }
-
+   
     @Override
     public ReceiptDto.SummaryResponse getSummary() {
         String sql = """

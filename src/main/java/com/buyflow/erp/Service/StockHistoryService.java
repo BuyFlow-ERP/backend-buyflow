@@ -12,8 +12,8 @@ public interface StockHistoryService {
     List<StockHistoryResponseDto> getStockHistoryByType(
             String historyType);
 
-    StockHistory getStockHistory(
-            Long historyId);
+ StockHistoryResponseDto getStockHistory(
+        Long historyId);
 
     List<StockHistoryResponseDto> searchStockHistory(
             String fromDate,
