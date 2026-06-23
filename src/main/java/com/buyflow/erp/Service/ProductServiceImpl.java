@@ -11,8 +11,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -29,55 +27,21 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public void saveProduct(ProductDto.CreateRequest request) {
-        validateProductRequest(null, request);
-
         Product product = new Product();
+
         applyRequest(product, request);
 
         productRepository.save(product);
-}
+    }
 
     @Override
     @Transactional
     public void updateProduct(Long productId, ProductDto.CreateRequest request) {
         Product product = productRepository.findById(productId)
-            .orElseThrow(() -> new EntityNotFoundException("품목을 찾을 수 없습니다. productId=" + productId));
-
-        validateProductRequest(productId, request);
+                .orElseThrow(() -> new EntityNotFoundException("품목을 찾을 수 없습니다. productId=" + productId));
 
         applyRequest(product, request);
-}
-
-    private void validateProductRequest(Long productId, ProductDto.CreateRequest request) {
-        String productNo = firstNotBlank(request.getProductNo(), request.getCode());
-        String productName = firstNotBlank(request.getProductName(), request.getName());
-        String categoryName = firstNotBlank(request.getCategoryName(), request.getCategory());
-        String unit = normalizeText(request.getUnit());
-
-        if (productNo == null) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "품목 코드는 필수입니다.");
     }
-
-        if (productName == null) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "품목명은 필수입니다.");
-    }
-
-        if (categoryName == null) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "카테고리는 필수입니다.");
-    }
-
-        if (unit == null) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "단위는 필수입니다.");
-    }
-
-            boolean duplicated = productId == null
-            ? productRepository.existsByProductNo(productNo)
-            : productRepository.existsByProductNoAndProductIdNot(productNo, productId);
-
-        if (duplicated) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 등록된 품목 코드입니다.");
-    }
-}
 
     @Override
     @Transactional
