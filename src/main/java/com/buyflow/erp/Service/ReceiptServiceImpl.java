@@ -3,6 +3,7 @@ package com.buyflow.erp.Service;
 import com.buyflow.erp.Dto.ReceiptDto;
 import com.buyflow.erp.Entity.Product;
 import com.buyflow.erp.Entity.Receipt;
+import com.buyflow.erp.Entity.ReceiptItem;
 import com.buyflow.erp.Repository.PurchaseOrderItemRepository;
 import com.buyflow.erp.Repository.ReceiptItemRepository;
 import com.buyflow.erp.Repository.ReceiptRepository;
@@ -590,13 +591,21 @@ public class ReceiptServiceImpl implements ReceiptService {
                 .stream()
                 .map(receipt -> {
 
-                    Long totalQty = receiptItemRepository
-                            .findByReceiptId(receipt.getReceiptId())
+                    List<ReceiptItem> receiptItems = receiptItemRepository.findByReceiptId(
+                            receipt.getReceiptId());
+
+                    Long totalQty = receiptItems
                             .stream()
                             .mapToLong(item -> item.getAcceptedQty() != null
                                     ? item.getAcceptedQty()
                                     : 0L)
                             .sum();
+
+                    String memo = receiptItems.stream()
+                            .map(ReceiptItem::getRemark)
+                            .filter(remark -> remark != null && !remark.isBlank())
+                            .findFirst()
+                            .orElse("");
 
                     return new ReceiptDto.HistoryResponse(
                             receipt.getReceiptId(),
@@ -606,8 +615,9 @@ public class ReceiptServiceImpl implements ReceiptService {
                                     : "",
                             receipt.getLoginId(),
                             totalQty,
-                            "",
+                            memo,
                             new ArrayList<>());
+
                 })
                 .toList();
     }
