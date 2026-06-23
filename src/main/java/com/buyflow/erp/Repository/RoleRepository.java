@@ -13,6 +13,8 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
 
     List<Role> findByRoleIdInAndUseYnOrderBySortOrderAscRoleCodeAsc(Collection<Long> roleIds, String useYn);
 
+    List<Role> findByRoleCodeInAndUseYnOrderBySortOrderAscRoleCodeAsc(Collection<String> roleCodes, String useYn);
+
     List<Role> findByUseYnOrderBySortOrderAscRoleCodeAsc(String useYn);
 }
 
