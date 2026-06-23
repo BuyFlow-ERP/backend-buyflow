@@ -66,7 +66,7 @@ public class ReceiptController {
 
 @GetMapping("/order/{orderId}")
 public ResponseEntity<ReceiptDto.DetailResponse> getReceiptByOrder(
-        @PathVariable Long orderId
+        @PathVariable(name = "orderId") Long orderId
 ) {
 
     System.out.println("ORDER API 호출: " + orderId);
