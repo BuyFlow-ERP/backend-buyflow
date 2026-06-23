@@ -187,6 +187,41 @@ public class PurchaseOrderController {
         
         workbook.write(response.getOutputStream());
         workbook.close();
-    	
+    }
+    
+    @GetMapping("/attachments/download/{attachmentId}")
+    public ResponseEntity<org.springframework.core.io.Resource> downloadAttachment(
+            @PathVariable("attachmentId") Long attachmentId) {
+        try {
+            // 1. DB에서 파일 정보 조회
+            Attachment attachment = attachmentRepository.findById(attachmentId)
+                    .orElseThrow(() -> new RuntimeException("파일 정보를 찾을 수 없습니다."));
+
+            // 2. 실제 물리 파일 경로 확인
+            java.nio.file.Path filePath = java.nio.file.Paths.get(attachment.getFilePath());
+
+            if (!java.nio.file.Files.exists(filePath)) {
+                throw new RuntimeException("서버에 실제 파일이 존재하지 않습니다.");
+            }
+
+            // 3. 리소스 생성 (Stream)
+            org.springframework.core.io.Resource resource = 
+                    new org.springframework.core.io.InputStreamResource(java.nio.file.Files.newInputStream(filePath));
+
+            // 4. 파일명 인코딩 (한글 깨짐 방지)
+            String encodedFileName = org.springframework.web.util.UriUtils.encode(attachment.getOriginalName(), java.nio.charset.StandardCharsets.UTF_8);
+            String contentDisposition = "attachment; filename=\"" + encodedFileName + "\"";
+
+            // 5. 다운로드 헤더 설정 및 반환
+            return ResponseEntity.ok()
+                    .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
+                    .contentType(org.springframework.http.MediaType.APPLICATION_OCTET_STREAM)
+                    .contentLength(java.nio.file.Files.size(filePath))
+                    .body(resource);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }
