@@ -1,6 +1,7 @@
 package com.buyflow.erp.Controller;
 
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -135,15 +136,22 @@ public InventoryListResponse getInventories(
                 "categories",
                 List.of("전체", "기타"));
 
-result.put(
-        "warehouses",
-        List.of(
-                Map.of(
-                        "value", "전체",
-                        "label", "전체"),
-                Map.of(
-                        "value", "WH001",
-                        "label", "애니메이트")));
+List<Map<String, String>> warehouses = new ArrayList<>();
+
+warehouses.add(
+        Map.of(
+                "value", "전체",
+                "label", "전체"));
+
+warehouseRepository.findAll()
+        .forEach(warehouse -> {
+            warehouses.add(
+                    Map.of(
+                            "value", warehouse.getWarehouseCode(),
+                            "label", warehouse.getWarehouseName()));
+        });
+
+result.put("warehouses", warehouses);
 
         result.put(
                 "stockStatuses",
