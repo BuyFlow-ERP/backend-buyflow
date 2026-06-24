@@ -3,6 +3,7 @@ package com.buyflow.erp.Service;
 import com.buyflow.erp.Common.BusinessException;
 import com.buyflow.erp.Common.ErrorCode;
 import com.buyflow.erp.Dto.AdminUserProfileUpdateRequest;
+import com.buyflow.erp.Dto.AdminUserDepartmentAuthorizationUpdateRequest;
 import com.buyflow.erp.Dto.AdminUserResponse;
 import com.buyflow.erp.Dto.AdminUserRoleUpdateRequest;
 import com.buyflow.erp.Dto.AdminUserStatusUpdateRequest;
@@ -46,6 +47,7 @@ public class AdminUserService {
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
     private final DepartmentRoleAssignmentRuleRepository departmentRoleAssignmentRuleRepository;
+    private final DepartmentAuthorizationService departmentAuthorizationService;
     private final RbacQueryService rbacQueryService;
 
     @Transactional(readOnly = true)
@@ -114,6 +116,7 @@ public class AdminUserService {
         user.setStatus("ACTIVE");
         user.setUseYn("Y");
         user.setUpdatedAt(LocalDateTime.now());
+        departmentAuthorizationService.ensureDefaultAuthorization(user);
         return toAdminUserResponse(user);
     }
     @Transactional
@@ -124,8 +127,9 @@ public class AdminUserService {
         if (request.useYn() != null) {
             user.setUseYn(request.useYn());
         }
-
+        
         user.setUpdatedAt(LocalDateTime.now());
+        departmentAuthorizationService.ensureDefaultAuthorization(user);
         return toAdminUserResponse(user);
     }
 
@@ -161,6 +165,7 @@ public class AdminUserService {
         }
         
         user.setUpdatedAt(LocalDateTime.now());
+        departmentAuthorizationService.ensureDefaultAuthorization(user);
         return toAdminUserResponse(user);
     }
 
@@ -192,6 +197,37 @@ public class AdminUserService {
         }
 
         replaceUserRoles(userId, roles);
+        user.setUpdatedAt(LocalDateTime.now());
+        return toAdminUserResponse(user);
+    }
+
+    @Transactional
+    public AdminUserResponse updateDepartmentAuthorization(
+            Long userId,
+            AdminUserDepartmentAuthorizationUpdateRequest request,
+            String currentLoginId
+    ) {
+        User currentUser = findUserByLoginId(currentLoginId);
+        User user = findUser(userId);
+
+        if (!isAdmin(currentUser)) {
+            requireTeamManagerDepartment(currentUser);
+
+            if (isSameUser(user, currentLoginId)) {
+                throw new BusinessException(ErrorCode.FORBIDDEN, "You cannot change your own department authorization.");
+            }
+
+            if (!isSameDepartment(currentUser, user)) {
+                throw new BusinessException(ErrorCode.FORBIDDEN, "Only users in your department can be changed.");
+            }
+
+            Set<String> targetRoleCodes = findRoleCodes(user.getUserId());
+            if (targetRoleCodes.stream().anyMatch(PROTECTED_ROLE_CODES::contains)) {
+                throw new BusinessException(ErrorCode.FORBIDDEN, "Protected role holders cannot be changed.");
+            }
+        }
+
+        departmentAuthorizationService.setAuthorized(user, Boolean.TRUE.equals(request.authorized()));
         user.setUpdatedAt(LocalDateTime.now());
         return toAdminUserResponse(user);
     }
@@ -407,7 +443,8 @@ public class AdminUserService {
         return new AdminUserResponse(
                 UserResponse.from(user),
                 roles,
-                rbacQueryService.findPermissionCodesByUserId(user.getUserId())
+                rbacQueryService.findPermissionCodesByUserId(user.getUserId()),
+                departmentAuthorizationService.isAuthorized(user)
         );
     }
 

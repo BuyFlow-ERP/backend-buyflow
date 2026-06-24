@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,6 +20,7 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
+@Table(name = "EXCEL_EXPORT_HISTORY")
 @AllArgsConstructor
 @NoArgsConstructor
 public class ExcelExportHistory {
@@ -36,10 +38,6 @@ public class ExcelExportHistory {
 	@Column(name = "EXPORT_ID")
 	private Long exportId;
 	
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "ATTACHMENT_ID", nullable = false)
-	private Attachment attachment;
-	
 	@Column(name = "EXPORT_TYPE", length = 50)
 	private String exportType;
 	
@@ -51,4 +49,8 @@ public class ExcelExportHistory {
 	
 	@Column(name = "DOWNLOAD_ROW_COUNT")
 	private Long downloadRowCount;
+	
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "USER_ID", nullable = false)
+	private Users user;
 }

@@ -40,6 +40,7 @@ public class AuthService {
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
     private final RbacQueryService rbacQueryService;
+    private final DepartmentAuthorizationService departmentAuthorizationService;
     private final VerificationCodeService verificationCodeService;
     private final PasswordResetTokenService passwordResetTokenService;
     private final PasswordEncoder passwordEncoder;
@@ -70,6 +71,7 @@ public class AuthService {
         user.setUpdatedAt(now);
 
         User savedUser = userRepository.save(user);
+        departmentAuthorizationService.ensureDefaultAuthorization(savedUser);
 
         roleRepository.findByRoleCodeAndUseYn("VIEWER", "Y")
                 .map(Role::getRoleId)

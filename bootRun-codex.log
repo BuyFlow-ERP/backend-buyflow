@@ -1,0 +1,225 @@
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :resolveMainClassName
+
+> Task :bootRun
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::               (v3.5.14)
+
+2026-06-24T16:08:03.191+09:00  INFO 23292 --- [buyflow-erp] [           main] com.buyflow.erp.BuyflowErpApplication    : Starting BuyflowErpApplication using Java 17.0.11 with PID 23292 (C:\최신판\backend-buyflow-git\build\classes\java\main started by user in C:\최신판\backend-buyflow-git)
+2026-06-24T16:08:03.194+09:00  INFO 23292 --- [buyflow-erp] [           main] com.buyflow.erp.BuyflowErpApplication    : No active profile set, falling back to 1 default profile: "default"
+2026-06-24T16:08:04.421+09:00  INFO 23292 --- [buyflow-erp] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-06-24T16:08:04.569+09:00  INFO 23292 --- [buyflow-erp] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 139 ms. Found 26 JPA repository interfaces.
+2026-06-24T16:08:05.183+09:00  INFO 23292 --- [buyflow-erp] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-06-24T16:08:05.196+09:00  INFO 23292 --- [buyflow-erp] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-06-24T16:08:05.197+09:00  INFO 23292 --- [buyflow-erp] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.54]
+2026-06-24T16:08:05.260+09:00  INFO 23292 --- [buyflow-erp] [           main] o.a.c.c.C.[Tomcat].[localhost].[/api]    : Initializing Spring embedded WebApplicationContext
+2026-06-24T16:08:05.261+09:00  INFO 23292 --- [buyflow-erp] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 2028 ms
+2026-06-24T16:08:05.615+09:00  INFO 23292 --- [buyflow-erp] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-06-24T16:08:05.669+09:00  INFO 23292 --- [buyflow-erp] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.49.Final
+2026-06-24T16:08:05.701+09:00  INFO 23292 --- [buyflow-erp] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-06-24T16:08:05.971+09:00  INFO 23292 --- [buyflow-erp] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-06-24T16:08:06.001+09:00  INFO 23292 --- [buyflow-erp] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-06-24T16:08:06.711+09:00  INFO 23292 --- [buyflow-erp] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection oracle.jdbc.driver.T4CConnection@6a07e6ca
+2026-06-24T16:08:06.712+09:00  INFO 23292 --- [buyflow-erp] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-06-24T16:08:06.829+09:00  WARN 23292 --- [buyflow-erp] [           main] org.hibernate.orm.deprecation            : HHH90000025: OracleDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-06-24T16:08:06.871+09:00  INFO 23292 --- [buyflow-erp] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 23.26
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-06-24T16:08:08.171+09:00  INFO 23292 --- [buyflow-erp] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-06-24T16:08:09.810+09:00  INFO 23292 --- [buyflow-erp] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-06-24T16:08:10.213+09:00  INFO 23292 --- [buyflow-erp] [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-06-24T16:08:12.549+09:00  WARN 23292 --- [buyflow-erp] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-06-24T16:08:12.650+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.AdminRbacController:
+	{GET [/admin/permissions]}: findPermissions()
+	{GET [/admin/roles]}: findRoles()
+2026-06-24T16:08:12.656+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.AdminUserController:
+	{GET [/admin/users/page]}: search(String,String,String,String,String,String,int,int,Authentication)
+	{GET [/admin/users]}: findAll(Authentication)
+	{PATCH [/admin/users/{userId}/status]}: updateStatus(Long,AdminUserStatusUpdateRequest)
+	{GET [/admin/users/{userId}]}: findById(Long,Authentication)
+	{PUT [/admin/users/{userId}/department-authorization]}: updateDepartmentAuthorization(Long,AdminUserDepartmentAuthorizationUpdateRequest,Authentication)
+	{GET [/admin/users/assignable-roles]}: findAssignableRoles(Authentication)
+	{PUT [/admin/users/{userId}/profile]}: updateProfile(Long,AdminUserProfileUpdateRequest,Authentication)
+	{PATCH [/admin/users/{userId}/approve]}: approve(Long)
+	{PUT [/admin/users/{userId}/roles]}: updateRoles(Long,AdminUserRoleUpdateRequest,Authentication)
+	{GET [/admin/users/departments]}: findDepartments(Authentication)
+2026-06-24T16:08:12.667+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.ApprovalController:
+	{POST [/approvals/{approvalId}/reject]}: reject(Long,DecisionRequest)
+	{POST [/approvals/{approvalId}/approve]}: approve(Long,DecisionRequest)
+	{GET [/approvals/{approvalId}]}: getApprovalDetail(Long)
+	{GET [/approvals]}: getApprovals(String,String,String,String,String,String,String,int,int)
+	{PATCH [/approvals/{approvalId}/cancel-request]}: cancelRequest(Long)
+2026-06-24T16:08:12.669+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.AttachmentController:
+	{GET [/api/attachments/download/{attachmentId}]}: downloadAttachment(Long)
+2026-06-24T16:08:12.671+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.AuthController:
+	{GET [/auth/me]}: me(Authentication)
+	{POST [/auth/login]}: login(LoginRequest)
+	{POST [/auth/reset-password/code]}: requestPasswordResetCode(PasswordResetCodeRequest)
+	{POST [/auth/reset-password/confirm]}: confirmPasswordReset(PasswordResetConfirmRequest)
+	{POST [/auth/find-login-id/code]}: requestFindLoginIdCode(FindLoginIdCodeRequest)
+	{POST [/auth/reset-password/verify]}: verifyPasswordResetCode(VerificationCodeVerifyRequest)
+	{POST [/auth/find-login-id/verify]}: verifyFindLoginIdCode(VerificationCodeVerifyRequest)
+	{POST [/auth/signup]}: signup(SignupRequest)
+2026-06-24T16:08:12.673+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.DashboardController:
+	{GET [/dashboard]}: getDashboard()
+2026-06-24T16:08:12.674+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.DepartmentPermissionController:
+	{GET [/admin/departments/{departmentName}/permissions]}: findPermissions(String)
+	{PUT [/admin/departments/{departmentName}/permissions]}: updatePermissions(String,DepartmentPermissionUpdateRequest)
+	{GET [/admin/departments/permission-profiles]}: findProfiles()
+2026-06-24T16:08:12.675+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.HealthController:
+	{GET [/health]}: health()
+2026-06-24T16:08:12.677+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.InspectionController:
+	{GET [/inspections/pending]}: getPendingInspections(SearchCondition)
+	{GET [/inspections/completed/summary]}: getCompletedInspectionSummary()
+	{GET [/inspections/{receiptId}]}: getInspectionDetail(Long)
+	{POST [/inspections/{receiptId}/result]}: saveInspectionResult(Long,ResultRequest)
+	{GET [/inspections/completed]}: getCompletedInspections(SearchCondition)
+	{GET [/inspections/pending/filter-options]}: getInspectionFilterOptions()
+	{GET [/inspections/pending/summary]}: getPendingSummary()
+2026-06-24T16:08:12.679+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.PermissionController:
+	{GET [/permissions]}: findAll()
+2026-06-24T16:08:12.681+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.ProductController:
+	{GET [/products/filter-options]}: getFilterOptions()
+	{PUT [/products/{productId}]}: updateProduct(Long,CreateRequest)
+	{GET [/products]}: getProducts(SearchCondition)
+	{GET [/products/{productId}]}: getProduct(Long)
+	{DELETE [/products/{productId}]}: deleteProduct(Long)
+	{POST [/products]}: saveProduct(CreateRequest)
+2026-06-24T16:08:12.686+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.PurchaseOrderController:
+	{GET [/api/orders/{orderId} || /orders/{orderId}]}: getOrder(Long)
+	{GET [/api/orders/attachments/download/{attachmentId} || /orders/attachments/download/{attachmentId}]}: downloadAttachment(Long)
+	{GET [/api/orders || /orders]}: getOrderList(SearchCondition)
+	{POST [/api/orders || /orders]}: createOrder(Request,MultipartFile)
+	{GET [/api/orders/purchase-requests/{requestId}/items || /orders/purchase-requests/{requestId}/items]}: getRequestItems(Long)
+	{PATCH [/api/orders/{orderId}/cancel || /orders/{orderId}/cancel]}: cancelOrder(Long,Map)
+	{GET [/api/orders/form-options || /orders/form-options]}: getFormOptions()
+	{PUT [/api/orders/{orderId} || /orders/{orderId}]}: updateOrder(Long,Request,MultipartFile)
+	{GET [/api/orders/excel || /orders/excel]}: exportExcel(HttpServletResponse)
+2026-06-24T16:08:12.691+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.PurchaseOrderItemController:
+	{GET [/purchase-order-items]}: getOrderItems()
+	{POST [/purchase-order-items]}: saveOrderItem(CreateRequest)
+2026-06-24T16:08:12.695+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.PurchaseRequestController:
+	{GET [/purchase-requests/{requestId}]}: getPurchaseRequestDetail(Long)
+	{DELETE [/purchase-requests/{requestId}]}: deletePurchaseRequest(Long)
+	{POST [/purchase-requests], consumes [multipart/form-data]}: createPurchaseRequest(CreateRequest,MultipartFile)
+	{PATCH [/purchase-requests/{requestId}/cancel]}: cancelPurchaseRequest(Long)
+	{PUT [/purchase-requests/{requestId}], consumes [multipart/form-data]}: updatePurchaseRequest(Long,UpdateRequest,MultipartFile)
+	{GET [/purchase-requests]}: getPurchaseRequests(String,String,String,String,String,String,String,String,String,String,int,int)
+	{GET [/purchase-requests/attachments/{attachmentId}/download]}: downloadAttachment(Long)
+	{GET [/purchase-requests/filter-options]}: getFilterOptions()
+	{GET [/purchase-requests/excel]}: exportExcel(HttpServletResponse)
+	{GET [/purchase-requests/summary]}: getSummary()
+2026-06-24T16:08:12.701+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.ReceiptController:
+	{POST [/api/receipts/test || /receipts/test]}: test(ReceiptCreateRequest)
+	{GET [/api/receipts/test || /receipts/test]}: test()
+	{GET [/api/receipts/order/{orderId} || /receipts/order/{orderId}]}: getReceiptByOrderId(Long)
+	{GET [/api/receipts/filter-options || /receipts/filter-options]}: getFilterOptions()
+	{GET [/api/receipts/form-options || /receipts/form-options]}: getFormOptions()
+	{GET [/api/receipts/summary || /receipts/summary]}: getSummary()
+	{GET [/api/receipts/{receiptId:\d+} || /receipts/{receiptId:\d+}]}: getReceipt(Long)
+	{POST [/api/receipts || /receipts]}: saveReceipt(ReceiptCreateRequest)
+	{GET [/api/receipts || /receipts]}: getReceipts(String,String,String,String,String,String,String,String,int,int)
+2026-06-24T16:08:12.705+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.ReceiptItemController:
+	{GET [/receipt-items/status/{receiptItemStatus}]}: getReceiptItemsByStatus(String)
+	{PUT [/receipt-items/{receiptItemId}]}: updateReceiptItem(Long,CreateRequest)
+	{PUT [/receipt-items/{receiptItemId}/cancel]}: cancelReceiptItem(Long)
+	{GET [/receipt-items]}: getReceiptItems()
+	{POST [/receipt-items]}: saveReceiptItem(CreateRequest)
+2026-06-24T16:08:12.707+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.RoleController:
+	{GET [/roles]}: findAll()
+	{PUT [/roles/{roleCode}/permissions]}: updateRolePermissions(String,RolePermissionUpdateRequest)
+	{GET [/roles/{roleCode}/permissions]}: findRolePermissions(String)
+2026-06-24T16:08:12.710+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.StockController:
+	{GET [/inventories/filter-options || /stocks/filter-options]}: getFilterOptions()
+	{POST [/inventories/{stockId}/adjustments || /stocks/{stockId}/adjustments]}: adjustStock(Long,InventoryAdjustmentRequest)
+	{GET [/inventories || /stocks]}: getInventories(String,String,String,String,String)
+2026-06-24T16:08:12.713+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.StockHistoryController:
+	{GET [/stock-history/type/{historyType}]}: getStockHistoryByType(String)
+	{GET [/stock-history/filter-options]}: getFilterOptions()
+	{GET [/stock-history/{historyId}]}: getStockHistory(Long)
+	{GET [/stock-history]}: getStockHistory(String,String,String,String,String)
+2026-06-24T16:08:12.718+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.SupplierController:
+	{PUT [/suppliers/{supplierId}]}: update(Long,SupplierRequest)
+	{DELETE [/suppliers/{supplierId}]}: delete(Long)
+	{POST [/suppliers]}: create(SupplierRequest)
+	{GET [/suppliers]}: search(String,String,String,String,int,int)
+	{GET [/suppliers/{supplierId}]}: findById(Long)
+	{GET [/suppliers/business-number/exists]}: existsBusinessNumber(String,Long)
+	{GET [/suppliers/filter-options]}: findFilterOptions()
+	{PATCH [/suppliers/{supplierId}/trade-status]}: changeTradeStatus(Long,SupplierTradeStatusRequest)
+2026-06-24T16:08:12.721+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.UserController:
+	{PUT [/users/{userId}]}: update(Long,UserUpdateRequest,Authentication)
+	{GET [/users/page]}: search(String,String,String,String,int,int)
+	{GET [/users]}: findAll()
+	{GET [/users/{userId}]}: findById(Long)
+	{DELETE [/users/{userId}]}: deactivate(Long,Authentication)
+2026-06-24T16:08:12.724+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	c.b.e.C.WarehouseController:
+	{GET [/warehouses/filter-options]}: getFilterOptions()
+	{GET [/warehouses]}: getWarehouseList(SearchCondition)
+	{DELETE [/warehouses/{warehouseCode}]}: deleteWarehouse(String)
+	{GET [/warehouses/{warehouseCode}]}: getWarehouse(String)
+	{PATCH [/warehouses/{warehouseCode}]}: updateWarehouse(String,Update)
+	{POST [/warehouses]}: createWarehouse(Create)
+2026-06-24T16:08:12.728+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	o.s.b.a.w.s.e.BasicErrorController:
+	{ [/error]}: error(HttpServletRequest)
+	{ [/error], produces [text/html]}: errorHtml(HttpServletRequest,HttpServletResponse)
+2026-06-24T16:08:12.744+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	o.s.w.a.OpenApiWebMvcResource:
+	{GET [/v3/api-docs], produces [application/json]}: openapiJson(HttpServletRequest,String,Locale)
+	{GET [/v3/api-docs.yaml], produces [application/vnd.oai.openapi]}: openapiYaml(HttpServletRequest,String,Locale)
+2026-06-24T16:08:12.747+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	o.s.w.u.SwaggerWelcomeWebMvc:
+	{GET [/swagger-ui.html]}: redirectToUi(HttpServletRequest)
+2026-06-24T16:08:12.748+09:00 TRACE 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 
+	o.s.w.u.SwaggerConfigResource:
+	{GET [/v3/api-docs/swagger-config], produces [application/json]}: openapiJson(HttpServletRequest)
+2026-06-24T16:08:12.750+09:00 DEBUG 23292 --- [buyflow-erp] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 115 mappings in 'requestMappingHandlerMapping'
+2026-06-24T16:08:13.016+09:00  INFO 23292 --- [buyflow-erp] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2026-06-24T16:08:13.072+09:00  WARN 23292 --- [buyflow-erp] [           main] .s.s.UserDetailsServiceAutoConfiguration : 
+
+Using generated security password: a9cc3b9b-1589-4ca1-8c4d-9f9428b8868f
+
+This generated password is for development use only. Your security configuration must be updated before running your application in production.
+
+2026-06-24T16:08:13.082+09:00  INFO 23292 --- [buyflow-erp] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
+2026-06-24T16:08:13.618+09:00  INFO 23292 --- [buyflow-erp] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/api'
+2026-06-24T16:08:13.634+09:00  INFO 23292 --- [buyflow-erp] [           main] com.buyflow.erp.BuyflowErpApplication    : Started BuyflowErpApplication in 10.954 seconds (process running for 11.307)
+2026-06-24T16:08:13.641+09:00  WARN 23292 --- [buyflow-erp] [           main] o.s.core.events.SpringDocAppInitializer  : SpringDoc /v3/api-docs endpoint is enabled by default. To disable it in production, set the property 'springdoc.api-docs.enabled=false'
+2026-06-24T16:08:13.641+09:00  WARN 23292 --- [buyflow-erp] [           main] o.s.core.events.SpringDocAppInitializer  : SpringDoc /swagger-ui.html endpoint is enabled by default. To disable it in production, set the property 'springdoc.swagger-ui.enabled=false'

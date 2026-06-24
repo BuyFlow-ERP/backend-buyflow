@@ -550,10 +550,23 @@ public class ApprovalServiceImpl implements ApprovalService {
         }
         
         if (principal instanceof UserDetails userDetails) {
-            return parseUserId(userDetails.getUsername());
+            return resolveLoginUserId(userDetails.getUsername());
         }
         
-        return parseUserId(authentication.getName());
+        return resolveLoginUserId(authentication.getName());
+    }
+
+    private Long resolveLoginUserId(String value) {
+        if (isBlank(value)) {
+            throw new ResponseStatusException(
+                HttpStatus.UNAUTHORIZED,
+                "?꾩옱 濡쒓렇???ъ슜???뺣낫瑜??뺤씤?????놁뒿?덈떎."
+            );
+        }
+
+        return userRepository.findByLoginId(value.trim())
+            .map(Users::getUserId)
+            .orElseGet(() -> parseUserId(value));
     }
     
     private Long parseUserId(String value) {

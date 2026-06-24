@@ -9,7 +9,6 @@ import com.buyflow.erp.Repository.ReceiptItemRepository;
 import com.buyflow.erp.Repository.ReceiptRepository;
 import lombok.RequiredArgsConstructor;
 import com.buyflow.erp.Entity.PurchaseOrderItem;
-import com.buyflow.erp.Repository.ProductRepository;
 
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -28,7 +27,6 @@ public class ReceiptServiceImpl implements ReceiptService {
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
     private final ReceiptItemRepository receiptItemRepository;
-    private final ProductRepository productRepository;
 
     @Override
     public List<Receipt> getReceipts() {

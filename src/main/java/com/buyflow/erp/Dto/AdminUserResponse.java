@@ -5,6 +5,7 @@ import java.util.List;
 public record AdminUserResponse(
         UserResponse user,
         List<RoleResponse> roles,
-        List<String> permissions
+        List<String> permissions,
+        Boolean departmentAuthorized
 ) {
 }
