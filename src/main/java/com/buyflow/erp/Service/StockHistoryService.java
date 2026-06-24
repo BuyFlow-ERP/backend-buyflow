@@ -6,17 +6,18 @@ import com.buyflow.erp.Dto.StockHistoryResponseDto;
 
 public interface StockHistoryService {
 
-    List<StockHistoryResponseDto> getStockHistory(
-        String fromDate,
-        String toDate,
-        String itemKeyword,
-        String warehouseCode,
-        String movementType
-);
+    List<StockHistoryResponseDto> getStockHistory();
 
     List<StockHistoryResponseDto> getStockHistoryByType(
             String historyType);
 
     StockHistoryResponseDto getStockHistory(
-            Long historyId);
+        Long historyId);
+
+    List<StockHistoryResponseDto> searchStockHistory(
+            String fromDate,
+            String toDate,
+            String itemKeyword,
+            String warehouseCode,
+            String movementType);
 }

@@ -10,6 +10,7 @@ public interface ReceiptService {
     List<Receipt> getReceipts();
 
     ReceiptDto.DetailResponse getReceipt(Long receiptId);
+
     ReceiptDto.DetailResponse getReceiptByOrderId(Long orderId);
 
     void saveReceipt(ReceiptDto.ReceiptCreateRequest request);
@@ -29,6 +30,7 @@ public interface ReceiptService {
 
     ReceiptDto.FilterOptionsResponse getFilterOptions();
 
-    ReceiptDto.SummaryResponse getSummary();
+    ReceiptDto.FormOptionsResponse getFormOptions();
 
+    ReceiptDto.SummaryResponse getSummary();
 }

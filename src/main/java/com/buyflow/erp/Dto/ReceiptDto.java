@@ -13,12 +13,27 @@ public class ReceiptDto {
     @Getter
     @Setter
     public static class ReceiptCreateRequest {
-        private Long orderId;
-        private String warehouseCode;
-        private String receiptNo;
-        private LocalDateTime receiptDate;
-        private String receiptStatus;
-        private String loginId;
+
+        private String receiptNumber;
+
+        private Long targetReceiptId;
+
+        private String receivedAt;
+
+        private String receiverName;
+
+        private String memo;
+
+        private List<ReceiptCreateItemRequest> items;
+    }
+
+    @Getter
+    @Setter
+    public static class ReceiptCreateItemRequest {
+
+        private Long orderItemId;
+
+        private Long receivedQuantity;
     }
 
     @Getter
@@ -145,6 +160,17 @@ public class ReceiptDto {
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
+    public static class FormOptionsResponse {
+
+        private String nextReceiptNumber;
+
+        private List<ListResponse> eligibleOrders;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class SummaryResponse {
         private long todayExpected;
         private long yesterdayDifference;
@@ -154,6 +180,7 @@ public class ReceiptDto {
         private TabCounts tabCounts;
     }
 
+    
     @Getter
     @Setter
     @NoArgsConstructor

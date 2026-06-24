@@ -2,6 +2,7 @@ package com.buyflow.erp.Controller;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,7 +15,6 @@ import com.buyflow.erp.Repository.WarehouseRepository;
 import com.buyflow.erp.Service.StockHistoryService;
 
 import lombok.RequiredArgsConstructor;
-import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -24,36 +24,36 @@ public class StockHistoryController {
     private final StockHistoryService stockHistoryService;
     private final WarehouseRepository warehouseRepository;
 
-   @GetMapping
-public List<StockHistoryResponseDto> getStockHistory(
-        @RequestParam(name = "fromDate", required = false) String fromDate,
-        @RequestParam(name = "toDate", required = false) String toDate,
-        @RequestParam(name = "itemKeyword", required = false) String itemKeyword,
-        @RequestParam(name = "warehouseCode", required = false) String warehouseCode,
-        @RequestParam(name = "movementType", required = false) String movementType) {
+    @GetMapping
+    public List<StockHistoryResponseDto> getStockHistory(
+            @RequestParam(name = "fromDate", required = false) String fromDate,
+            @RequestParam(name = "toDate", required = false) String toDate,
+            @RequestParam(required = false) String itemKeyword,
+            @RequestParam(required = false) String warehouseCode,
+            @RequestParam(required = false) String movementType) {
 
-    return stockHistoryService.getStockHistory(
-            fromDate,
-            toDate,
-            itemKeyword,
-            warehouseCode,
-            movementType);
-}
+        return stockHistoryService.searchStockHistory(
+                fromDate,
+                toDate,
+                itemKeyword,
+                warehouseCode,
+                movementType);
+    }
 
     @GetMapping("/type/{historyType}")
     public List<StockHistoryResponseDto> getStockHistoryByType(
-            @PathVariable(name = "historyType") String historyType) {
+            @PathVariable String historyType) {
 
-        return stockHistoryService
-                .getStockHistoryByType(historyType);
+        return stockHistoryService.getStockHistoryByType(historyType);
     }
 
+   
+        
     @GetMapping("/{historyId}")
     public StockHistoryResponseDto getStockHistory(
             @PathVariable(name = "historyId") Long historyId) {
 
-        return stockHistoryService
-                .getStockHistory(historyId);
+        return stockHistoryService.getStockHistory(historyId);
     }
 
     @GetMapping("/filter-options")
@@ -71,13 +71,14 @@ public List<StockHistoryResponseDto> getStockHistory(
                         .toList());
 
         result.put(
-                "movementTypes",
-                List.of(
-                        "전체",
-                        "RECEIPT",
-                        "UPDATE",
-                        "DELETE",
-                        "CANCEL"));
+        "movementTypes",
+        List.of(
+                "전체",
+                "INBOUND",
+                "INSPECTION_ADJUST",
+                "UPDATE",
+                "DELETE",
+                "CANCEL"));
 
         return result;
     }

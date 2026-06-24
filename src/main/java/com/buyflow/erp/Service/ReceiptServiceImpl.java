@@ -14,6 +14,7 @@ import com.buyflow.erp.Repository.ProductRepository;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -95,27 +96,72 @@ public class ReceiptServiceImpl implements ReceiptService {
 
     @Override
     public void saveReceipt(ReceiptDto.ReceiptCreateRequest request) {
-        try {
-            System.out.println("1. saveReceipt 시작");
 
-            Receipt receipt = new Receipt();
+        Receipt receipt = new Receipt();
 
-            receipt.setOrderId(request.getOrderId());
-            receipt.setWarehouseCode(request.getWarehouseCode());
-            receipt.setReceiptNo(request.getReceiptNo());
-            receipt.setReceiptDate(request.getReceiptDate());
-            receipt.setReceiptStatus(request.getReceiptStatus());
-            receipt.setLoginId(request.getLoginId());
+        receipt.setOrderId(request.getTargetReceiptId());
 
-            System.out.println("2. save 직전");
+        receipt.setReceiptNo(request.getReceiptNumber());
 
-            receiptRepository.save(receipt);
+        receipt.setReceiptDate(
+                LocalDate.parse(request.getReceivedAt())
+                        .atStartOfDay());
 
-            System.out.println("3. save 완료");
+        receipt.setReceiptStatus("RECEIVED");
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw e;
+        receipt.setLoginId(request.getReceiverName());
+
+        receipt = receiptRepository.save(receipt);
+
+        if (request.getItems() == null) {
+            return;
+        }
+
+        for (ReceiptDto.ReceiptCreateItemRequest itemRequest : request.getItems()) {
+
+            System.out.println(
+                    "orderItemId = " + itemRequest.getOrderItemId());
+
+            System.out.println(
+                    "receivedQuantity = " + itemRequest.getReceivedQuantity());
+
+            PurchaseOrderItem orderItem = purchaseOrderItemRepository
+                    .findById(itemRequest.getOrderItemId())
+                    .orElse(null);
+
+            if (orderItem == null) {
+                continue;
+            }
+
+            ReceiptItem receiptItem = new ReceiptItem();
+
+            receiptItem.setReceiptId(
+                    receipt.getReceiptId());
+
+            receiptItem.setOrderItemId(
+                    orderItem.getOrderItemId());
+
+            receiptItem.setProductId(
+        orderItem.getProduct().getProductId());
+
+            receiptItem.setReceiptQty(
+                    itemRequest.getReceivedQuantity());
+
+            receiptItem.setAcceptedQty(
+                    itemRequest.getReceivedQuantity());
+
+            receiptItem.setDefectQty(0L);
+
+            receiptItem.setRemark(
+                    request.getMemo());
+
+            receiptItem.setLoginId(
+                    request.getReceiverName());
+
+            receiptItem.setReceiptItemStatus(
+                    "ACTIVE");
+
+            receiptItemRepository.save(receiptItem);
         }
     }
 
@@ -131,6 +177,9 @@ public class ReceiptServiceImpl implements ReceiptService {
             String status,
             int page,
             int size) {
+
+        System.out.println("searchReceipts 시작");
+
         int safePage = Math.max(page, 1);
         int safeSize = size <= 0 ? 10 : size;
         int offset = (safePage - 1) * safeSize;
@@ -221,6 +270,37 @@ public class ReceiptServiceImpl implements ReceiptService {
     }
 
     @Override
+    public ReceiptDto.FormOptionsResponse getFormOptions() {
+
+        ReceiptDto.FormOptionsResponse response = new ReceiptDto.FormOptionsResponse();
+
+        response.setNextReceiptNumber(
+                "RC-" + System.currentTimeMillis());
+
+        List<ReceiptDto.ListResponse> orders = searchReceipts(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                1,
+                999)
+                .getItems()
+                .stream()
+                .filter(item ->
+        item.getRemainingQuantity() != null
+        && item.getRemainingQuantity() > 0)
+                .toList();
+
+        response.setEligibleOrders(orders);
+
+        return response;
+    }
+
+    @Override
     public ReceiptDto.FilterOptionsResponse getFilterOptions() {
         String warehouseSql = """
                 SELECT '전체 창고' AS WAREHOUSE_NAME
@@ -250,6 +330,7 @@ public class ReceiptServiceImpl implements ReceiptService {
         return response;
     }
 
+   
     @Override
     public ReceiptDto.SummaryResponse getSummary() {
         String sql = """
