@@ -114,7 +114,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             }
         }
 
-        // 🟢 [컴파일 에러 해결 Guard]: 엔티티 빌더 내부에서 에러가 나던 필드들을 걷어내어 컴파일을 정상화합니다.
         PurchaseOrder order = PurchaseOrder.builder()
                 .orderNo(finalOrderNo.trim())
                 .supplier(supplier)
@@ -167,11 +166,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     public PurchaseOrderDto.Response getOrderWithItems(Long orderId) {
         PurchaseOrder order = orderRepository.findByIdWithItems(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("발주를 찾을 수 없습니다. ID: " + orderId));
-
-        // 디버깅용 로그 추가
-        System.out.println("=== getOrderWithItems Debug ===");
-        System.out.println("Order ID: " + order.getOrderId());
-        System.out.println("PurchaseRequest exists: " + (order.getPurchaseRequest() != null));
         
         if (order.getItems() != null) {
             Hibernate.initialize(order.getItems());
@@ -227,8 +221,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                             .unit(product != null ? product.getUnit() : "") 
                             .unitPrice(defaultPrice) 
                             .build();
-                })
-                .toList();
+	                })
+	                		.toList();
     }
  
     @Override
@@ -245,7 +239,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         String userName = (condition.getUserName() == null || condition.getUserName().isEmpty()) ? null : condition.getUserName();
         String status = (condition.getOrderStatus() == null || condition.getOrderStatus().isEmpty() || condition.getOrderStatus().equals("전체")) ? null : condition.getOrderStatus();
 
-        // 🟢 기존의 커스텀 레포지토리 쿼리를 안전하게 호출
         Page<PurchaseOrder> orderPage = orderRepository.searchOrdersAdvanced(
                 orderNo,
                 requestNo,
@@ -254,6 +247,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 status,
                 pageable
         );
+        
         if (orderPage != null && orderPage.getContent() != null) {
             for (PurchaseOrder po : orderPage.getContent()) {
                 System.out.println(String.format(
@@ -312,9 +306,9 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         
         if (request.getExpectedReceiptTo() != null) {
             order.setDueDate(request.getExpectedReceiptTo().atStartOfDay()
-            						.plusHours(23)
-            						.plusMinutes(59)
-            						.plusSeconds(59));   // LocalDateTime
+					.plusHours(23)
+					.plusMinutes(59)
+					.plusSeconds(59));   // LocalDateTime
         }
         
         if (request.getMemo() != null) {
