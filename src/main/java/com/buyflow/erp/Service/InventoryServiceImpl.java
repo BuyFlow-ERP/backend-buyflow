@@ -75,4 +75,52 @@ public class InventoryServiceImpl implements InventoryService {
                 .reason(request.getReason())
                 .build();
     }
+
+    @Override
+    @Transactional
+    public void increaseStock(
+            Long productId,
+            String warehouseCode,
+            int quantity) {
+
+        if (quantity <= 0) {
+            return;
+        }
+
+        Stock stock = stockRepository.findByProductIdAndWarehouseCode(
+                productId,
+                warehouseCode)
+                .orElseGet(() -> {
+
+                    Stock newStock = new Stock();
+
+                    newStock.setProductId(productId);
+                    newStock.setWarehouseCode(warehouseCode);
+                    newStock.setQuantity(0);
+                    newStock.setSafetyStock(0);
+                    newStock.setStockStatus("정상");
+                    newStock.setUpdatedAt(LocalDateTime.now());
+
+                    return stockRepository.save(newStock);
+                });
+
+        int beforeQty = stock.getQuantity();
+        int afterQty = beforeQty + quantity;
+
+        stock.setQuantity(afterQty);
+        stockRepository.save(stock);
+
+        StockHistory history = new StockHistory();
+
+        history.setStockId(stock.getStockId());
+        history.setBeforeQty((long) beforeQty);
+        history.setAfterQty((long) afterQty);
+        history.setChangeQty((long) quantity);
+        history.setReason("입고");
+        history.setHistoryType("입고");
+        history.setCreatedAt(LocalDateTime.now());
+        history.setCreatedBy("SYSTEM");
+
+        stockHistoryRepository.save(history);
+    }
 }

@@ -106,6 +106,7 @@ public class ReceiptServiceImpl implements ReceiptService {
                         .atStartOfDay());
 
         receipt.setReceiptStatus("RECEIVED");
+        receipt.setWarehouseCode("WH-001");
 
         receipt.setLoginId(request.getReceiverName());
 
@@ -140,7 +141,7 @@ public class ReceiptServiceImpl implements ReceiptService {
                     orderItem.getOrderItemId());
 
             receiptItem.setProductId(
-        orderItem.getProduct().getProductId());
+                    orderItem.getProduct().getProductId());
 
             receiptItem.setReceiptQty(
                     itemRequest.getReceivedQuantity());
@@ -160,6 +161,12 @@ public class ReceiptServiceImpl implements ReceiptService {
                     "ACTIVE");
 
             receiptItemRepository.save(receiptItem);
+
+            inventoryService.increaseStock(
+                    receiptItem.getProductId(),
+                    receipt.getWarehouseCode(),
+                    receiptItem.getAcceptedQty().intValue());
+
         }
     }
 
@@ -288,9 +295,8 @@ public class ReceiptServiceImpl implements ReceiptService {
                 999)
                 .getItems()
                 .stream()
-                .filter(item ->
-        item.getRemainingQuantity() != null
-        && item.getRemainingQuantity() > 0)
+                .filter(item -> item.getRemainingQuantity() != null
+                        && item.getRemainingQuantity() > 0)
                 .toList();
 
         response.setEligibleOrders(orders);
@@ -328,7 +334,6 @@ public class ReceiptServiceImpl implements ReceiptService {
         return response;
     }
 
-   
     @Override
     public ReceiptDto.SummaryResponse getSummary() {
         String sql = """
@@ -657,6 +662,7 @@ public class ReceiptServiceImpl implements ReceiptService {
                             receipt.getLoginId(),
                             totalQty,
                             memo,
+                            "",
                             new ArrayList<>());
 
                 })
