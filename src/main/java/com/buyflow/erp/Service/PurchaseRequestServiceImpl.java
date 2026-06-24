@@ -48,6 +48,8 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
     private static final DateTimeFormatter DATE_TIME_FORMATTER =
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    private static final String FIXED_ITEM_REMARK = "해당 사항 없음";
+
     private final PurchaseRequestRepository purchaseRequestRepository;
     private final PurchaseRequestItemRepository purchaseRequestItemRepository;
     private final ProductRepository productRepository;
@@ -198,7 +200,7 @@ BigDecimal calculatedTotalAmount = items.stream()
         request.setRequestorId(requestorId);
         request.setTitle(nullToEmpty(dto.title()));
         request.setReason(nullToEmpty(dto.reason()));
-        request.setDueDate(parseDate(dto.expectedDate()));
+        request.setDueDate(parseRequiredDate(dto.expectedDate(), "희망 입고일"));
         request.setCreatedAt(now);
         request.setUpdatedAt(now);
         request.setRequestStatus(normalizeRequestStatus(dto.status()));
@@ -278,7 +280,7 @@ BigDecimal calculatedTotalAmount = items.stream()
             item.setProductId(itemDto.productId());
             item.setRequestQuantity(quantity);
             item.setEstimatedUnitPrice(unitPrice);
-            item.setRemark(nullToEmpty(itemDto.remark()));
+            item.setRemark(FIXED_ITEM_REMARK);
             item.setCreatedAt(now);
             item.setUpdatedAt(now);
 
@@ -364,7 +366,7 @@ BigDecimal calculatedTotalAmount = items.stream()
 
     request.setTitle(dto.title().trim());
     request.setReason(dto.reason().trim());
-    request.setDueDate(parseDate(dto.expectedDate()));
+    request.setDueDate(parseRequiredDate(dto.expectedDate(), "희망 입고일"));
     request.setUpdatedAt(now);
 
     List<PurchaseRequestItem> existingItems =
@@ -412,7 +414,7 @@ BigDecimal calculatedTotalAmount = items.stream()
         item.setProductId(itemDto.productId());
         item.setRequestQuantity(quantity);
         item.setEstimatedUnitPrice(unitPrice);
-        item.setRemark(nullToEmpty(itemDto.remark()));
+        item.setRemark(FIXED_ITEM_REMARK);
         item.setCreatedAt(now);
         item.setUpdatedAt(now);
 
@@ -564,9 +566,9 @@ public void deletePurchaseRequest(Long requestId) {
                     product != null ? nullToEmpty(product.getUnit()) : "",
                     unitPrice,
                     estimatedAmount,
-                    nullToEmpty(item.getRemark()),
-                    formatDateTime(item.getCreatedAt()),
-                    formatDateTime(item.getUpdatedAt())
+                    FIXED_ITEM_REMARK,
+                    product != null ? formatDateTime(product.getCreatedAt()) : "",
+                    product != null ? formatDateTime(product.getUpdatedAt()) : ""
             );
         }
 
@@ -682,6 +684,17 @@ public void deletePurchaseRequest(Long requestId) {
         return LocalDate.parse(value);
     }
 
+    private LocalDate parseRequiredDate(String value, String fieldName) {
+        if (isBlank(value)) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                fieldName + "은 필수입니다."
+        );
+    }
+
+        return LocalDate.parse(value);
+}
+
     private Long resolveApproverId(Long requestorId) {
         return userRepository.findFirstApproverId(requestorId)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -727,17 +740,12 @@ public void deletePurchaseRequest(Long requestId) {
 }
 
     private void validateEditableStatus(PurchaseRequest request) {
-        String status = normalizeRequestStatus(request.getRequestStatus());
+    String status = normalizeRequestStatus(request.getRequestStatus());
 
-        boolean editable = Set.of(
-        "PENDING_APPROVAL",
-        "REJECTED"
-        ).contains(status);
-
-    if (!editable) {
+    if (!"PENDING_APPROVAL".equals(status)) {
         throw new ResponseStatusException(
                 HttpStatus.CONFLICT,
-                "현재 상태에서는 구매 요청을 수정할 수 없습니다. 상태: "
+                "승인 대기 상태의 구매 요청만 수정할 수 있습니다. 현재 상태: "
                         + toRequestStatusLabel(status)
         );
     }
@@ -758,16 +766,10 @@ private void validateCancelableStatus(PurchaseRequest request) {
 private void validateDeletableStatus(PurchaseRequest request) {
     String status = normalizeRequestStatus(request.getRequestStatus());
 
-    boolean deletable = Set.of(
-            "PENDING_APPROVAL",
-            "REJECTED",
-            "CANCELED"
-    ).contains(status);
-
-    if (!deletable) {
+    if (!"PENDING_APPROVAL".equals(status)) {
         throw new ResponseStatusException(
                 HttpStatus.CONFLICT,
-                "승인 대기, 반려, 요청 취소 상태의 구매 요청만 삭제할 수 있습니다. 현재 상태: "
+                "승인 대기 상태의 구매 요청만 삭제할 수 있습니다. 현재 상태: "
                         + toRequestStatusLabel(status)
         );
     }

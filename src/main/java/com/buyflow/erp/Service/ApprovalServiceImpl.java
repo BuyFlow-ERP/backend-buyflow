@@ -57,42 +57,41 @@ public class ApprovalServiceImpl implements ApprovalService {
             String requester,
             String department,
             String status,
-            String requestedFrom,
-            String requestedTo,
+            String desiredReceiptAt,
             int page,
             int size
     ) {
-        int safePage = Math.max(page, 0);
-        int safeSize = Math.max(size, 1);
+            int safePage = Math.max(page, 0);
+            int safeSize = Math.max(size, 1);
 
-    Long currentUserId = getCurrentLoginUserId();
+            Long currentUserId = getCurrentLoginUserId();
 
-    List<ApprovalHistoryDto.ListResponse> filtered = approvalHistoryRepository.findAllByOrderByApprovalIdDesc()
-            .stream()
-            .filter(approval -> Objects.equals(approval.getApproverId(), currentUserId))
-            .map(this::toListResponse)
-            .filter(Objects::nonNull)
-            .filter(row -> contains(row.requestNumber(), requestNumber))
-            .filter(row -> contains(row.title(), title))
-            .filter(row -> contains(row.requester(), requester))
-            .filter(row -> isBlank(department) || Objects.equals(row.department(), department))
-            .filter(row -> isBlank(status)
-                    || "전체".equals(status)
-                    || Objects.equals(row.requestStatus(), status)
-                    || Objects.equals(row.requestStatusLabel(), status))
-            .filter(row -> isWithinRange(row.requestedAt(), requestedFrom, requestedTo))
-            .toList();
+            List<ApprovalHistoryDto.ListResponse> filtered = approvalHistoryRepository.findAllByOrderByApprovalIdDesc()
+                        .stream()
+                        .filter(approval -> Objects.equals(approval.getApproverId(), currentUserId))
+                        .map(this::toListResponse)
+                        .filter(Objects::nonNull)
+                        .filter(row -> contains(row.requestNumber(), requestNumber))
+                        .filter(row -> contains(row.title(), title))
+                        .filter(row -> contains(row.requester(), requester))
+                        .filter(row -> contains(row.department(), department))
+                        .filter(row -> isBlank(status)
+                                || "전체".equals(status)
+                                || Objects.equals(row.requestStatus(), status)
+                                || Objects.equals(row.requestStatusLabel(), status))
+                        .filter(row -> isSameDate(row.desiredReceiptAt(), desiredReceiptAt))
+                        .toList();
 
-        long totalElements = filtered.size();
-        int totalPages = Math.max(1, (int) Math.ceil((double) totalElements / safeSize));
-        int fromIndex = Math.min(safePage * safeSize, filtered.size());
-        int toIndex = Math.min(fromIndex + safeSize, filtered.size());
+            long totalElements = filtered.size();
+            int totalPages = Math.max(1, (int) Math.ceil((double) totalElements / safeSize));
+            int fromIndex = Math.min(safePage * safeSize, filtered.size());
+            int toIndex = Math.min(fromIndex + safeSize, filtered.size());
 
-        return new PageResponse<>(
-                filtered.subList(fromIndex, toIndex),
-                new PageResponse.Pagination(safePage + 1, safeSize, totalElements, totalPages)
-        );
-    }
+            return new PageResponse<>(
+                    filtered.subList(fromIndex, toIndex),
+                    new PageResponse.Pagination(safePage + 1, safeSize, totalElements, totalPages)
+            );
+        }
 
     @Override
     public ApprovalHistoryDto.DetailResponse getApprovalDetail(Long approvalId) {
@@ -277,9 +276,9 @@ public class ApprovalServiceImpl implements ApprovalService {
                 product != null ? nullToEmpty(product.getUnit()) : "",
                 unitPrice,
                 unitPrice.multiply(BigDecimal.valueOf(quantity)),
-                nullToEmpty(item.getRemark()),
-                formatDateTime(item.getCreatedAt()),
-                formatDateTime(item.getUpdatedAt())
+                "해당 사항 없음",
+                product != null ? formatDateTime(product.getCreatedAt()) : "",
+                product != null ? formatDateTime(product.getUpdatedAt()) : ""
         );
                 })
                 .toList();
@@ -406,14 +405,12 @@ public class ApprovalServiceImpl implements ApprovalService {
         return isBlank(keyword) || nullToEmpty(value).toLowerCase().contains(keyword.trim().toLowerCase());
     }
 
-    private boolean isWithinRange(String value, String from, String to) {
-        if (isBlank(value)) {
-            return true;
-        }
-        if (!isBlank(from) && value.compareTo(from) < 0) {
-            return false;
-        }
-        return isBlank(to) || value.compareTo(to) <= 0;
+    private boolean isSameDate(String value, String date) {
+    if (isBlank(date)) {
+        return true;
+    }
+
+    return nullToEmpty(value).startsWith(date);
     }
 
     private String nullToEmpty(String value) {
