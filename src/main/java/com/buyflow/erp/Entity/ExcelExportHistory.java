@@ -38,10 +38,6 @@ public class ExcelExportHistory {
 	@Column(name = "EXPORT_ID")
 	private Long exportId;
 	
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "ATTACHMENT_ID")
-	private Attachment attachment;
-	
 	@Column(name = "EXPORT_TYPE", length = 50)
 	private String exportType;
 	

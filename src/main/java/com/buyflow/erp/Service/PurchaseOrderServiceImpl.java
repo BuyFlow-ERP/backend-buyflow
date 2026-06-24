@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -27,6 +28,7 @@ import com.buyflow.erp.Entity.PurchaseRequest;
 import com.buyflow.erp.Entity.PurchaseRequestItem;
 import com.buyflow.erp.Entity.Supplier;
 import com.buyflow.erp.Entity.Users;
+import com.buyflow.erp.Entity.Warehouse;
 import com.buyflow.erp.Repository.AttachmentRepository;
 import com.buyflow.erp.Repository.ProductRepository;
 import com.buyflow.erp.Repository.PurchaseOrderItemRepository;
@@ -35,6 +37,7 @@ import com.buyflow.erp.Repository.PurchaseRequestItemRepository;
 import com.buyflow.erp.Repository.PurchaseRequestRepository;
 import com.buyflow.erp.Repository.SupplierRepository;
 import com.buyflow.erp.Repository.UserRepository;
+import com.buyflow.erp.Repository.WarehouseRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +55,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final PurchaseRequestRepository purchaseRequestRepository;
     private final PurchaseRequestItemRepository purchaseRequestItemRepository;
     private final AttachmentRepository attachmentRepository;
+    private final WarehouseRepository warehouseRepository;
 
     @Override
     @Transactional
@@ -315,6 +319,11 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             order.setMemo(request.getMemo());
         }
         
+        if (request.getWarehouseCode() != null) {
+             Warehouse warehouse = warehouseRepository.findById(request.getWarehouseCode()).orElse(null);
+             order.setWarehouse(warehouse);
+        }
+        
         if (request.getAttachmentId() != null) {
             com.buyflow.erp.Entity.Attachment attachment = attachmentRepository.findById(request.getAttachmentId())
                     .orElse(null); // 파일이 없으면 null 처리
@@ -328,35 +337,55 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             order.setSupplier(supplier);
         }
 
-        // 기존 아이템 전체 삭제 후 새로 생성
-        orderItemRepository.deleteByPurchaseOrder_OrderId(orderId);
-
         long totalSupplyAmount = 0L;
         long totalVatAmount = 0L;
+        
         List<PurchaseOrderItem> itemsToSave = new ArrayList<>();
 
         for (PurchaseOrderDto.Item itemReq : request.getItems()) {
         	Product product = productRepository.findById(itemReq.getProductId())
                     .orElseThrow(() -> new EntityNotFoundException("상품을 찾을 수 없습니다. ID: " + itemReq.getProductId()));
-            PurchaseOrderItem item = PurchaseOrderItem.builder()
-                    .purchaseOrder(order)
-                    .product(product)
-                    .quantity(itemReq.getQuantity())
-                    .unitPrice(itemReq.getUnitPrice())
-                    .build();
-
-            itemsToSave.add(item);
-            order.addItem(item);  // 양방향 관계 설정
 
             long lineSupply = (long) (itemReq.getUnitPrice() * itemReq.getQuantity());
             long lineVat = (long) Math.floor(lineSupply * 0.1);
 
             totalSupplyAmount += lineSupply;
             totalVatAmount += lineVat;
+            
+            if (itemReq.getOrderItemId() != null) {
+            	PurchaseOrderItem existingItem = order.getItems().stream()
+            			.filter(item -> item.getOrderItemId().equals(itemReq.getOrderItemId()))
+            			.findFirst()
+            			.orElseThrow(()-> new EntityNotFoundException("수정할 발주 품목을 찾을 수 없습니다. ID: " + itemReq.getOrderItemId()));
+            	
+            	existingItem.setProduct(product);
+                existingItem.setQuantity(itemReq.getQuantity());
+                existingItem.setUnitPrice(itemReq.getUnitPrice());
+            } else {
+            	
+            	PurchaseOrderItem item = PurchaseOrderItem.builder()
+                        .purchaseOrder(order)
+                        .product(product)
+                        .quantity(itemReq.getQuantity())
+                        .unitPrice(itemReq.getUnitPrice())
+                        .build();
+
+                order.addItem(item);
+                itemsToSave.add(item);
+            }
         }
-
-        orderItemRepository.saveAll(itemsToSave);
-
+        
+        Set<Long> requestItemIds = request.getItems().stream()
+        		.map(PurchaseOrderDto.Item::getOrderItemId)
+        		.filter(Objects::nonNull)
+        		.collect(Collectors.toSet());
+       
+        order.getItems().removeIf(existingItem -> !requestItemIds.contains(existingItem.getOrderItemId()));
+        
+        if (!itemsToSave.isEmpty()) {
+        	orderItemRepository.saveAll(itemsToSave);
+        }
+        
         double finalTotalAmount = (double) (totalSupplyAmount + totalVatAmount);
         order.setTotalAmount(finalTotalAmount);
 
