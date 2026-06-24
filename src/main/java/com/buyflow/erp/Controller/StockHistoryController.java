@@ -28,9 +28,9 @@ public class StockHistoryController {
     public List<StockHistoryResponseDto> getStockHistory(
             @RequestParam(name = "fromDate", required = false) String fromDate,
             @RequestParam(name = "toDate", required = false) String toDate,
-            @RequestParam(required = false) String itemKeyword,
-            @RequestParam(required = false) String warehouseCode,
-            @RequestParam(required = false) String movementType) {
+            @RequestParam(name = "itemKeyword", required = false) String itemKeyword,
+            @RequestParam(name = "warehouseCode", required = false) String warehouseCode,
+            @RequestParam(name = "movementType", required = false) String movementType) {
 
         return stockHistoryService.searchStockHistory(
                 fromDate,
@@ -42,7 +42,7 @@ public class StockHistoryController {
 
     @GetMapping("/type/{historyType}")
     public List<StockHistoryResponseDto> getStockHistoryByType(
-            @PathVariable String historyType) {
+            @PathVariable(name = "historyType") String historyType) {
 
         return stockHistoryService.getStockHistoryByType(historyType);
     }

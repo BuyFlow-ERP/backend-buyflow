@@ -43,7 +43,7 @@ public class StockController {
 
         @PostMapping("/{stockId}/adjustments")
         public ResponseEntity<InventoryAdjustmentResponse> adjustStock(
-                        @PathVariable Long stockId,
+                        @PathVariable(name = "stockId") Long stockId,
                         @RequestBody InventoryAdjustmentRequest request) {
 
                 return ResponseEntity.ok(
