@@ -1,6 +1,7 @@
 package com.buyflow.erp.Controller;
 
 import com.buyflow.erp.Common.ApiResponse;
+import com.buyflow.erp.Dto.AdminUserDepartmentAuthorizationUpdateRequest;
 import com.buyflow.erp.Dto.AdminUserProfileUpdateRequest;
 import com.buyflow.erp.Dto.AdminUserResponse;
 import com.buyflow.erp.Dto.AdminUserRoleUpdateRequest;
@@ -109,7 +110,7 @@ public class AdminUserController {
     }
 
     @PutMapping("/{userId}/roles")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('TEAM_MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<AdminUserResponse> updateRoles(
             @PathVariable(name = "userId") Long userId,
             @Valid @RequestBody AdminUserRoleUpdateRequest request,
@@ -118,6 +119,19 @@ public class AdminUserController {
         return ApiResponse.success(
                 "사용자 역할 수정 성공",
                 adminUserService.updateRoles(userId, request, authentication.getName())
+        );
+    }
+
+    @PutMapping("/{userId}/department-authorization")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TEAM_MANAGER')")
+    public ApiResponse<AdminUserResponse> updateDepartmentAuthorization(
+            @PathVariable(name = "userId") Long userId,
+            @Valid @RequestBody AdminUserDepartmentAuthorizationUpdateRequest request,
+            Authentication authentication
+    ) {
+        return ApiResponse.success(
+                "User department authorization saved.",
+                adminUserService.updateDepartmentAuthorization(userId, request, authentication.getName())
         );
     }
 

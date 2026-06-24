@@ -60,6 +60,14 @@ public interface AuthUserRepository extends JpaRepository<User, Long> {
     );
 
     @Query("""
+            select count(user)
+            from User user
+            where user.useYn = 'Y'
+              and trim(user.departmentName) = :departmentName
+            """)
+    long countActiveUsersByDepartmentName(@Param("departmentName") String departmentName);
+
+    @Query("""
             select user
             from User user
             where (:keyword is null

@@ -5,12 +5,8 @@ import com.buyflow.erp.Common.ErrorCode;
 import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Dto.UserResponse;
 import com.buyflow.erp.Dto.UserUpdateRequest;
-import com.buyflow.erp.Entity.Role;
 import com.buyflow.erp.Entity.User;
-import com.buyflow.erp.Entity.UserRole;
-import com.buyflow.erp.Repository.RoleRepository;
 import com.buyflow.erp.Repository.AuthUserRepository;
-import com.buyflow.erp.Repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -28,12 +24,8 @@ public class UserService {
 
     private static final String JOB_RANK_ADMIN = "ADMIN";
     private static final String JOB_RANK_USER = "USER";
-    private static final String ROLE_ADMIN = "ADMIN";
-    private static final String ROLE_REQUESTER = "REQUESTER";
 
     private final AuthUserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final UserRoleRepository userRoleRepository;
 
     public List<UserResponse> findAll() {
         return userRepository.findAll()
@@ -135,60 +127,6 @@ public class UserService {
     private User findCurrentUser(String loginId) {
         return userRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
-    }
-
-    private void syncRolesByJobRank(User user, String currentLoginId) {
-        String jobRank = normalizeJobRank(user.getJobRank());
-        user.setJobRank(jobRank);
-
-        if (JOB_RANK_ADMIN.equals(jobRank)) {
-            ensureRole(user.getUserId(), ROLE_ADMIN);
-            return;
-        }
-
-        if (isSameUser(user, currentLoginId) && hasRole(user.getUserId(), ROLE_ADMIN)) {
-            throw new BusinessException(ErrorCode.INVALID_REQUEST, "본인 관리자 직급은 직접 낮출 수 없습니다.");
-        }
-
-        removeRole(user.getUserId(), ROLE_ADMIN);
-        ensureRole(user.getUserId(), ROLE_REQUESTER);
-    }
-
-    private void ensureRole(Long userId, String roleCode) {
-        Role role = findActiveRole(roleCode);
-
-        if (userRoleRepository.existsByUserIdAndRoleId(userId, role.getRoleId())) {
-            return;
-        }
-
-        UserRole userRole = new UserRole();
-        userRole.setUserId(userId);
-        userRole.setRoleId(role.getRoleId());
-        userRole.setCreatedAt(LocalDateTime.now());
-        userRoleRepository.save(userRole);
-    }
-
-    private void removeRole(Long userId, String roleCode) {
-        roleRepository.findByRoleCodeAndUseYn(roleCode, "Y")
-                .ifPresent(role -> userRoleRepository.deleteByUserIdAndRoleId(userId, role.getRoleId()));
-    }
-
-    private boolean hasRole(Long userId, String roleCode) {
-        return roleRepository.findByRoleCodeAndUseYn(roleCode, "Y")
-                .map(role -> userRoleRepository.existsByUserIdAndRoleId(userId, role.getRoleId()))
-                .orElse(false);
-    }
-
-    private Role findActiveRole(String roleCode) {
-        return roleRepository.findByRoleCodeAndUseYn(roleCode, "Y")
-                .orElseThrow(() -> new BusinessException(
-                        ErrorCode.NOT_FOUND,
-                        "활성화된 역할을 찾을 수 없습니다: " + roleCode
-                ));
-    }
-
-    private boolean isSameUser(User user, String currentLoginId) {
-        return StringUtils.hasText(currentLoginId) && currentLoginId.equals(user.getLoginId());
     }
 
     private String normalizeText(String value) {
