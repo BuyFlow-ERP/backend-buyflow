@@ -112,6 +112,9 @@ public class PurchaseOrderDto {
 		private LocalDate expectedReceiptFrom; // 입고 예정일 (시작)
 		private Long attachmentId;
 		private String attachmentName;
+		
+		private String warehouseCode;
+		private String warehouseName;
 
 		private List<PurchaseOrderDto.Item> items;
 
@@ -152,9 +155,6 @@ public class PurchaseOrderDto {
 		        }
 		        checkedTotalAmount = (double) (calcSupply + (long) Math.floor(calcSupply * 0.1));
 		    }
-		    
-		    System.out.println("=== [DEBUG] 주문 ID: " + order.getOrderId());
-		    System.out.println("=== [DEBUG] 첨부파일 객체: " + order.getAttachment());
 
 		    return Response.builder()
 		        .orderId(order.getOrderId())
@@ -177,6 +177,8 @@ public class PurchaseOrderDto {
 		        .memo(order.getMemo())
 		        .attachmentId(order.getAttachment() != null ? order.getAttachment().getAttachmentId() : null)
 		        .attachmentName(order.getAttachment() != null ? order.getAttachment().getOriginalName() : null)
+		        .warehouseCode(order.getWarehouse() != null ? order.getWarehouse().getWarehouseCode() : null)
+		        .warehouseName(order.getWarehouse() != null ? order.getWarehouse().getWarehouseName() : "-")
 		        .build();
 		}
 	}
