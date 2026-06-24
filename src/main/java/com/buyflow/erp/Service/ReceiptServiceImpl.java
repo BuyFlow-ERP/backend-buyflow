@@ -142,7 +142,7 @@ public class ReceiptServiceImpl implements ReceiptService {
                     orderItem.getOrderItemId());
 
             receiptItem.setProductId(
-                    orderItem.getProductId());
+        orderItem.getProduct().getProductId());
 
             receiptItem.setReceiptQty(
                     itemRequest.getReceivedQuantity());

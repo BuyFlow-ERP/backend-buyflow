@@ -12,8 +12,6 @@ public interface ReceiptService {
     ReceiptDto.DetailResponse getReceipt(Long receiptId);
     ReceiptDto.DetailResponse getReceiptByOrderId(Long orderId);
 
-    ReceiptDto.DetailResponse getReceiptByOrderId(Long orderId);
-
     void saveReceipt(ReceiptDto.ReceiptCreateRequest request);
 
     ReceiptDto.PageResponse<ReceiptDto.ListResponse> searchReceipts(
