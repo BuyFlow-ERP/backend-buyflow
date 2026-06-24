@@ -25,8 +25,6 @@ public class StockDto {
 
     private String warehouseName;
 
-    private String locationCode;
-
     private Integer currentStock;
 
     private Integer safetyStock;

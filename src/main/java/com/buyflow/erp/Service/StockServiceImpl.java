@@ -89,7 +89,6 @@ public class StockServiceImpl implements StockService {
                         warehouse != null
                                 ? warehouse.getWarehouseName()
                                 : "")
-                .locationCode("-")
                 .currentStock(
                         stock.getQuantity() != null
                                 ? stock.getQuantity()

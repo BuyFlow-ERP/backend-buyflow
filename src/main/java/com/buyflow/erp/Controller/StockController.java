@@ -222,7 +222,6 @@ public class StockController {
                                                 warehouse != null
                                                                 ? warehouse.getWarehouseName()
                                                                 : "")
-                                .locationCode("-")
                                 .currentStock(stock.getQuantity())
                                 .safetyStock(
                                                 stock.getSafetyStock() != null
