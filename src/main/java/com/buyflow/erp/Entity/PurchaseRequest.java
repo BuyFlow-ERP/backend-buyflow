@@ -54,6 +54,9 @@ public class PurchaseRequest {
     @Column(name = "UPDATED_AT")
     private LocalDateTime updatedAt;
 
+    @Column(name = "PRIORITY", length = 20)
+    private String priority;
+
     @Column(name = "REQUEST_STATUS")
     private String requestStatus;
 

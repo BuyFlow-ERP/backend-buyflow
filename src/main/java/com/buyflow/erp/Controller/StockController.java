@@ -6,11 +6,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.buyflow.erp.Dto.InventoryAdjustmentRequest;
+import com.buyflow.erp.Dto.InventoryAdjustmentResponse;
 import com.buyflow.erp.Dto.StockDto;
 import com.buyflow.erp.Dto.StockListResponse;
 import com.buyflow.erp.Entity.Stock;
@@ -22,207 +27,213 @@ import java.util.Map;
 
 import com.buyflow.erp.Repository.ProductRepository;
 import com.buyflow.erp.Repository.WarehouseRepository;
+import com.buyflow.erp.Service.InventoryService;
 
+import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping({ "/stocks", "/inventories" })
 public class StockController {
 
-    private final StockRepository stockRepository;
-    private final ProductRepository productRepository;
-    private final WarehouseRepository warehouseRepository;
+        private final StockRepository stockRepository;
+        private final ProductRepository productRepository;
+        private final WarehouseRepository warehouseRepository;
+        private final InventoryService inventoryService;
 
+        @PostMapping("/{stockId}/adjustments")
+        public ResponseEntity<InventoryAdjustmentResponse> adjustStock(
+                        @PathVariable Long stockId,
+                        @RequestBody InventoryAdjustmentRequest request) {
 
-@GetMapping
-public StockListResponse getInventories(
-        @RequestParam(name = "itemCode", required = false) String itemCode,
-        @RequestParam(name = "itemName", required = false) String itemName,
-        @RequestParam(name = "category", required = false) String category,
-        @RequestParam(name = "warehouseCode", required = false) String warehouseCode,
-        @RequestParam(name = "stockStatus", required = false) String stockStatus) {
+                return ResponseEntity.ok(
+                                inventoryService.adjustStock(stockId, request));
+        }
 
-    List<StockDto> items = stockRepository.findAll()
-            .stream()
-            .map(this::convert)
-          
-            .filter(item ->
-                    itemCode == null
-                            || itemCode.isBlank()
-                            || item.getItemCode().contains(itemCode))
+        @GetMapping
+        public StockListResponse getInventories(
+                        @RequestParam(name = "itemCode", required = false) String itemCode,
+                        @RequestParam(name = "itemName", required = false) String itemName,
+                        @RequestParam(name = "category", required = false) String category,
+                        @RequestParam(name = "warehouseCode", required = false) String warehouseCode,
+                        @RequestParam(name = "stockStatus", required = false) String stockStatus) {
 
-            .filter(item ->
-                    itemName == null
-                            || itemName.isBlank()
-                            || item.getItemName().contains(itemName))
+                List<StockDto> items = stockRepository.findAll()
+                                .stream()
+                                .map(this::convert)
 
-            .filter(item ->
-                    category == null
-                            || category.isBlank()
-                            || category.equals("전체")
-                            || category.equals(item.getCategory()))
+                                .filter(item -> itemCode == null
+                                                || itemCode.isBlank()
+                                                || item.getItemCode().contains(itemCode))
 
-            .filter(item ->
-                    warehouseCode == null
-                            || warehouseCode.isBlank()
-                            || warehouseCode.equals("전체")
-                            || warehouseCode.equals(item.getWarehouseCode()))
+                                .filter(item -> itemName == null
+                                                || itemName.isBlank()
+                                                || item.getItemName().contains(itemName))
 
-            .filter(item -> {
+                                .filter(item -> category == null
+                                                || category.isBlank()
+                                                || category.equals("전체")
+                                                || category.equals(item.getCategory()))
 
-                if (stockStatus == null
-                        || stockStatus.isBlank()
-                        || stockStatus.equals("전체")) {
-                    return true;
-                }
+                                .filter(item -> warehouseCode == null
+                                                || warehouseCode.isBlank()
+                                                || warehouseCode.equals("전체")
+                                                || warehouseCode.equals(item.getWarehouseCode()))
 
-                if (stockStatus.equals("재고 없음")) {
-                    return item.getCurrentStock() <= 0;
-                }
+                                .filter(item -> {
 
-                if (stockStatus.equals("안전재고 미만")) {
-                    return item.getCurrentStock() > 0
-                            && item.getCurrentStock() < item.getSafetyStock();
-                }
+                                        if (stockStatus == null
+                                                        || stockStatus.isBlank()
+                                                        || stockStatus.equals("전체")) {
+                                                return true;
+                                        }
 
-                if (stockStatus.equals("정상")) {
-                    return item.getCurrentStock() >= item.getSafetyStock();
-                }
+                                        if (stockStatus.equals("재고 없음")) {
+                                                return item.getCurrentStock() <= 0;
+                                        }
 
-                return true;
-            })
+                                        if (stockStatus.equals("안전재고 미만")) {
+                                                return item.getCurrentStock() > 0
+                                                                && item.getCurrentStock() < item.getSafetyStock();
+                                        }
 
-            .collect(Collectors.toList());
+                                        if (stockStatus.equals("정상")) {
+                                                return item.getCurrentStock() >= item.getSafetyStock();
+                                        }
 
-    long normal = items.stream()
-            .filter(item ->
-                    item.getCurrentStock() >= item.getSafetyStock())
-            .count();
+                                        return true;
+                                })
 
-    long low = items.stream()
-            .filter(item ->
-                    item.getCurrentStock() > 0
-                            && item.getCurrentStock() < item.getSafetyStock())
-            .count();
+                                .collect(Collectors.toList());
 
-    long outOfStock = items.stream()
-            .filter(item ->
-                    item.getCurrentStock() <= 0)
-            .count();
+                long normal = items.stream()
+                                .filter(item -> item.getCurrentStock() >= item.getSafetyStock())
+                                .count();
 
-    return StockListResponse.builder()
-            .items(items)
-            .summary(
-                    StockListResponse.Summary.builder()
-                            .total(items.size())
-                            .normal((int) normal)
-                            .low((int) low)
-                            .outOfStock((int) outOfStock)
-                            .build())
-            .pagination(
-                    StockListResponse.Pagination.builder()
-                            .page(1)
-                            .size(items.size())
-                            .totalElements((long) items.size())
-                            .totalPages(1)
-                            .build())
-            .build();
-}
+                long low = items.stream()
+                                .filter(item -> item.getCurrentStock() > 0
+                                                && item.getCurrentStock() < item.getSafetyStock())
+                                .count();
 
-    @GetMapping("/filter-options")
-    public Map<String, Object> getFilterOptions() {
+                long outOfStock = items.stream()
+                                .filter(item -> item.getCurrentStock() <= 0)
+                                .count();
 
-        Map<String, Object> result = new HashMap<>();
+                return StockListResponse.builder()
+                                .items(items)
+                                .summary(
+                                                StockListResponse.Summary.builder()
+                                                                .total(items.size())
+                                                                .normal((int) normal)
+                                                                .low((int) low)
+                                                                .outOfStock((int) outOfStock)
+                                                                .build())
+                                .pagination(
+                                                StockListResponse.Pagination.builder()
+                                                                .page(1)
+                                                                .size(items.size())
+                                                                .totalElements((long) items.size())
+                                                                .totalPages(1)
+                                                                .build())
+                                .build();
+        }
 
-        result.put(
-                "categories",
-                List.of("전체", "기타"));
+        @GetMapping("/filter-options")
+        public Map<String, Object> getFilterOptions() {
 
-List<Map<String, String>> warehouses = new ArrayList<>();
+                Map<String, Object> result = new HashMap<>();
 
-warehouses.add(
-        Map.of(
-                "value", "전체",
-                "label", "전체"));
+                result.put(
+                                "categories",
+                                List.of("전체", "기타"));
 
-warehouseRepository.findAll()
-        .forEach(warehouse -> {
-            warehouses.add(
-                    Map.of(
-                            "value", warehouse.getWarehouseCode(),
-                            "label", warehouse.getWarehouseName()));
-        });
+                List<Map<String, String>> warehouses = new ArrayList<>();
 
-result.put("warehouses", warehouses);
+                warehouses.add(
+                                Map.of(
+                                                "value", "전체",
+                                                "label", "전체"));
 
-        result.put(
-                "stockStatuses",
-                List.of(
-                        "전체",
-                        "정상",
-                        "안전재고 미만",
-                        "재고 없음"));
-        result.put(
-                "movementTypes",
-                List.of(
-                        "전체",
-                        "RECEIPT",
-                        "UPDATE",
-                        "DELETE",
-                        "CANCEL"));
+                warehouseRepository.findAll()
+                                .forEach(warehouse -> {
+                                        warehouses.add(
+                                                        Map.of(
+                                                                        "value", warehouse.getWarehouseCode(),
+                                                                        "label", warehouse.getWarehouseName()));
+                                });
 
-        return result;
-    }
+                result.put("warehouses", warehouses);
 
-    private StockDto convert(Stock stock) {
+                result.put(
+                                "stockStatuses",
+                                List.of(
+                                                "전체",
+                                                "정상",
+                                                "안전재고 미만",
+                                                "재고 없음"));
+                result.put(
+                                "movementTypes",
+                                List.of(
+                                                "전체",
+                                                "INBOUND",
+                                                "INSPECTION_ADJUST",
+                                                "UPDATE",
+                                                "DELETE",
+                                                "CANCEL"));
 
-        var product = productRepository
-                .findById(stock.getProductId())
-                .orElse(null);
+                return result;
+        }
 
-        var warehouse = warehouseRepository
-                .findById(stock.getWarehouseCode())
-                .orElse(null);
+        private StockDto convert(Stock stock) {
 
-        return StockDto.builder()
-                .id(stock.getStockId())
-                .itemId(stock.getProductId())
-                .itemCode(
-                        product != null
-                                ? product.getProductNo()
-                                : "P-" + stock.getProductId())
-                .itemName(
-                        product != null
-                                ? product.getProductName()
-                                : "")
-                .category(
-                        product != null
-                                ? product.getCategoryName()
-                                : "")
-                .spec(
-                        product != null
-                                ? product.getSpec()
-                                : "")
-                .unit(
-                        product != null
-                                ? product.getUnit()
-                                : "EA")
-                .warehouseCode(stock.getWarehouseCode())
-                .warehouseName(
-                        warehouse != null
-                                ? warehouse.getWarehouseName()
-                                : "")
-                .locationCode("-")
-                .currentStock(stock.getQuantity())
-                .safetyStock(
-                        stock.getSafetyStock() != null
-                                ? stock.getSafetyStock()
-                                : 0)
-                .lastChangedAt(
-                        stock.getUpdatedAt() != null
-                                ? stock.getUpdatedAt()
-                                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
-                                : "")
-                .build();
-    }
+                var product = productRepository
+                                .findById(stock.getProductId())
+                                .orElse(null);
+
+                var warehouse = warehouseRepository
+                                .findById(stock.getWarehouseCode())
+                                .orElse(null);
+
+                return StockDto.builder()
+                                .id(stock.getStockId())
+                                .itemId(stock.getProductId())
+                                .itemCode(
+                                                product != null
+                                                                ? product.getProductNo()
+                                                                : "P-" + stock.getProductId())
+                                .itemName(
+                                                product != null
+                                                                ? product.getProductName()
+                                                                : "")
+                                .category(
+                                                product != null
+                                                                ? product.getCategoryName()
+                                                                : "")
+                                .spec(
+                                                product != null
+                                                                ? product.getSpec()
+                                                                : "")
+                                .unit(
+                                                product != null
+                                                                ? product.getUnit()
+                                                                : "EA")
+                                .warehouseCode(stock.getWarehouseCode())
+                                .warehouseName(
+                                                warehouse != null
+                                                                ? warehouse.getWarehouseName()
+                                                                : "")
+                                .locationCode("-")
+                                .currentStock(stock.getQuantity())
+                                .safetyStock(
+                                                stock.getSafetyStock() != null
+                                                                ? stock.getSafetyStock()
+                                                                : 0)
+                                .lastChangedAt(
+                                                stock.getUpdatedAt() != null
+                                                                ? stock.getUpdatedAt()
+                                                                                .format(DateTimeFormatter.ofPattern(
+                                                                                                "yyyy-MM-dd HH:mm"))
+                                                                : "")
+                                .build();
+        }
 }

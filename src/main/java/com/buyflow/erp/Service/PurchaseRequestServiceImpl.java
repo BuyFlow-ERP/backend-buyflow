@@ -202,6 +202,9 @@ BigDecimal calculatedTotalAmount = items.stream()
         request.setCreatedAt(now);
         request.setUpdatedAt(now);
         request.setRequestStatus(normalizeRequestStatus(dto.status()));
+
+        request.setPriority(normalizePriority(dto.priority(), dto.urgency()));
+
         request.setDeletedYn("N");
 
         request.setTotalAmount(BigDecimal.ZERO);
@@ -611,22 +614,32 @@ public void deletePurchaseRequest(Long requestId) {
     }
 
     private String getDepartmentName(Long userId) {
-    if (userId == null) {
+        if (userId == null) {
         return "-";
         }
 
-    return userRepository.findById(userId)
+        return userRepository.findById(userId)
             .map(Users::getDepartmentName)
             .filter(name -> !isBlank(name))
             .orElse("-");
     }
 
     private String resolvePriorityLabel(PurchaseRequest request) {
-        if (request.getDueDate() != null && !request.getDueDate().isAfter(LocalDate.now().plusDays(3))) {
-            return "긴급";
-        }
+        if ("URGENT".equalsIgnoreCase(request.getPriority())) {
+        return "긴급";
+    }
+
+        if ("NORMAL".equalsIgnoreCase(request.getPriority())) {
         return "일반";
     }
+
+        if (request.getDueDate() != null &&
+        !request.getDueDate().isAfter(LocalDate.now().plusDays(3))) {
+        return "긴급";
+    }
+
+        return "일반";
+}
 
     private String toRequestStatusLabel(String status) {
         if (status == null) {
@@ -681,8 +694,25 @@ public void deletePurchaseRequest(Long requestId) {
         return "PR-" + LocalDate.now().getYear() + "-" + String.format("%04d", requestId);
     }
 
+    private String normalizePriority(String priority, String urgency) {
+    String value = priority;
+
+    if (value == null || value.isBlank()) {
+        value = urgency;
+    }
+
+    if (value == null || value.isBlank()) {
+        return "NORMAL";
+    }
+
+    return switch (value.trim().toUpperCase()) {
+        case "긴급", "URGENT", "HIGH" -> "URGENT";
+        default -> "NORMAL";
+    };
+}
+
     private String normalizeRequestStatus(String status) {
-    if (isBlank(status)) {
+        if (isBlank(status)) {
         return "PENDING_APPROVAL";
     }
 
@@ -695,7 +725,6 @@ public void deletePurchaseRequest(Long requestId) {
         default -> "PENDING_APPROVAL";
     };
 }
-
 
     private void validateEditableStatus(PurchaseRequest request) {
         String status = normalizeRequestStatus(request.getRequestStatus());

@@ -8,6 +8,7 @@ import com.buyflow.erp.Entity.PurchaseRequest;
 import com.buyflow.erp.Entity.PurchaseRequestItem;
 import com.buyflow.erp.Entity.Users;
 import com.buyflow.erp.Repository.ApprovalHistoryRepository;
+import com.buyflow.erp.Repository.AttachmentRepository;
 import com.buyflow.erp.Repository.ProductRepository;
 import com.buyflow.erp.Repository.PurchaseRequestItemRepository;
 import com.buyflow.erp.Repository.PurchaseRequestRepository;
@@ -18,12 +19,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -45,6 +48,7 @@ public class ApprovalServiceImpl implements ApprovalService {
     private final PurchaseRequestItemRepository purchaseRequestItemRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final AttachmentRepository attachmentRepository;
 
     @Override
     public PageResponse<ApprovalHistoryDto.ListResponse> getApprovals(
@@ -61,17 +65,23 @@ public class ApprovalServiceImpl implements ApprovalService {
         int safePage = Math.max(page, 0);
         int safeSize = Math.max(size, 1);
 
-        List<ApprovalHistoryDto.ListResponse> filtered = approvalHistoryRepository.findAllByOrderByApprovalIdDesc()
-                .stream()
-                .map(this::toListResponse)
-                .filter(Objects::nonNull)
-                .filter(row -> contains(row.requestNumber(), requestNumber))
-                .filter(row -> contains(row.title(), title))
-                .filter(row -> contains(row.requester(), requester))
-                .filter(row -> isBlank(department) || Objects.equals(row.department(), department))
-                .filter(row -> isBlank(status) || "전체".equals(status) || Objects.equals(row.requestStatus(), status) || Objects.equals(row.requestStatusLabel(), status))
-                .filter(row -> isWithinRange(row.requestedAt(), requestedFrom, requestedTo))
-                .toList();
+    Long currentUserId = getCurrentLoginUserId();
+
+    List<ApprovalHistoryDto.ListResponse> filtered = approvalHistoryRepository.findAllByOrderByApprovalIdDesc()
+            .stream()
+            .filter(approval -> Objects.equals(approval.getApproverId(), currentUserId))
+            .map(this::toListResponse)
+            .filter(Objects::nonNull)
+            .filter(row -> contains(row.requestNumber(), requestNumber))
+            .filter(row -> contains(row.title(), title))
+            .filter(row -> contains(row.requester(), requester))
+            .filter(row -> isBlank(department) || Objects.equals(row.department(), department))
+            .filter(row -> isBlank(status)
+                    || "전체".equals(status)
+                    || Objects.equals(row.requestStatus(), status)
+                    || Objects.equals(row.requestStatusLabel(), status))
+            .filter(row -> isWithinRange(row.requestedAt(), requestedFrom, requestedTo))
+            .toList();
 
         long totalElements = filtered.size();
         int totalPages = Math.max(1, (int) Math.ceil((double) totalElements / safeSize));
@@ -87,42 +97,54 @@ public class ApprovalServiceImpl implements ApprovalService {
     @Override
     public ApprovalHistoryDto.DetailResponse getApprovalDetail(Long approvalId) {
         ApprovalHistory approval = findApproval(approvalId);
+
+        validateCurrentApprover(approval);
+
         PurchaseRequest request = findRequest(approval.getRequestId());
 
         return toDetailResponse(approval, request);
-    }
+}
 
     @Override
     @Transactional
     public ApprovalHistoryDto.DetailResponse approve(Long approvalId, ApprovalHistoryDto.DecisionRequest dto) {
-        ApprovalHistory approval = findApproval(approvalId);
-        PurchaseRequest request = findRequest(approval.getRequestId());
+    ApprovalHistory approval = findApproval(approvalId);
 
-        validatePendingApproval(request);
+    validateCurrentApprover(approval);
 
-        approval.setApprovalStatus("APPROVED");
-        approval.setCommentText(dto != null ? dto.comment() : null);
-        approval.setApprovedAt(LocalDateTime.now());
-        request.setRequestStatus("APPROVED");
-        request.setUpdatedAt(LocalDateTime.now());
+    PurchaseRequest request = findRequest(approval.getRequestId());
 
-        approvalHistoryRepository.save(approval);
-        purchaseRequestRepository.save(request);
+    validatePendingApproval(approval, request);
 
-        return toDetailResponse(approval, request);
-    }
+    approval.setApprovalStatus("APPROVED");
+    approval.setCommentText(dto != null ? dto.comment() : null);
+    approval.setApprovedAt(LocalDateTime.now());
+
+    request.setRequestStatus("APPROVED");
+    request.setUpdatedAt(LocalDateTime.now());
+
+    approvalHistoryRepository.save(approval);
+    purchaseRequestRepository.save(request);
+
+    return toDetailResponse(approval, request);
+}
 
     @Override
     @Transactional
     public ApprovalHistoryDto.DetailResponse reject(Long approvalId, ApprovalHistoryDto.DecisionRequest dto) {
         ApprovalHistory approval = findApproval(approvalId);
+
+        validateCurrentApprover(approval);
+        validateRejectComment(dto);
+
         PurchaseRequest request = findRequest(approval.getRequestId());
 
-        validatePendingApproval(request);
+        validatePendingApproval(approval, request);
 
         approval.setApprovalStatus("REJECTED");
-        approval.setCommentText(dto != null ? dto.comment() : null);
+        approval.setCommentText(dto.comment().trim());
         approval.setApprovedAt(LocalDateTime.now());
+
         request.setRequestStatus("REJECTED");
         request.setUpdatedAt(LocalDateTime.now());
 
@@ -130,15 +152,18 @@ public class ApprovalServiceImpl implements ApprovalService {
         purchaseRequestRepository.save(request);
 
         return toDetailResponse(approval, request);
-    }
+}
 
     @Override
     @Transactional
     public ApprovalHistoryDto.DetailResponse cancelRequest(Long approvalId) {
         ApprovalHistory approval = findApproval(approvalId);
+
+        validateCurrentApprover(approval);
+
         PurchaseRequest request = findRequest(approval.getRequestId());
 
-        validatePendingApproval(request);
+        validatePendingApproval(approval, request);
 
         LocalDateTime now = LocalDateTime.now();
 
@@ -210,15 +235,15 @@ public class ApprovalServiceImpl implements ApprovalService {
             toRequestStatusLabel(request.getRequestStatus()),
             nullToEmpty(request.getReason()),
             getApprovalItemResponses(request.getRequestId()),
-            List.of(),
+            getAttachmentResponses(request.getRequestId()),
             new ApprovalHistoryDto.CurrentStep(
-                    createStepLabel(approval),
+                createStepLabel(approval),
                     new ApprovalHistoryDto.UserInfo(
-                            approver != null ? approver.getUserId() : approval.getApproverId(),
-                            approver != null ? nullToEmpty(approver.getUserName()) : getApproverName(approval.getApproverId()),
-                            ""
-                    )
-            ),
+                        approver != null ? approver.getUserId() : approval.getApproverId(),
+                        approver != null ? nullToEmpty(approver.getUserName()) : getApproverName(approval.getApproverId()),
+                        ""
+            )
+        ),
             getHistoryResponses(request.getRequestId())
     );
 }
@@ -241,21 +266,21 @@ public class ApprovalServiceImpl implements ApprovalService {
                     BigDecimal unitPrice = item.getEstimatedUnitPrice() != null ? item.getEstimatedUnitPrice() : BigDecimal.ZERO;
 
 
-return new ApprovalHistoryDto.ApprovalItemResponse(
-        item.getRequestItemId(),
-        item.getProductId(),
-        product != null ? nullToEmpty(product.getProductNo()) : "",
-        product != null ? nullToEmpty(product.getProductName()) : "",
-        product != null ? nullToEmpty(product.getCategoryName()) : "",
-        product != null ? nullToEmpty(product.getSpec()) : "",
-        quantity,
-        product != null ? nullToEmpty(product.getUnit()) : "",
-        unitPrice,
-        unitPrice.multiply(BigDecimal.valueOf(quantity)),
-        nullToEmpty(item.getRemark()),
-        formatDateTime(item.getCreatedAt()),
-        formatDateTime(item.getUpdatedAt())
-);
+            return new ApprovalHistoryDto.ApprovalItemResponse(
+                item.getRequestItemId(),
+                item.getProductId(),
+                product != null ? nullToEmpty(product.getProductNo()) : "",
+                product != null ? nullToEmpty(product.getProductName()) : "",
+                product != null ? nullToEmpty(product.getCategoryName()) : "",
+                product != null ? nullToEmpty(product.getSpec()) : "",
+                quantity,
+                product != null ? nullToEmpty(product.getUnit()) : "",
+                unitPrice,
+                unitPrice.multiply(BigDecimal.valueOf(quantity)),
+                nullToEmpty(item.getRemark()),
+                formatDateTime(item.getCreatedAt()),
+                formatDateTime(item.getUpdatedAt())
+        );
                 })
                 .toList();
     }
@@ -421,16 +446,134 @@ return new ApprovalHistoryDto.ApprovalItemResponse(
             .filter(name -> !isBlank(name))
             .orElse("-");
     }
+    
+    private boolean isAdmin() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-    private void validatePendingApproval(PurchaseRequest request) {
-        String status = toStatusCode(request.getRequestStatus());
+    if (authentication == null || authentication.getAuthorities() == null) {
+        return false;
+    }
 
-        if (!"PENDING_APPROVAL".equals(status)) {
+    return authentication.getAuthorities()
+            .stream()
+            .anyMatch(authority ->
+                    "ROLE_ADMIN".equals(authority.getAuthority())
+                            || "ROLE_MANAGER".equals(authority.getAuthority())
+            );
+}
+
+    private void validateCurrentApproverOrAdmin(ApprovalHistory approval) {
+    if (isAdmin()) {
+        return;
+    }
+
+    validateCurrentApprover(approval);
+}
+    
+    private void validateCurrentApprover(ApprovalHistory approval) {
+        Long currentUserId = getCurrentLoginUserId();
+        Long approverId = approval.getApproverId();
+        
+        if (approverId == null) {
             throw new ResponseStatusException(
-                HttpStatus.CONFLICT,
-                "승인 대기 상태의 요청만 처리할 수 있습니다. 현재 상태: "
-                        + toRequestStatusLabel(status)
+                HttpStatus.FORBIDDEN,
+                "승인자가 지정되지 않은 승인 건입니다."
             );
         }
+        
+        if (!approverId.equals(currentUserId)) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "해당 승인 건의 승인자만 처리할 수 있습니다."
+            );
+        }
+    }
+
+    
+    private Long getCurrentLoginUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        
+        if (authentication == null
+            || !authentication.isAuthenticated()
+            || "anonymousUser".equals(String.valueOf(authentication.getPrincipal()))) {
+            throw new ResponseStatusException(
+                HttpStatus.UNAUTHORIZED,
+                "로그인이 필요합니다."
+            );
+        }
+        
+        Object principal = authentication.getPrincipal();
+        
+        if (principal instanceof Users user) {
+            return user.getUserId();
+        }
+        
+        if (principal instanceof UserDetails userDetails) {
+            return parseUserId(userDetails.getUsername());
+        }
+        
+        return parseUserId(authentication.getName());
+    }
+    
+    private Long parseUserId(String value) {
+        if (isBlank(value)) {
+            throw new ResponseStatusException(
+                HttpStatus.UNAUTHORIZED,
+                "현재 로그인 사용자 정보를 확인할 수 없습니다."
+            );
+        }
+        
+        try {
+            return Long.valueOf(value);
+        } catch (NumberFormatException e) {
+            throw new ResponseStatusException(
+                HttpStatus.UNAUTHORIZED,
+                "현재 로그인 사용자 ID를 확인할 수 없습니다."
+            );
+        }
+    }
+    
+    private void validateRejectComment(ApprovalHistoryDto.DecisionRequest dto) {
+        if (dto == null || dto.comment() == null || dto.comment().trim().isEmpty()) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "반려 사유는 필수입니다."
+            );
+        }
+    }
+
+        private void validatePendingApproval(ApprovalHistory approval, PurchaseRequest request) {
+            String requestStatus = toStatusCode(request.getRequestStatus());
+
+            if (!"PENDING_APPROVAL".equals(requestStatus)) {
+                throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "승인 대기 상태의 요청만 처리할 수 있습니다. 현재 상태: "
+                        + toRequestStatusLabel(requestStatus)
+            );
+        }
+
+        String approvalStatus = toStatusCode(approval.getApprovalStatus());
+
+            if (!"PENDING_APPROVAL".equals(approvalStatus)) {
+                throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "이미 처리된 승인 건입니다. 현재 승인 상태: "
+                        + toRequestStatusLabel(approvalStatus)
+            );
+        }
+    }
+    
+    private List<ApprovalHistoryDto.AttachmentResponse> getAttachmentResponses(Long requestId) {
+        return attachmentRepository.findByRequestIdOrderByAttachmentIdAsc(requestId)
+            .stream()
+            .map(attachment -> new ApprovalHistoryDto.AttachmentResponse(
+                    attachment.getAttachmentId(),
+                    attachment.getOriginalName(),
+                    "/api/purchase-requests/attachments/"
+                            + attachment.getAttachmentId()
+                            + "/download"
+            ))
+                .toList();
     }
 }
