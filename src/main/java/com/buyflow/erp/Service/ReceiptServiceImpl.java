@@ -27,6 +27,7 @@ public class ReceiptServiceImpl implements ReceiptService {
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
     private final ReceiptItemRepository receiptItemRepository;
+    private final InventoryService inventoryService;
 
     @Override
     public List<Receipt> getReceipts() {

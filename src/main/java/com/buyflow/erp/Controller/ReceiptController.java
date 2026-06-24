@@ -23,16 +23,16 @@ public class ReceiptController {
 
         @GetMapping
         public ResponseEntity<ReceiptDto.PageResponse<ReceiptDto.ListResponse>> getReceipts(
-                        @RequestParam(required = false) String activeTab,
-                        @RequestParam(required = false) String orderNumber,
-                        @RequestParam(required = false) String supplierKeyword,
-                        @RequestParam(required = false) String itemKeyword,
-                        @RequestParam(required = false) String warehouseName,
-                        @RequestParam(required = false) String expectedFrom,
-                        @RequestParam(required = false) String expectedTo,
-                        @RequestParam(required = false) String status,
-                        @RequestParam(defaultValue = "1") int page,
-                        @RequestParam(defaultValue = "10") int size) {
+                        @RequestParam(name = "activeTab", required = false) String activeTab,
+                        @RequestParam(name = "orderNumber", required = false) String orderNumber,
+                        @RequestParam(name = "supplierKeyword", required = false) String supplierKeyword,
+                        @RequestParam(name = "itemKeyword", required = false) String itemKeyword,
+                        @RequestParam(name = "warehouseName", required = false) String warehouseName,
+                        @RequestParam(name = "expectedFrom", required = false) String expectedFrom,
+                        @RequestParam(name = "expectedTo", required = false) String expectedTo,
+                        @RequestParam(name = "status", required = false) String status,
+                        @RequestParam(name = "page", defaultValue = "1") int page,
+                        @RequestParam(name = "size", defaultValue = "10") int size) {
 
                 return ResponseEntity.ok(
                                 receiptService.searchReceipts(
@@ -69,7 +69,7 @@ public class ReceiptController {
 
         @GetMapping("/{receiptId:\\d+}")
         public ResponseEntity<ReceiptDto.DetailResponse> getReceipt(
-                        @PathVariable Long receiptId) {
+                        @PathVariable(name = "receiptId") Long receiptId) {
 
                 return ResponseEntity.ok(
                                 receiptService.getReceipt(receiptId));
@@ -77,7 +77,7 @@ public class ReceiptController {
 
         @GetMapping("/order/{orderId}")
         public ResponseEntity<ReceiptDto.DetailResponse> getReceiptByOrderId(
-                        @PathVariable Long orderId) {
+                        @PathVariable(name = "orderId") Long orderId) {
 
                 return ResponseEntity.ok(
                                 receiptService.getReceiptByOrderId(orderId));
