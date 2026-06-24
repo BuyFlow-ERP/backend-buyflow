@@ -8,10 +8,14 @@ import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.buyflow.erp.Dto.InventoryAdjustmentRequest;
+import com.buyflow.erp.Dto.InventoryAdjustmentResponse;
 import com.buyflow.erp.Dto.StockDto;
 import com.buyflow.erp.Dto.StockListResponse;
 import com.buyflow.erp.Entity.Stock;
@@ -23,16 +27,28 @@ import java.util.Map;
 
 import com.buyflow.erp.Repository.ProductRepository;
 import com.buyflow.erp.Repository.WarehouseRepository;
+import com.buyflow.erp.Service.InventoryService;
+
+import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping({ "/stocks", "/inventories" })
 public class StockController {
 
-    private final StockRepository stockRepository;
-    private final ProductRepository productRepository;
-    private final WarehouseRepository warehouseRepository;
+        private final StockRepository stockRepository;
+        private final ProductRepository productRepository;
+        private final WarehouseRepository warehouseRepository;
+        private final InventoryService inventoryService;
 
+        @PostMapping("/{stockId}/adjustments")
+        public ResponseEntity<InventoryAdjustmentResponse> adjustStock(
+                        @PathVariable Long stockId,
+                        @RequestBody InventoryAdjustmentRequest request) {
+
+                return ResponseEntity.ok(
+                                inventoryService.adjustStock(stockId, request));
+        }
 
         @GetMapping
         public StockListResponse getInventories(
