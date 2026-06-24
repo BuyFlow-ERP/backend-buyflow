@@ -3,7 +3,6 @@ package com.buyflow.erp.Service;
 import java.util.List;
 
 import com.buyflow.erp.Dto.StockHistoryResponseDto;
-import com.buyflow.erp.Entity.StockHistory;
 
 public interface StockHistoryService {
 
@@ -12,7 +11,7 @@ public interface StockHistoryService {
     List<StockHistoryResponseDto> getStockHistoryByType(
             String historyType);
 
- StockHistoryResponseDto getStockHistory(
+    StockHistoryResponseDto getStockHistory(
         Long historyId);
 
     List<StockHistoryResponseDto> searchStockHistory(

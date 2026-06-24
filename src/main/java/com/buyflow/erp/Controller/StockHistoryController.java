@@ -47,6 +47,8 @@ public class StockHistoryController {
         return stockHistoryService.getStockHistoryByType(historyType);
     }
 
+   
+        
     @GetMapping("/{historyId}")
     public StockHistoryResponseDto getStockHistory(
             @PathVariable(name = "historyId") Long historyId) {
@@ -69,13 +71,14 @@ public class StockHistoryController {
                         .toList());
 
         result.put(
-                "movementTypes",
-                List.of(
-                        "전체",
-                        "RECEIPT",
-                        "UPDATE",
-                        "DELETE",
-                        "CANCEL"));
+        "movementTypes",
+        List.of(
+                "전체",
+                "INBOUND",
+                "INSPECTION_ADJUST",
+                "UPDATE",
+                "DELETE",
+                "CANCEL"));
 
         return result;
     }
