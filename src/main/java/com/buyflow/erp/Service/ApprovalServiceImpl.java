@@ -98,7 +98,7 @@ public class ApprovalServiceImpl implements ApprovalService {
     public ApprovalHistoryDto.DetailResponse getApprovalDetail(Long approvalId) {
         ApprovalHistory approval = findApproval(approvalId);
 
-        validateCurrentApprover(approval);
+        validateCanReadApproval(approval);
 
         PurchaseRequest request = findRequest(approval.getRequestId());
 
@@ -110,7 +110,7 @@ public class ApprovalServiceImpl implements ApprovalService {
     public ApprovalHistoryDto.DetailResponse approve(Long approvalId, ApprovalHistoryDto.DecisionRequest dto) {
     ApprovalHistory approval = findApproval(approvalId);
 
-    validateCurrentApprover(approval);
+    validateCanProcessApproval(approval);
 
     PurchaseRequest request = findRequest(approval.getRequestId());
 
@@ -134,7 +134,7 @@ public class ApprovalServiceImpl implements ApprovalService {
     public ApprovalHistoryDto.DetailResponse reject(Long approvalId, ApprovalHistoryDto.DecisionRequest dto) {
         ApprovalHistory approval = findApproval(approvalId);
 
-        validateCurrentApprover(approval);
+        validateCanProcessApproval(approval);
         validateRejectComment(dto);
 
         PurchaseRequest request = findRequest(approval.getRequestId());
@@ -159,7 +159,7 @@ public class ApprovalServiceImpl implements ApprovalService {
     public ApprovalHistoryDto.DetailResponse cancelRequest(Long approvalId) {
         ApprovalHistory approval = findApproval(approvalId);
 
-        validateCurrentApprover(approval);
+        validateCanProcessApproval(approval);
 
         PurchaseRequest request = findRequest(approval.getRequestId());
 
@@ -447,44 +447,85 @@ public class ApprovalServiceImpl implements ApprovalService {
             .orElse("-");
     }
     
-    private boolean isAdmin() {
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    private boolean hasRole(Long userId, String roleCode) {
+        if (userId == null || isBlank(roleCode)) {
+            return false;
+        }
 
-    if (authentication == null || authentication.getAuthorities() == null) {
+        return userRepository.countActiveRoleByUserId(userId, roleCode) > 0;
+    }
+
+    private boolean hasPermission(Long userId, String permissionCode) {
+        if (userId == null || isBlank(permissionCode)) {
+            return false;
+        }
+
+        return userRepository.countActivePermissionByUserId(userId, permissionCode) > 0;
+    }
+
+    private boolean hasAnyRole(Long userId, String... roleCodes) {
+        if (userId == null || roleCodes == null) {
+            return false;
+        }
+
+        for (String roleCode : roleCodes) {
+            if (hasRole(userId, roleCode)) {
+                return true;
+            }
+        }
+
         return false;
     }
 
-    return authentication.getAuthorities()
-            .stream()
-            .anyMatch(authority ->
-                    "ROLE_ADMIN".equals(authority.getAuthority())
-                            || "ROLE_MANAGER".equals(authority.getAuthority())
-            );
+    private boolean canReadApprovalManagement(Long userId) {
+        return hasPermission(userId, "approvals.read")
+                || hasPermission(userId, "approvals.process")
+                || hasAnyRole(userId, "ADMIN", "MANAGER", "APPROVER", "TEAM_MANAGER");
+    }
+
+    private boolean canProcessApproval(Long userId) {
+        return hasPermission(userId, "approvals.process")
+                || hasAnyRole(userId, "ADMIN", "MANAGER", "APPROVER");
 }
 
-    private void validateCurrentApproverOrAdmin(ApprovalHistory approval) {
-    if (isAdmin()) {
+    private void validateCanReadApproval(ApprovalHistory approval) {
+    Long currentUserId = getCurrentLoginUserId();
+
+    if (canReadApprovalManagement(currentUserId)) {
         return;
     }
 
-    validateCurrentApprover(approval);
+    validateCurrentApprover(approval, currentUserId);
 }
-    
-    private void validateCurrentApprover(ApprovalHistory approval) {
+
+    private void validateCanProcessApproval(ApprovalHistory approval) {
         Long currentUserId = getCurrentLoginUserId();
+
+        if (canProcessApproval(currentUserId)) {
+            return;
+        }
+
+        validateCurrentApprover(approval, currentUserId);
+    }
+
+    private void validateCurrentApprover(ApprovalHistory approval) {
+        validateCurrentApprover(approval, getCurrentLoginUserId());
+    }
+
+    private void validateCurrentApprover(ApprovalHistory approval, Long currentUserId) {
         Long approverId = approval.getApproverId();
-        
+
         if (approverId == null) {
             throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "승인자가 지정되지 않은 승인 건입니다."
+                    HttpStatus.FORBIDDEN,
+                    "승인자가 지정되지 않은 승인 건입니다."
             );
         }
-        
+
         if (!approverId.equals(currentUserId)) {
             throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "해당 승인 건의 승인자만 처리할 수 있습니다."
+                    HttpStatus.FORBIDDEN,
+                    "해당 승인 건의 승인자만 처리할 수 있습니다."
             );
         }
     }
@@ -516,22 +557,26 @@ public class ApprovalServiceImpl implements ApprovalService {
     }
     
     private Long parseUserId(String value) {
-        if (isBlank(value)) {
-            throw new ResponseStatusException(
-                HttpStatus.UNAUTHORIZED,
-                "현재 로그인 사용자 정보를 확인할 수 없습니다."
-            );
-        }
-        
-        try {
-            return Long.valueOf(value);
-        } catch (NumberFormatException e) {
-            throw new ResponseStatusException(
-                HttpStatus.UNAUTHORIZED,
-                "현재 로그인 사용자 ID를 확인할 수 없습니다."
-            );
-        }
+    if (isBlank(value)) {
+        throw new ResponseStatusException(
+            HttpStatus.UNAUTHORIZED,
+            "현재 로그인 사용자 정보를 확인할 수 없습니다."
+        );
     }
+
+    String loginValue = value.trim();
+
+    try {
+        return Long.valueOf(loginValue);
+    } catch (NumberFormatException ignored) {
+        return userRepository.findByLoginId(loginValue)
+            .map(Users::getUserId)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.UNAUTHORIZED,
+                "현재 로그인 사용자를 찾을 수 없습니다."
+            ));
+    }
+}
     
     private void validateRejectComment(ApprovalHistoryDto.DecisionRequest dto) {
         if (dto == null || dto.comment() == null || dto.comment().trim().isEmpty()) {
