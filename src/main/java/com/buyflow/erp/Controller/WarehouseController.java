@@ -45,7 +45,6 @@ public class WarehouseController {
         
         Map<String, List<String>> options = new HashMap<>();
         
-        // 1. 프론트엔드 WarehouseSearchForm.jsx에서 사용하는 셀렉트 박스 옵션 규격을 맞춰줍니다.
         options.put("warehouseTypes", Arrays.asList("전체", "냉동 창고", "냉장 창고", "위험물 창고", "일반 창고", "보세 창고"));
         options.put("useYn", Arrays.asList("전체", "사용 중", "사용 중지"));
         

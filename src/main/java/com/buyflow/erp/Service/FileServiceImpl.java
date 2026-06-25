@@ -22,7 +22,6 @@ public class FileServiceImpl implements FileService {
     private final AttachmentRepository attachmentRepository;
     private final UserRepository usersRepository;
 
-    // 기존 프로젝트 저장 경로 유지
     private final String UPLOAD_DIR = "C:/erp/uploads/";
 
     @Override

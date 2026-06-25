@@ -21,7 +21,6 @@ public class WarehouseDto {
         private String managerName;
         private String userName;
 
-        // 페이징
         private int page = 0;
         private int size = 10;
     }

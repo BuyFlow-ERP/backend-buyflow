@@ -109,21 +109,20 @@ public class InspectionDto {
 	@AllArgsConstructor
 	@Builder
 	public static class InspectionItemDto {
-	    // ⭕ 프론트엔드가 상세화면에서 순회(map)할 때 애타게 찾는 찐 이름들입니다.
-	    private Long id;                 // 리액트 key값용 식별자 (receiptItemId)
+	    private Long id;                 // (receiptItemId)
 	    private Long receiptItemId;      // 입고 품목 식별자
-	    private String itemCode;         // 품목 코드 (Product의 productNo)
-	    private String itemName;         // 품목명 (Product의 productName)
-	    private String category;         // 카테고리 (Product의 categoryName)
-	    private String specification;    // 규격 (Product의 spec)
-	    private String unit;             // 단위 (Product의 unit)
-	    private String lotNumber;        // LOT 번호 (ReceiptItem의 remark 등으로 대체 가능)
+	    private String itemCode;         // (Product의 productNo)
+	    private String itemName;         // (Product의 productName)
+	    private String category;         // (Product의 categoryName)
+	    private String specification;    // (Product의 spec)
+	    private String unit;             // (Product의 unit)
+	    private String lotNumber;        // (ReceiptItem의 remark 등으로 대체 가능)
 	    
-	    private Long receivedQuantity;   // 입고 수량 (ReceiptItem의 receiptQty)
-	    private Long acceptedQuantity;   // 합격 수량 (ReceiptItem의 acceptedQty)
-	    private Long defectiveQuantity;  // 불량 수량 (ReceiptItem의 defectQty)
-	    private String defectReason;     // 불량 사유 (ReceiptItem의 remark 등)
-	    private String disposition;      // 처리 방식 (기본값 "NONE")
+	    private Long receivedQuantity;   // (ReceiptItem의 receiptQty)
+	    private Long acceptedQuantity;   // (ReceiptItem의 acceptedQty)
+	    private Long defectiveQuantity;  // (ReceiptItem의 defectQty)
+	    private String defectReason;     // (ReceiptItem의 remark 등)
+	    private String disposition;      // (기본값 "NONE")
 	}
 	
 	@Getter

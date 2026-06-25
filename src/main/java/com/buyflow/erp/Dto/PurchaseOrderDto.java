@@ -139,7 +139,6 @@ public class PurchaseOrderDto {
 		                        .specification(item.getProduct().getSpec())
 		                        .unit(item.getProduct().getUnit());
 		                }
-
 		                return builder.build();
 		            })
 		            .collect(Collectors.toList());
@@ -189,13 +188,13 @@ public class PurchaseOrderDto {
 	@AllArgsConstructor
 	@Builder
 	public static class ItemResponse {
-		private Long requestItemId;     // 구매 요청 품목 식별자 (리액트 key로 사용됨)
+		private Long requestItemId;     // 구매 요청
 		private String itemCode;        // 품목 코드
 		private String itemName;        // 품목명
 		private String specification;   // 규격
 		private Integer requestedQuantity; // 요청 수량
-		private Integer orderQuantity;     // 발주 수량 (초기값은 요청 수량과 동일하게 세팅)
+		private Integer orderQuantity;     // 발주 수량
 		private String unit;            // 단위
-		private Long unitPrice;         // 공급 단가 (초기값 0 또는 품목 기본 단가)
+		private Long unitPrice;         // 공급 단가
 	}
 }
