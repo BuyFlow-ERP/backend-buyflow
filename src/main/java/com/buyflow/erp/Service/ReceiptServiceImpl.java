@@ -79,8 +79,7 @@ public class ReceiptServiceImpl implements ReceiptService {
                                 getReceiptItems(
                                         rs.getLong("ORDER_ID")));
 
-                        System.out.println("ORDER_ID = " + rs.getLong("ORDER_ID"));
-
+                        
                         dto.setHistories(
                                 getReceiptHistories(
                                         rs.getLong("ORDER_ID")));
@@ -119,12 +118,7 @@ public class ReceiptServiceImpl implements ReceiptService {
 
         for (ReceiptDto.ReceiptCreateItemRequest itemRequest : request.getItems()) {
 
-            System.out.println(
-                    "orderItemId = " + itemRequest.getOrderItemId());
-
-            System.out.println(
-                    "receivedQuantity = " + itemRequest.getReceivedQuantity());
-
+          
             PurchaseOrderItem orderItem = purchaseOrderItemRepository
                     .findById(itemRequest.getOrderItemId())
                     .orElse(null);
@@ -185,7 +179,7 @@ public class ReceiptServiceImpl implements ReceiptService {
             int page,
             int size) {
 
-        System.out.println("searchReceipts 시작");
+       
 
         int safePage = Math.max(page, 1);
         int safeSize = size <= 0 ? 10 : size;
@@ -236,6 +230,8 @@ public class ReceiptServiceImpl implements ReceiptService {
                             x.ID DESC
                         OFFSET :offset ROWS FETCH NEXT :size ROWS ONLY
                         """;
+
+        
 
         List<ReceiptDto.ListResponse> items = jdbcTemplate.query(
                 listSql,
@@ -550,11 +546,6 @@ public class ReceiptServiceImpl implements ReceiptService {
 
         }
 
-        if (!isBlank(cardFilter) && !"ALL".equals(cardFilter)) {
-            sql.append(" AND x.STATUS = :cardFilter\n");
-            params.put("cardFilter", cardFilter);
-        }
-
         if (!isBlank(orderNumber)) {
             sql.append(" AND LOWER(x.ORDER_NUMBER) LIKE '%' || LOWER(:orderNumber) || '%'\n");
             params.put("orderNumber", orderNumber.trim());
@@ -623,7 +614,7 @@ public class ReceiptServiceImpl implements ReceiptService {
                 .stream()
                 .map(orderItem -> {
 
-                    System.out.println(orderItem);
+                    
                     Product product = orderItem.getProduct();
 
                     if (product == null) {
@@ -654,18 +645,9 @@ public class ReceiptServiceImpl implements ReceiptService {
     }
 
     private List<ReceiptDto.HistoryResponse> getReceiptHistories(Long orderId) {
-
-        System.out.println(
-                "history size = " +
-                        receiptRepository.findByOrderId(orderId).size());
-
-        System.out.println("getReceiptHistories 호출");
-        System.out.println("orderId = " + orderId);
-
+        
         List<Receipt> receipts = receiptRepository.findByOrderId(orderId);
-
-        System.out.println("receipt 개수 = " + receipts.size());
-
+        
         return receipts
                 .stream()
                 .map(receipt -> {
