@@ -136,12 +136,10 @@ public class WarehouseServiceImpl implements WarehouseService {
         
         Users targetUser = null;
         
-        // 1차 시도: 로그인 ID로 조회
         if (!searchUid.isEmpty() && !searchUid.equalsIgnoreCase("null") && !searchUid.equalsIgnoreCase("undefined")) {
             targetUser = userRepository.findByLoginId(searchUid).orElse(null);
         }
         
-        // 2차 시도: 이름(UserName)이 부분 일치하거나 공백을 무시하고 스캔
         final String finalMnm = searchMnm;
         if (targetUser == null && !finalMnm.isEmpty() && !finalMnm.equals("-")) {
             targetUser = userRepository.findAll().stream()
@@ -151,12 +149,10 @@ public class WarehouseServiceImpl implements WarehouseService {
                     .orElse(null);
         }
         
-        // 3차 시도 (최종 방패): 다 실패하면 오라클 USERS 테이블에 존재하는 '첫 번째 유저'를 강제로 매핑!
         if (targetUser == null) {
             targetUser = userRepository.findAll().stream().findFirst().orElse(null);
         }
         
-        // 찾은 유저 객체를 창고 엔티티의 USER_ID 외래키에 바인딩합니다.
         if (targetUser != null) {
             warehouse.setUser(targetUser);
         }
