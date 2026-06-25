@@ -63,7 +63,14 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         if (request == null) {
             throw new IllegalArgumentException("요청 데이터가 비어있습니다.");
         }
-        System.out.println("🧠 SERVICE requestId = " + request.getRequestId());
+        
+        Warehouse warehouse = null;
+        if (request.getWarehouseCode() != null) {
+            warehouse = warehouseRepository.findById(request.getWarehouseCode())
+                .orElseThrow(() -> new EntityNotFoundException("창고를 찾을 수 없습니다. ID: " + request.getWarehouseCode()));
+        } else {
+            throw new IllegalArgumentException("입고 창고 코드는 필수입니다.");
+        }
         
         Supplier supplier = supplierRepository.findById(request.getSupplierId())
                 .orElseThrow(() -> new EntityNotFoundException("공급업체가 존재하지 않습니다. ID: " + request.getSupplierId()));
@@ -123,6 +130,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 .supplier(supplier)
                 .user(user)
                 .purchaseRequest(purchaseRequest)
+                .warehouse(warehouse)
                 .createdAt(LocalDateTime.now()) 
                 .orderStatus(request.getOrderStatus() != null ? request.getOrderStatus() : "PENDING")
                 .dueDate(finalDueDate)

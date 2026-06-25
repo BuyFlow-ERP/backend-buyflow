@@ -44,13 +44,13 @@ public class Inspection {
     private Users user;
 
     @Column(name = "INSPECTION_DATE")
-    private LocalDate inspectionDate; // Date type => LocalDate로 매핑
+    private LocalDate inspectionDate;
 
     @Column(name = "INSPECTION_TYPE", length = 50)
     private String inspectionType;
 
     @Column(name = "QUANTITY")
-    private Long quantity; // Number(10) 정수형 매핑
+    private Long quantity; 
 
     @Column(name = "INSPECTION_RESULT", length = 20)
     private String inspectionResult;
