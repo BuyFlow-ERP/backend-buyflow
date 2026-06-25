@@ -12,6 +12,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.hibernate.Hibernate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -47,6 +49,7 @@ import lombok.RequiredArgsConstructor;
 @Transactional
 public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
+	private static final Logger log = LoggerFactory.getLogger(PurchaseOrderServiceImpl.class);
     private final SupplierRepository supplierRepository;
     private final UserRepository userRepository;
     private final PurchaseOrderRepository orderRepository;
@@ -97,7 +100,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             finalDueDate = request.getExpectedReceiptTo().atStartOfDay()
             				.plusHours(23)
             				.plusMinutes(59)
-            				.plusSeconds(59);   // LocalDateTime 그대로 사용
+            				.plusSeconds(59); 
         }
 
         if (finalDueDate == null) {
@@ -176,21 +179,16 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     @Override
     @Transactional(readOnly = true)
     public PurchaseOrderDto.Response getOrderWithItems(Long orderId) {
+    	// Fetch Join
         PurchaseOrder order = orderRepository.findByIdWithItems(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("발주를 찾을 수 없습니다. ID: " + orderId));
         
+        // 혹시 몰라 지연 로딩 방지
         if (order.getItems() != null) {
             Hibernate.initialize(order.getItems());
         }
-        if (order.getPurchaseRequest() != null) {
-            Hibernate.initialize(order.getPurchaseRequest());
-        }
         
-        if (order.getPurchaseRequest() != null) {
-            System.out.println("RequestNo: " + order.getPurchaseRequest().getRequestNo());
-            System.out.println("Title: " + order.getPurchaseRequest().getTitle());
-        }
-
+        // 초기화
         if (order.getPurchaseRequest() != null) {
             Hibernate.initialize(order.getPurchaseRequest());
         }
@@ -262,13 +260,12 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         
         if (orderPage != null && orderPage.getContent() != null) {
             for (PurchaseOrder po : orderPage.getContent()) {
-                System.out.println(String.format(
-                	"📌 발주번호: %s | TotalAmount: %s | CreatedAt: %s | 품목개수: %d",
+                log.info(" 발주번호: {} | TotalAmount: {} | CreatedAt: {} | 품목개수: {}",
                     po.getOrderNo(),
                     po.getTotalAmount(),
                     po.getCreatedAt(),
                     po.getItems() != null ? po.getItems().size() : 0
-                ));
+                );
             }
         }
 

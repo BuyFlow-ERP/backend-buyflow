@@ -491,7 +491,6 @@ public class InspectionServiceImpl implements InspectionService {
 		Long beforeQty = stock.getQuantity() == null ? 0L : stock.getQuantity().longValue();
 		Long correctionQty = finalAcceptedQty - oldAcceptedQty;
 
-		// 검수 단계에서 추가적인 불량이 발견되면 그만큼 재고를 깍는 것이 맞음.
 		if (correctionQty != 0) {
 			Long afterQty = beforeQty + correctionQty;
 			
@@ -519,117 +518,100 @@ public class InspectionServiceImpl implements InspectionService {
 			stockHistoryRepository.save(history);
 		}
 		
-		receiptItem.setDefectQty(finalDefectQty);
-		receiptItem.setAcceptedQty(finalAcceptedQty);
-                receiptItem.setReceiptItemStatus("INSPECTED");
-		receiptItemRepository.save(receiptItem);
+			receiptItem.setDefectQty(finalDefectQty);
+			receiptItem.setAcceptedQty(finalAcceptedQty);
+		            receiptItem.setReceiptItemStatus("INSPECTED");
+			receiptItemRepository.save(receiptItem);
 	}
 	
 	@Override
-        @Transactional
-        public void saveInspectionResult(Long receiptId, InspectionDto.ResultRequest request) {
-        if (request.getItems() == null || request.getItems().isEmpty()) {
-        throw new RuntimeException("검수할 품목이 없습니다.");
-    }
+    @Transactional
+    public void saveInspectionResult(Long receiptId, InspectionDto.ResultRequest request) {
+		if (request.getItems() == null || request.getItems().isEmpty()) {
+			throw new RuntimeException("검수할 품목이 없습니다.");
+		}
 
-        for (InspectionDto.ResultItemRequest itemRequest : request.getItems()) {
-                Long receiptItemId = itemRequest.getReceiptItemId() != null
-                        ? itemRequest.getReceiptItemId()
-                        : itemRequest.getId();
+    for (InspectionDto.ResultItemRequest itemRequest : request.getItems()) {
+            Long receiptItemId = itemRequest.getReceiptItemId() != null
+                    ? itemRequest.getReceiptItemId()
+                    : itemRequest.getId();
 
-        InspectionDto.CreateRequest createRequest = new InspectionDto.CreateRequest();
+    InspectionDto.CreateRequest createRequest = new InspectionDto.CreateRequest();
 
-        createRequest.setReceiptItemId(receiptItemId);
-        createRequest.setInspectorId(request.getInspectorId());
-        createRequest.setInspectionDate(
-                request.getInspectedAt() == null
-                        ? java.time.LocalDate.now()
-                        : request.getInspectedAt().toLocalDate()
-        );
-        createRequest.setInspectionType("RECEIPT");
-        createRequest.setQuantity(itemRequest.getReceivedQuantity());
-        createRequest.setAcceptedQuantity(itemRequest.getAcceptedQuantity());
-        createRequest.setDefectQuantity(itemRequest.getDefectiveQuantity());
-        createRequest.setInspectionResult(
-                itemRequest.getDefectiveQuantity() != null && itemRequest.getDefectiveQuantity() > 0
-                        ? "DEFECT"
-                        : "PASS"
-        );
-
-        createRequest.setNotes(
-                itemRequest.getDefectReason() != null && !itemRequest.getDefectReason().isBlank()
-                        ? itemRequest.getDefectReason()
-                        : request.getNote()
-        );
-
-        createRequest.setDisposition(
-                itemRequest.getDisposition() == null || itemRequest.getDisposition().isBlank()
-                        ? "NONE"
-                        : itemRequest.getDisposition()
-        );
-
-        saveInspection(createRequest);
+    createRequest.setReceiptItemId(receiptItemId);
+    createRequest.setInspectorId(request.getInspectorId());
+    createRequest.setInspectionDate(
+            request.getInspectedAt() == null
+                    ? java.time.LocalDate.now()
+                    : request.getInspectedAt().toLocalDate());
+    createRequest.setInspectionType("RECEIPT");
+    createRequest.setQuantity(itemRequest.getReceivedQuantity());
+    createRequest.setAcceptedQuantity(itemRequest.getAcceptedQuantity());
+    createRequest.setDefectQuantity(itemRequest.getDefectiveQuantity());
+    createRequest.setInspectionResult(
+            itemRequest.getDefectiveQuantity() != null && itemRequest.getDefectiveQuantity() > 0
+                    ? "DEFECT"
+                    : "PASS");
+    createRequest.setNotes(
+            itemRequest.getDefectReason() != null && !itemRequest.getDefectReason().isBlank()
+                    ? itemRequest.getDefectReason()
+                    : request.getNote());
+    createRequest.setDisposition(
+            itemRequest.getDisposition() == null || itemRequest.getDisposition().isBlank()
+                    ? "NONE"
+                    : itemRequest.getDisposition());
+    	saveInspection(createRequest);
     }
 
     updateReceiptStatusAfterInspection(receiptId);
 }
 
-private void updateReceiptStatusAfterInspection(Long receiptId) {
-    List<ReceiptItem> items = receiptItemRepository.findByReceiptId(receiptId);
-
-    if (items == null || items.isEmpty()) {
-        return;
-    }
-
-    boolean allInspected = items.stream()
-            .allMatch(item -> inspectionRepository.existsByReceiptItemId(item.getReceiptItemId()));
-
-    if (!allInspected) {
-        return;
-    }
-
-    boolean hasDefect = items.stream()
-            .anyMatch(item -> item.getDefectQty() != null && item.getDefectQty() > 0);
-
-    Receipt receipt = receiptRepository.findById(receiptId)
-            .orElseThrow(() -> new RuntimeException("입고 정보를 찾을 수 없습니다."));
-
-    receipt.setReceiptStatus(hasDefect ? "INSPECTED_DEFECT" : "INSPECTED_PASS");
-    receipt.setUpdatedAt(LocalDateTime.now());
-
-    receiptRepository.save(receipt);
-}
+	private void updateReceiptStatusAfterInspection(Long receiptId) {
+	    List<ReceiptItem> items = receiptItemRepository.findByReceiptId(receiptId);
 	
-        @Override
-        @Transactional(readOnly = true)
-        public InspectionDto.PendingSummaryResponse getInspectionSummary() {
-        long total = receiptRepository.countPendingReceipts();
-        long receivedToday = receiptRepository.countPendingReceivedTodayReceipts();
-        long urgent = receiptRepository.countPendingUrgentReceipts();
-        long overdue = receiptRepository.countPendingOverdueReceipts();
+	    if (items == null || items.isEmpty()) {return;}
+	
+	    boolean allInspected = items.stream()
+	            .allMatch(item -> inspectionRepository.existsByReceiptItemId(item.getReceiptItemId()));
+	
+	    if (!allInspected) {return;}
+	
+	    boolean hasDefect = items.stream()
+	            .anyMatch(item -> item.getDefectQty() != null && item.getDefectQty() > 0);
+	
+	    Receipt receipt = receiptRepository.findById(receiptId)
+	            .orElseThrow(() -> new RuntimeException("입고 정보를 찾을 수 없습니다."));
+	
+	    receipt.setReceiptStatus(hasDefect ? "INSPECTED_DEFECT" : "INSPECTED_PASS");
+	    receipt.setUpdatedAt(LocalDateTime.now());
+	
+	    receiptRepository.save(receipt);
+	}
+	
+    @Override
+    @Transactional(readOnly = true)
+    public InspectionDto.PendingSummaryResponse getInspectionSummary() {
+    long total = receiptRepository.countPendingReceipts();
+    long receivedToday = receiptRepository.countPendingReceivedTodayReceipts();
+    long urgent = receiptRepository.countPendingUrgentReceipts();
+    long overdue = receiptRepository.countPendingOverdueReceipts();
 
-        return new InspectionDto.PendingSummaryResponse(
-            total,
-            receivedToday,
-            urgent,
-            overdue
-    );
-}
+    return new InspectionDto.PendingSummaryResponse(
+        total,
+        receivedToday,
+        urgent,
+        overdue);
+    }
 
-        @Override
-        @Transactional(readOnly = true)
-        public InspectionDto.SummaryResponse getCompletedInspectionSummary() {
-                long totalCount = receiptRepository.countCompletedReceipts();
-                long passCount = receiptRepository.countCompletedPassReceipts();
-                long defectCount = receiptRepository.countCompletedDefectReceipts();
+    @Override
+    @Transactional(readOnly = true)
+    public InspectionDto.SummaryResponse getCompletedInspectionSummary() {
+            long totalCount = receiptRepository.countCompletedReceipts();
+            long passCount = receiptRepository.countCompletedPassReceipts();
+            long defectCount = receiptRepository.countCompletedDefectReceipts();
 
-                return new InspectionDto.SummaryResponse(
-                        totalCount,
-                        0,
-                        passCount,
-                defectCount
-    );
-}
+            return new InspectionDto.SummaryResponse(totalCount, 0, passCount, defectCount);
+    }
 
 	@Override
 	@Transactional(readOnly = true)
@@ -645,22 +627,20 @@ private void updateReceiptStatusAfterInspection(Long receiptId) {
                     .filter(name -> !name.isBlank())
                     .distinct()
                     .sorted()
-                    .toList()
-    );
+                    .toList());
 
-    List<String> warehouses = new ArrayList<>();
-    warehouses.add("전체 창고");
-
-    warehouses.addAll(
-            warehouseRepository.findAll()
-                    .stream()
-                    .map(Warehouse::getWarehouseName)
-                    .filter(Objects::nonNull)
-                    .filter(name -> !name.isBlank())
-                    .distinct()
-                    .sorted()
-                    .toList()
-    );
+	    List<String> warehouses = new ArrayList<>();
+	    warehouses.add("전체 창고");
+	
+	    warehouses.addAll(
+	            warehouseRepository.findAll()
+	                    .stream()
+	                    .map(Warehouse::getWarehouseName)
+	                    .filter(Objects::nonNull)
+	                    .filter(name -> !name.isBlank())
+	                    .distinct()
+	                    .sorted()
+	                    .toList());
     
     return Map.of(
             "suppliers", suppliers,
@@ -669,9 +649,8 @@ private void updateReceiptStatusAfterInspection(Long receiptId) {
             
             "inspectionTypes", List.of("입고검수", "품질검수", "출하검수"),
             "inspectionResults", List.of("합격", "불합격", "부분합격", "검수대기"),
-            "dispositions", List.of("입고", "반품", "폐기", "재검수")
-        );
-}
+            "dispositions", List.of("입고", "반품", "폐기", "재검수"));
+	}
 }
         
 
