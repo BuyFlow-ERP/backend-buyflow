@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true) // 데이터 변경이 없는 조회 메서드 위주이므로 readOnly 적용
+@Transactional(readOnly = true) 
 public class AttachmentServiceImpl implements AttachmentService {
 
     private final AttachmentRepository attachmentRepository;

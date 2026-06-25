@@ -13,7 +13,6 @@ import com.buyflow.erp.Entity.PurchaseOrder;
 
 public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Long> {
 
-    // ⭕ jsha님 버전: 연관관계 객체 구조에 맞춘 깔끔한 정석 네이밍 룰
     List<PurchaseOrder> findBySupplier_SupplierId(Long supplierId);
 
     List<PurchaseOrder> findByOrderStatus(String status);
