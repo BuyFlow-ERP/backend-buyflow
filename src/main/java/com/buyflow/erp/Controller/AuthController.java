@@ -8,6 +8,7 @@ import com.buyflow.erp.Dto.LoginResponse;
 import com.buyflow.erp.Dto.MeResponse;
 import com.buyflow.erp.Dto.PasswordResetCodeRequest;
 import com.buyflow.erp.Dto.PasswordResetConfirmRequest;
+import com.buyflow.erp.Dto.PasswordResetRequest;
 import com.buyflow.erp.Dto.PasswordResetVerifyResponse;
 import com.buyflow.erp.Dto.SignupRequest;
 import com.buyflow.erp.Dto.UserResponse;
@@ -52,6 +53,12 @@ public class AuthController {
             @Valid @RequestBody VerificationCodeVerifyRequest request
     ) {
         return ApiResponse.success("Login ID found.", authService.verifyFindLoginIdCode(request));
+    }
+
+    @PostMapping("/reset-password")
+    public ApiResponse<Void> resetPassword(@Valid @RequestBody PasswordResetRequest request) {
+        authService.resetPassword(request);
+        return ApiResponse.success("Password reset completed.");
     }
 
     @PostMapping("/reset-password/code")

@@ -24,6 +24,8 @@ public interface AuthUserRepository extends JpaRepository<User, Long> {
             String useYn
     );
 
+    Optional<User> findFirstByLoginIdAndEmailAndUseYn(String loginId, String email, String useYn);
+
     boolean existsByLoginId(String loginId);
 
     List<User> findAllByOrderByCreatedAtDesc();

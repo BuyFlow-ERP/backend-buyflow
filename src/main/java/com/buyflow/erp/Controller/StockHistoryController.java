@@ -16,70 +16,88 @@ import com.buyflow.erp.Service.StockHistoryService;
 
 import lombok.RequiredArgsConstructor;
 
+import java.io.IOException;
+
+import jakarta.servlet.http.HttpServletResponse;
+
+import com.buyflow.erp.Entity.Users;
+import com.buyflow.erp.Service.ExcelService;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/stock-history")
 public class StockHistoryController {
 
-    private final StockHistoryService stockHistoryService;
-    private final WarehouseRepository warehouseRepository;
+        private final StockHistoryService stockHistoryService;
+        private final WarehouseRepository warehouseRepository;
+        private final ExcelService excelService;
 
-    @GetMapping
-    public List<StockHistoryResponseDto> getStockHistory(
-            @RequestParam(name = "fromDate", required = false) String fromDate,
-            @RequestParam(name = "toDate", required = false) String toDate,
-            @RequestParam(name = "itemKeyword", required = false) String itemKeyword,
-            @RequestParam(name = "warehouseCode", required = false) String warehouseCode,
-            @RequestParam(name = "movementType", required = false) String movementType) {
+        @GetMapping
+        public List<StockHistoryResponseDto> getStockHistory(
+                        @RequestParam(name = "fromDate", required = false) String fromDate,
+                        @RequestParam(name = "toDate", required = false) String toDate,
+                        @RequestParam(name = "itemKeyword", required = false) String itemKeyword,
+                        @RequestParam(name = "warehouseCode", required = false) String warehouseCode,
+                        @RequestParam(name = "movementType", required = false) String movementType) {
 
-        return stockHistoryService.searchStockHistory(
-                fromDate,
-                toDate,
-                itemKeyword,
-                warehouseCode,
-                movementType);
-    }
+                return stockHistoryService.searchStockHistory(
+                                fromDate,
+                                toDate,
+                                itemKeyword,
+                                warehouseCode,
+                                movementType);
+        }
 
-    @GetMapping("/type/{historyType}")
-    public List<StockHistoryResponseDto> getStockHistoryByType(
-            @PathVariable(name = "historyType") String historyType) {
+        @GetMapping("/type/{historyType}")
+        public List<StockHistoryResponseDto> getStockHistoryByType(
+                        @PathVariable(name = "historyType") String historyType) {
 
-        return stockHistoryService.getStockHistoryByType(historyType);
-    }
+                return stockHistoryService.getStockHistoryByType(historyType);
+        }
 
-   
-        
-    @GetMapping("/{historyId}")
-    public StockHistoryResponseDto getStockHistory(
-            @PathVariable(name = "historyId") Long historyId) {
+        @GetMapping("/{historyId}")
+        public StockHistoryResponseDto getStockHistory(
+                        @PathVariable(name = "historyId") Long historyId) {
 
-        return stockHistoryService.getStockHistory(historyId);
-    }
+                return stockHistoryService.getStockHistory(historyId);
+        }
 
-    @GetMapping("/filter-options")
-    public Map<String, Object> getFilterOptions() {
+        @GetMapping("/filter-options")
+        public Map<String, Object> getFilterOptions() {
 
-        Map<String, Object> result = new HashMap<>();
+                Map<String, Object> result = new HashMap<>();
 
-        result.put(
-                "warehouses",
-                warehouseRepository.findAll()
-                        .stream()
-                        .map(warehouse -> Map.of(
-                                "value", warehouse.getWarehouseCode(),
-                                "label", warehouse.getWarehouseName()))
-                        .toList());
+                result.put(
+                                "warehouses",
+                                warehouseRepository.findAll()
+                                                .stream()
+                                                .map(warehouse -> Map.of(
+                                                                "value", warehouse.getWarehouseCode(),
+                                                                "label", warehouse.getWarehouseName()))
+                                                .toList());
 
-        result.put(
-        "movementTypes",
-        List.of(
-                "전체",
-                "INBOUND",
-                "INSPECTION_ADJUST",
-                "UPDATE",
-                "DELETE",
-                "CANCEL"));
+                result.put(
+                                "movementTypes",
+                                List.of(
+                                                "전체",
+                                                "INBOUND",
+                                                "INSPECTION_ADJUST",
+                                                "UPDATE",
+                                                "DELETE",
+                                                "CANCEL"));
 
-        return result;
-    }
+                return result;
+        }
+
+        @GetMapping("/excel")
+        public void exportExcel(HttpServletResponse response) throws IOException {
+
+                Users testUser = new Users();
+                testUser.setUserId(5L);
+
+                excelService.exportExcel(
+                                "stock-history",
+                                testUser,
+                                response);
+        }
 }
