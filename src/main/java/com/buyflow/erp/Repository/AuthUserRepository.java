@@ -91,6 +91,21 @@ public interface AuthUserRepository extends JpaRepository<User, Long> {
                       and role.roleCode = :roleCode
                       and role.useYn = 'Y'
               ))
+              and (:departmentAuthorizedYn is null
+                   or (:departmentAuthorizedYn = 'Y' and exists (
+                        select authorization.userDepartmentAuthId
+                        from UserDepartmentAuthorization authorization
+                        where authorization.userId = user.userId
+                          and authorization.authorizedYn = 'Y'
+                          and trim(authorization.departmentName) = trim(user.departmentName)
+                   ))
+                   or (:departmentAuthorizedYn = 'N' and not exists (
+                        select authorization.userDepartmentAuthId
+                        from UserDepartmentAuthorization authorization
+                        where authorization.userId = user.userId
+                          and authorization.authorizedYn = 'Y'
+                          and trim(authorization.departmentName) = trim(user.departmentName)
+                   )))
             """)
     Page<User> search(
             @Param("keyword") String keyword,
@@ -99,6 +114,7 @@ public interface AuthUserRepository extends JpaRepository<User, Long> {
             @Param("useYn") String useYn,
             @Param("jobRank") String jobRank,
             @Param("roleCode") String roleCode,
+            @Param("departmentAuthorizedYn") String departmentAuthorizedYn,
             Pageable pageable
     );
 }

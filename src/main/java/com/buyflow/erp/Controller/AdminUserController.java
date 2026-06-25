@@ -49,6 +49,7 @@ public class AdminUserController {
             @RequestParam(name = "useYn", required = false) String useYn,
             @RequestParam(name = "jobRank", required = false) String jobRank,
             @RequestParam(name = "roleCode", required = false) String roleCode,
+            @RequestParam(name = "departmentAuthorized", required = false) String departmentAuthorized,
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "20") int size,
             Authentication authentication
@@ -62,6 +63,7 @@ public class AdminUserController {
                         useYn,
                         jobRank,
                         roleCode,
+                        departmentAuthorized,
                         page,
                         size,
                         authentication.getName()

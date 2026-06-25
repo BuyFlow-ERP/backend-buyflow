@@ -72,23 +72,25 @@ public class AuthService {
         user.setDepartmentName(departmentName);
         user.setPositionName(StringUtils.hasText(positionName) ? positionName : "담당자");
         user.setJobRank(jobRank);
-        user.setStatus("PENDING");
+        user.setStatus("ACTIVE");
         user.setUseYn("Y");
         user.setCreatedAt(now);
         user.setUpdatedAt(now);
 
         User savedUser = userRepository.save(user);
-        departmentAuthorizationService.ensureDefaultAuthorization(savedUser);
+        departmentAuthorizationService.setAuthorized(savedUser, false);
 
-        roleRepository.findByRoleCodeAndUseYn("VIEWER", "Y")
-                .map(Role::getRoleId)
-                .ifPresent(roleId -> {
-                    UserRole userRole = new UserRole();
-                    userRole.setUserId(savedUser.getUserId());
-                    userRole.setRoleId(roleId);
-                    userRole.setCreatedAt(now);
-                    userRoleRepository.save(userRole);
-                });
+        Role viewerRole = roleRepository.findByRoleCodeAndUseYn("VIEWER", "Y")
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.INTERNAL_ERROR,
+                        "Default VIEWER role is not configured."
+                ));
+
+        UserRole userRole = new UserRole();
+        userRole.setUserId(savedUser.getUserId());
+        userRole.setRoleId(viewerRole.getRoleId());
+        userRole.setCreatedAt(now);
+        userRoleRepository.save(userRole);
 
         return UserResponse.from(savedUser);
     }

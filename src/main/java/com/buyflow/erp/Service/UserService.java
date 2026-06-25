@@ -55,6 +55,7 @@ public class UserService {
                 normalizeText(useYn),
                 normalizeJobRankFilter(jobRank),
                 null,
+                null,
                 pageRequest
         ).map(UserResponse::from));
     }
