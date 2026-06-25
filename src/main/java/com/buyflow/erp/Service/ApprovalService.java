@@ -6,16 +6,15 @@ import com.buyflow.erp.Dto.PageResponse;
 public interface ApprovalService {
 
     PageResponse<ApprovalHistoryDto.ListResponse> getApprovals(
-            String requestNumber,
-            String title,
-            String requester,
-            String department,
-            String status,
-            String requestedFrom,
-            String requestedTo,
-            int page,
-            int size
-    );
+        String requestNumber,
+        String title,
+        String requester,
+        String department,
+        String status,
+        String desiredReceiptAt,
+        int page,
+        int size
+);;
 
     ApprovalHistoryDto.DetailResponse getApprovalDetail(Long approvalId);
 

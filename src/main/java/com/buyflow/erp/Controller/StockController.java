@@ -43,7 +43,7 @@ public class StockController {
 
         @PostMapping("/{stockId}/adjustments")
         public ResponseEntity<InventoryAdjustmentResponse> adjustStock(
-                        @PathVariable Long stockId,
+                        @PathVariable(name = "stockId") Long stockId,
                         @RequestBody InventoryAdjustmentRequest request) {
 
                 return ResponseEntity.ok(
@@ -222,7 +222,6 @@ public class StockController {
                                                 warehouse != null
                                                                 ? warehouse.getWarehouseName()
                                                                 : "")
-                                .locationCode("-")
                                 .currentStock(stock.getQuantity())
                                 .safetyStock(
                                                 stock.getSafetyStock() != null

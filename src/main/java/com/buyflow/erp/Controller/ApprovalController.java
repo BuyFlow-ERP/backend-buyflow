@@ -21,21 +21,19 @@ public class ApprovalController {
             @RequestParam(name = "requester", required = false, defaultValue = "") String requester,
             @RequestParam(name = "department", required = false, defaultValue = "") String department,
             @RequestParam(name = "status", required = false, defaultValue = "전체") String status,
-            @RequestParam(name = "requestedFrom", required = false, defaultValue = "") String requestedFrom,
-            @RequestParam(name = "requestedTo", required = false, defaultValue = "") String requestedTo,
+            @RequestParam(name = "desiredReceiptAt", required = false, defaultValue = "") String desiredReceiptAt,
             @RequestParam(name = "page", required = false, defaultValue = "0") int page,
             @RequestParam(name = "size", required = false, defaultValue = "10") int size
     ) {
-        return ResponseEntity.ok(approvalService.getApprovals(
-                requestNumber,
-                title,
-                requester,
-                department,
-                status,
-                requestedFrom,
-                requestedTo,
-                page,
-                size
+            return ResponseEntity.ok(approvalService.getApprovals(
+                    requestNumber,
+                    title,
+                    requester,
+                    department,
+                    status,
+                    desiredReceiptAt,
+                    page,
+                    size
         ));
     }
 

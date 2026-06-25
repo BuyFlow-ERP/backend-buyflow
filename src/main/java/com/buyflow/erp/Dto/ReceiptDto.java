@@ -100,7 +100,9 @@ public class ReceiptDto {
 
         private String memo;
 
-        private List<Object> attachments;
+        private String warehouseName;
+
+        private List<ReceiptCreateItemRequest> items;
     }
 
     @Getter
@@ -179,7 +181,6 @@ public class ReceiptDto {
         private TabCounts tabCounts;
     }
 
-    
     @Getter
     @Setter
     @NoArgsConstructor
