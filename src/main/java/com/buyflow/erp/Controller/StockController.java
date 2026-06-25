@@ -31,6 +31,12 @@ import com.buyflow.erp.Service.InventoryService;
 
 import org.springframework.web.bind.annotation.RequestBody;
 
+import java.io.IOException;
+import jakarta.servlet.http.HttpServletResponse;
+
+import com.buyflow.erp.Entity.Users;
+import com.buyflow.erp.Service.ExcelService;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping({ "/stocks", "/inventories" })
@@ -40,6 +46,7 @@ public class StockController {
         private final ProductRepository productRepository;
         private final WarehouseRepository warehouseRepository;
         private final InventoryService inventoryService;
+        private final ExcelService excelService;
 
         @PostMapping("/{stockId}/adjustments")
         public ResponseEntity<InventoryAdjustmentResponse> adjustStock(
@@ -235,5 +242,17 @@ public class StockController {
                                                                                                 "yyyy-MM-dd HH:mm"))
                                                                 : "")
                                 .build();
+        }
+
+        @GetMapping("/excel")
+        public void exportExcel(HttpServletResponse response) throws IOException {
+
+                Users testUser = new Users();
+                testUser.setUserId(5L);
+
+                excelService.exportExcel(
+                                "inventories",
+                                testUser,
+                                response);
         }
 }
