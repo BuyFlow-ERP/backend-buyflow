@@ -66,10 +66,7 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
             String department,
             String status,
             String priority,
-            String requestedFrom,
-            String requestedTo,
-            String desiredReceiptFrom,
-            String desiredReceiptTo,
+            String desiredReceiptAt,
             int page,
             int size
     ) {
@@ -86,8 +83,7 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
                 .filter(row -> isAllOrEquals(department, "전체 부서", row.department()))
                 .filter(row -> isAllOrEquals(statusFilter, "전체", row.status()))
                 .filter(row -> isAllOrEquals(priority, "전체", row.priority()))
-                .filter(row -> isWithinRange(row.requestedAt(), requestedFrom, requestedTo))
-                .filter(row -> isWithinRange(row.desiredReceiptAt(), desiredReceiptFrom, desiredReceiptTo))
+                .filter(row -> isSameDate(row.desiredReceiptAt(), desiredReceiptAt))
                 .toList();
 
         long totalElements = filtered.size();
@@ -589,6 +585,10 @@ public void deletePurchaseRequest(Long requestId) {
 
     private boolean contains(String value, String keyword) {
         return isBlank(keyword) || nullToEmpty(value).toLowerCase().contains(keyword.trim().toLowerCase());
+    }
+
+    private boolean isSameDate(String value, String targetDate) {
+    return isBlank(targetDate) || Objects.equals(value, targetDate);
     }
 
     private boolean isAllOrEquals(String filter, String allValue, String value) {

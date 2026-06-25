@@ -58,10 +58,7 @@ public class PurchaseRequestController {
             @RequestParam(name = "department", required = false, defaultValue = "전체 부서") String department,
             @RequestParam(name = "status", required = false, defaultValue = "전체") String status,
             @RequestParam(name = "priority", required = false, defaultValue = "전체") String priority,
-            @RequestParam(name = "requestedFrom", required = false, defaultValue = "") String requestedFrom,
-            @RequestParam(name = "requestedTo", required = false, defaultValue = "") String requestedTo,
-            @RequestParam(name = "desiredReceiptFrom", required = false, defaultValue = "") String desiredReceiptFrom,
-            @RequestParam(name = "desiredReceiptTo", required = false, defaultValue = "") String desiredReceiptTo,
+            @RequestParam(name = "desiredReceiptAt", required = false, defaultValue = "") String desiredReceiptAt,
             @RequestParam(name = "page", required = false, defaultValue = "0") int page,
             @RequestParam(name = "size", required = false, defaultValue = "15") int size
     ) {
@@ -72,10 +69,7 @@ public class PurchaseRequestController {
                 department,
                 status,
                 priority,
-                requestedFrom,
-                requestedTo,
-                desiredReceiptFrom,
-                desiredReceiptTo,
+                desiredReceiptAt,
                 page,
                 size
         ));
