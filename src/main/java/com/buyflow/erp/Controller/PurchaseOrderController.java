@@ -5,7 +5,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -13,9 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -39,12 +35,10 @@ import com.buyflow.erp.Dto.PurchaseOrderDto;
 import com.buyflow.erp.Dto.PurchaseRequestDto;
 import com.buyflow.erp.Dto.WarehouseDto;
 import com.buyflow.erp.Entity.Attachment;
-import com.buyflow.erp.Entity.ExcelExportHistory;
-import com.buyflow.erp.Entity.PurchaseOrder;
 import com.buyflow.erp.Entity.Supplier;
 import com.buyflow.erp.Entity.Users;
 import com.buyflow.erp.Repository.AttachmentRepository;
-import com.buyflow.erp.Repository.ExcelExportHistoryRepository;
+
 import com.buyflow.erp.Repository.SupplierRepository;
 import com.buyflow.erp.Service.ExcelService;
 import com.buyflow.erp.Service.FileService;
@@ -61,14 +55,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PurchaseOrderController {
 
-    private final AdminRbacController adminRbacController;
+    
     private final PurchaseOrderService service;
     private final WarehouseService warehouseService;
     private final PurchaseRequestService purchaseRequestService;
     private final SupplierRepository supplierRepository;
     private final FileService fileService;
     private final AttachmentRepository attachmentRepository;
-    private final ExcelExportHistoryRepository historyRepository;
     private final ExcelService excelService;
     
     @GetMapping("/form-options")
