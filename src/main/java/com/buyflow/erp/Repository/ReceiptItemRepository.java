@@ -1,8 +1,5 @@
 package com.buyflow.erp.Repository;
 
-import com.buyflow.erp.Entity.PurchaseRequestItem;
-import com.buyflow.erp.Entity.ReceiptItem;
-
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -10,6 +7,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import com.buyflow.erp.Entity.ReceiptItem;
 
 public interface ReceiptItemRepository
                 extends JpaRepository<ReceiptItem, Long> {

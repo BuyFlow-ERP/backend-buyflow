@@ -174,6 +174,7 @@ public class ReceiptServiceImpl implements ReceiptService {
     @Override
     public ReceiptDto.PageResponse<ReceiptDto.ListResponse> searchReceipts(
             String activeTab,
+            String cardFilter,
             String orderNumber,
             String supplierKeyword,
             String itemKeyword,
@@ -195,6 +196,7 @@ public class ReceiptServiceImpl implements ReceiptService {
         String baseSql = buildListBaseSql();
         String whereSql = buildWhereSql(
                 activeTab,
+                cardFilter,
                 orderNumber,
                 supplierKeyword,
                 itemKeyword,
@@ -292,6 +294,7 @@ public class ReceiptServiceImpl implements ReceiptService {
                 null,
                 null,
                 null,
+                null,
                 1,
                 999)
                 .getItems()
@@ -308,13 +311,18 @@ public class ReceiptServiceImpl implements ReceiptService {
     @Override
     public ReceiptDto.FilterOptionsResponse getFilterOptions() {
         String warehouseSql = """
-                SELECT '전체 창고' AS WAREHOUSE_NAME
-                FROM DUAL
-                UNION
                 SELECT WAREHOUSE_NAME
-                FROM WAREHOUSE
-                WHERE WAREHOUSE_NAME IS NOT NULL
-                ORDER BY WAREHOUSE_NAME
+                FROM (
+                    SELECT '전체 창고' AS WAREHOUSE_NAME, 0 AS SORT_ORDER
+                    FROM DUAL
+
+                    UNION ALL
+
+                    SELECT WAREHOUSE_NAME, 1 AS SORT_ORDER
+                    FROM WAREHOUSE
+                    WHERE WAREHOUSE_NAME IS NOT NULL
+                )
+                ORDER BY SORT_ORDER, WAREHOUSE_NAME
                 """;
 
         List<String> warehouses = jdbcTemplate.query(
@@ -338,52 +346,55 @@ public class ReceiptServiceImpl implements ReceiptService {
     @Override
     public ReceiptDto.SummaryResponse getSummary() {
         String sql = """
-                SELECT
-                    NVL(SUM(CASE
-                        WHEN x.EXPECTED_RECEIPT_AT = TO_CHAR(TRUNC(SYSDATE), 'YYYY-MM-DD')
-                         AND x.STATUS = 'EXPECTED'
-                        THEN 1 ELSE 0
-                    END), 0) AS TODAY_EXPECTED,
+                                                SELECT
+                                                    NVL(SUM(CASE
+                                                        WHEN x.EXPECTED_RECEIPT_AT = TO_CHAR(TRUNC(SYSDATE), 'YYYY-MM-DD')
+                                                         AND x.STATUS = 'EXPECTED'
+                                                        THEN 1 ELSE 0
+                                                    END), 0) AS TODAY_EXPECTED,
 
-                    0 AS YESTERDAY_DIFFERENCE,
+                                                    0 AS YESTERDAY_DIFFERENCE,
 
-                    NVL(SUM(CASE
-                        WHEN x.STATUS = 'DELAYED'
-                        THEN 1 ELSE 0
-                    END), 0) AS DELAYED,
+                                                    NVL(SUM(CASE
+                                                        WHEN x.STATUS = 'DELAYED'
+                                                        THEN 1 ELSE 0
+                                                    END), 0) AS DELAYED,
 
-                    NVL(SUM(CASE
-                        WHEN x.STATUS = 'PARTIAL'
-                        THEN 1 ELSE 0
-                    END), 0) AS PARTIAL,
+                                                    NVL(SUM(CASE
+                                                        WHEN x.STATUS = 'PARTIAL'
+                                                        THEN 1 ELSE 0
+                                                    END), 0) AS PARTIAL,
 
-                    CASE
-                        WHEN COUNT(*) = 0 THEN 0
-                        ELSE ROUND(
-                            NVL(SUM(CASE WHEN x.STATUS = 'COMPLETED' THEN 1 ELSE 0 END), 0)
-                            * 100 / COUNT(*)
-                        )
-                    END AS PROGRESS_RATE,
+                                                    CASE
+                                    WHEN COUNT(*) = 0 THEN 0
+                                    ELSE ROUND(
+                                        NVL(SUM(CASE WHEN x.STATUS = 'COMPLETED' THEN 1 ELSE 0 END), 0)
+                                        * 100 / COUNT(*)
+                                    )
+                                END AS PROGRESS_RATE,
 
-                    NVL(SUM(CASE
-                        WHEN x.STATUS IN ('EXPECTED', 'DELAYED')
-                        THEN 1 ELSE 0
-                    END), 0) AS EXPECTED_COUNT,
+                                COUNT(*) AS TOTAL_COUNT,
 
-                    NVL(SUM(CASE
-                        WHEN x.STATUS = 'PARTIAL'
-                        THEN 1 ELSE 0
-                    END), 0) AS PARTIAL_COUNT,
+                                NVL(SUM(CASE
+                    WHEN x.STATUS = 'EXPECTED'
+                    THEN 1 ELSE 0
+                END), 0) AS EXPECTED_COUNT,
 
-                    NVL(SUM(CASE
-                        WHEN x.STATUS = 'COMPLETED'
-                        THEN 1 ELSE 0
-                    END), 0) AS COMPLETED_COUNT
+                                                    NVL(SUM(CASE
+                                                        WHEN x.STATUS = 'PARTIAL'
+                                                        THEN 1 ELSE 0
+                                                    END), 0) AS PARTIAL_COUNT,
 
-                FROM (
-                """ + buildListBaseSql() + """
-                ) x
-                """;
+                                                    NVL(SUM(CASE
+                                                        WHEN x.STATUS = 'COMPLETED'
+                                                        THEN 1 ELSE 0
+                                                    END), 0) AS COMPLETED_COUNT
+
+                                                FROM (
+                                                """
+                + buildListBaseSql() + """
+                        ) x
+                        """;
 
         Map<String, Object> result = jdbcTemplate.queryForMap(sql, Map.of());
 
@@ -405,101 +416,108 @@ public class ReceiptServiceImpl implements ReceiptService {
 
     private String buildListBaseSql() {
         return """
-                                WITH order_base AS (
+                                                WITH order_base AS (
+                                                    SELECT
+                                                        po.ORDER_ID AS ID,
+                                                        po.ORDER_ID AS ORDER_ID,
+                                                        NVL(
+                                                            po.ORDER_NO,
+                                                            'PO-2026-' || LPAD(TO_CHAR(po.ORDER_ID), 4, '0')
+                                                        ) AS ORDER_NUMBER,
+                                                         po.WAREHOUSE_CODE AS WAREHOUSE_CODE,
+                                                        NVL(s.SUPPLIER_NAME, '-') AS SUPPLIER_NAME,
+                                                        TO_CHAR(TRUNC(CAST(po.CREATED_AT AS DATE)), 'YYYY-MM-DD') AS ORDERED_AT,
+                                                        TO_CHAR(TRUNC(CAST(po.DUE_DATE AS DATE)), 'YYYY-MM-DD') AS EXPECTED_RECEIPT_AT,
+                                                        COUNT(DISTINCT poi.ORDER_ITEM_ID) AS ITEM_COUNT,
+                                                        NVL(SUM(NVL(poi.QUANTITY, 0)), 0) AS ORDER_QUANTITY
+                                                    FROM PURCHASE_ORDER po
+                                                    LEFT JOIN SUPPLIER s
+                                                        ON s.SUPPLIER_ID = po.SUPPLIER_ID
+                                                    LEFT JOIN PURCHASE_ORDER_ITEM poi
+                                                        ON poi.ORDER_ID = po.ORDER_ID
+                                                    GROUP BY
+                                                        po.ORDER_ID,
+                                                        po.ORDER_NO,
+                                                        s.SUPPLIER_NAME,
+                                                        po.WAREHOUSE_CODE,
+                                                        TRUNC(CAST(po.CREATED_AT AS DATE)),
+                                                        TRUNC(CAST(po.DUE_DATE AS DATE))
+                                                ),
+                                receipt_base AS (
                                     SELECT
-                                        po.ORDER_ID AS ID,
-                                        po.ORDER_ID AS ORDER_ID,
-                                        NVL(
-                                            po.ORDER_NO,
-                                            'PO-2026-' || LPAD(TO_CHAR(po.ORDER_ID), 4, '0')
-                                        ) AS ORDER_NUMBER,
-                                        NVL(s.SUPPLIER_NAME, '-') AS SUPPLIER_NAME,
-                                        TO_CHAR(TRUNC(CAST(po.CREATED_AT AS DATE)), 'YYYY-MM-DD') AS ORDERED_AT,
-                                        TO_CHAR(TRUNC(CAST(po.DUE_DATE AS DATE)), 'YYYY-MM-DD') AS EXPECTED_RECEIPT_AT,
-                                        COUNT(DISTINCT poi.ORDER_ITEM_ID) AS ITEM_COUNT,
-                                        NVL(SUM(NVL(poi.QUANTITY, 0)), 0) AS ORDER_QUANTITY
-                                    FROM PURCHASE_ORDER po
-                                    LEFT JOIN SUPPLIER s
-                                        ON s.SUPPLIER_ID = po.SUPPLIER_ID
-                                    LEFT JOIN PURCHASE_ORDER_ITEM poi
-                                        ON poi.ORDER_ID = po.ORDER_ID
-                                    GROUP BY
-                                        po.ORDER_ID,
-                                        po.ORDER_NO,
-                                        s.SUPPLIER_NAME,
-                                        TRUNC(CAST(po.CREATED_AT AS DATE)),
-                                        TRUNC(CAST(po.DUE_DATE AS DATE))
-                                ),
-                receipt_base AS (
-                    SELECT
-                        poi.ORDER_ID AS ORDER_ID,
-                        MAX(r.RECEIPT_ID) AS RECEIPT_ID,
-                        NVL(SUM(NVL(ri.ACCEPTED_QTY, ri.RECEIPT_QTY)), 0) AS RECEIVED_QUANTITY,
-                        MAX(w.WAREHOUSE_NAME) AS WAREHOUSE_NAME
-                                    FROM PURCHASE_ORDER_ITEM poi
-                                    LEFT JOIN RECEIPT_ITEM ri
-                                        ON ri.ORDER_ITEM_ID = poi.ORDER_ITEM_ID
-                                    LEFT JOIN RECEIPT r
-                                        ON r.RECEIPT_ID = ri.RECEIPT_ID
-                                    LEFT JOIN WAREHOUSE w
-                                        ON w.WAREHOUSE_CODE = r.WAREHOUSE_CODE
-                                    GROUP BY poi.ORDER_ID
-                                ),
-                                list_base AS (
-                                    SELECT
-                    ob.ID,
-                    ob.ORDER_ID,
-                    rb.RECEIPT_ID,
-                    ob.ORDER_NUMBER,
-                                        ob.SUPPLIER_NAME,
-                                        ob.ORDERED_AT,
-                                        ob.EXPECTED_RECEIPT_AT,
-                                        NVL(rb.WAREHOUSE_NAME, '-') AS WAREHOUSE_NAME,
-                                        ob.ITEM_COUNT,
-                                        ob.ORDER_QUANTITY,
-                                        NVL(rb.RECEIVED_QUANTITY, 0) AS RECEIVED_QUANTITY,
-                                        GREATEST(
-                                            ob.ORDER_QUANTITY - NVL(rb.RECEIVED_QUANTITY, 0),
-                                            0
-                                        ) AS REMAINING_QUANTITY,
-                                        CASE
-                                            WHEN NVL(rb.RECEIVED_QUANTITY, 0) >= ob.ORDER_QUANTITY
-                                             AND ob.ORDER_QUANTITY > 0
-                                            THEN 'COMPLETED'
+                                        poi.ORDER_ID AS ORDER_ID,
+                                        MAX(r.RECEIPT_ID) AS RECEIPT_ID,
+                                        NVL(SUM(NVL(ri.ACCEPTED_QTY, ri.RECEIPT_QTY)), 0) AS RECEIVED_QUANTITY,
+                                        MAX(w.WAREHOUSE_NAME) AS WAREHOUSE_NAME
+                                                    FROM PURCHASE_ORDER_ITEM poi
+                                                    LEFT JOIN RECEIPT_ITEM ri
+                                                        ON ri.ORDER_ITEM_ID = poi.ORDER_ITEM_ID
+                                                    LEFT JOIN RECEIPT r
+                                                        ON r.RECEIPT_ID = ri.RECEIPT_ID
+                                                    LEFT JOIN WAREHOUSE w
+                                                        ON w.WAREHOUSE_CODE = r.WAREHOUSE_CODE
+                                                    GROUP BY poi.ORDER_ID
+                                                ),
+                                                list_base AS (
+                                                    SELECT
+                                    ob.ID,
+                                    ob.ORDER_ID,
+                                    rb.RECEIPT_ID,
+                                    ob.ORDER_NUMBER,
+                                                        ob.SUPPLIER_NAME,
+                                                        ob.ORDERED_AT,
+                                                        ob.EXPECTED_RECEIPT_AT,
+                                                       NVL(w2.WAREHOUSE_NAME, '-') AS WAREHOUSE_NAME,
+                                                        ob.ITEM_COUNT,
+                                                        ob.ORDER_QUANTITY,
+                                                        NVL(rb.RECEIVED_QUANTITY, 0) AS RECEIVED_QUANTITY,
+                                                        GREATEST(
+                                                            ob.ORDER_QUANTITY - NVL(rb.RECEIVED_QUANTITY, 0),
+                                                            0
+                                                        ) AS REMAINING_QUANTITY,
+                                                        CASE
+                                                            WHEN NVL(rb.RECEIVED_QUANTITY, 0) >= ob.ORDER_QUANTITY
+                                                             AND ob.ORDER_QUANTITY > 0
+                                                            THEN 'COMPLETED'
 
-                                            WHEN NVL(rb.RECEIVED_QUANTITY, 0) > 0
-                                            THEN 'PARTIAL'
+                                                            WHEN NVL(rb.RECEIVED_QUANTITY, 0) > 0
+                                                            THEN 'PARTIAL'
 
-                                            WHEN ob.EXPECTED_RECEIPT_AT < TO_CHAR(TRUNC(SYSDATE), 'YYYY-MM-DD')
-                                            THEN 'DELAYED'
+                                                            WHEN ob.EXPECTED_RECEIPT_AT < TO_CHAR(TRUNC(SYSDATE), 'YYYY-MM-DD')
+                                                            THEN 'DELAYED'
 
-                                            ELSE 'EXPECTED'
-                                        END AS STATUS
-                                    FROM order_base ob
-                                    LEFT JOIN receipt_base rb
-                                        ON rb.ORDER_ID = ob.ORDER_ID
-                                )
-                               SELECT
-                    x.ID,
-                    x.ORDER_ID,
-                    x.RECEIPT_ID,
-                    x.ORDER_NUMBER,
-                                    x.SUPPLIER_NAME,
-                                    x.ORDERED_AT,
-                                    x.EXPECTED_RECEIPT_AT,
-                                    x.WAREHOUSE_NAME,
-                                    x.ITEM_COUNT,
-                                    x.ORDER_QUANTITY,
-                                    x.RECEIVED_QUANTITY,
-                                    x.REMAINING_QUANTITY,
-                                    x.STATUS
-                                FROM list_base x
-                                WHERE 1 = 1
-                                """;
+                                                            ELSE 'EXPECTED'
+                                                        END AS STATUS
+                                                    FROM order_base ob
+
+                LEFT JOIN receipt_base rb
+                    ON rb.ORDER_ID = ob.ORDER_ID
+
+                LEFT JOIN WAREHOUSE w2
+                    ON w2.WAREHOUSE_CODE = ob.WAREHOUSE_CODE
+                                                )
+                                               SELECT
+                                    x.ID,
+                                    x.ORDER_ID,
+                                    x.RECEIPT_ID,
+                                    x.ORDER_NUMBER,
+                                                    x.SUPPLIER_NAME,
+                                                    x.ORDERED_AT,
+                                                    x.EXPECTED_RECEIPT_AT,
+                                                    x.WAREHOUSE_NAME,
+                                                    x.ITEM_COUNT,
+                                                    x.ORDER_QUANTITY,
+                                                    x.RECEIVED_QUANTITY,
+                                                    x.REMAINING_QUANTITY,
+                                                    x.STATUS
+                                                FROM list_base x
+                                                WHERE 1 = 1
+                                                """;
     }
 
     private String buildWhereSql(
             String activeTab,
+            String cardFilter,
             String orderNumber,
             String supplierKeyword,
             String itemKeyword,
@@ -511,9 +529,17 @@ public class ReceiptServiceImpl implements ReceiptService {
         StringBuilder sql = new StringBuilder();
 
         if (!isBlank(status) && !"전체 상태".equals(status)) {
+
             sql.append(" AND x.STATUS = :status\n");
             params.put("status", status);
+
+        } else if (!isBlank(cardFilter) && !"ALL".equals(cardFilter)) {
+
+            sql.append(" AND x.STATUS = :cardFilter\n");
+            params.put("cardFilter", cardFilter);
+
         } else {
+
             if ("EXPECTED".equals(activeTab)) {
                 sql.append(" AND x.STATUS IN ('EXPECTED', 'DELAYED')\n");
             } else if ("PARTIAL".equals(activeTab)) {
@@ -521,6 +547,12 @@ public class ReceiptServiceImpl implements ReceiptService {
             } else if ("COMPLETED".equals(activeTab)) {
                 sql.append(" AND x.STATUS = 'COMPLETED'\n");
             }
+
+        }
+
+        if (!isBlank(cardFilter) && !"ALL".equals(cardFilter)) {
+            sql.append(" AND x.STATUS = :cardFilter\n");
+            params.put("cardFilter", cardFilter);
         }
 
         if (!isBlank(orderNumber)) {

@@ -10,6 +10,7 @@ import com.buyflow.erp.Dto.LoginResponse;
 import com.buyflow.erp.Dto.MeResponse;
 import com.buyflow.erp.Dto.PasswordResetCodeRequest;
 import com.buyflow.erp.Dto.PasswordResetConfirmRequest;
+import com.buyflow.erp.Dto.PasswordResetRequest;
 import com.buyflow.erp.Dto.PasswordResetVerifyResponse;
 import com.buyflow.erp.Dto.SignupRequest;
 import com.buyflow.erp.Dto.UserResponse;
@@ -48,23 +49,29 @@ public class AuthService {
 
     @Transactional
     public UserResponse signup(SignupRequest request) {
-        if (userRepository.existsByLoginId(request.loginId())) {
+        String loginId = request.loginId().trim();
+        String userName = request.userName().trim();
+        String email = request.email().trim().toLowerCase();
+        String phone = normalizeOptionalText(request.phone());
+        String departmentName = request.departmentName().trim();
+        String positionName = normalizeOptionalText(request.positionName());
+        String jobRank = request.jobRank().trim();
+
+        if (userRepository.existsByLoginId(loginId)) {
             throw new BusinessException(ErrorCode.DUPLICATE_LOGIN_ID);
         }
 
         LocalDateTime now = LocalDateTime.now();
 
         User user = new User();
-        user.setLoginId(request.loginId());
+        user.setLoginId(loginId);
         user.setPassword(passwordEncoder.encode(request.password()));
-        user.setUserName(request.userName());
-        user.setEmail(request.email());
-        user.setPhone(request.phone());
-        user.setDepartmentName(request.departmentName());
-        user.setPositionName(
-                StringUtils.hasText(request.positionName()) ? request.positionName() : "담당자");
-        user.setJobRank(
-                StringUtils.hasText(request.jobRank()) ? request.jobRank().trim() : "사원");
+        user.setUserName(userName);
+        user.setEmail(email);
+        user.setPhone(phone);
+        user.setDepartmentName(departmentName);
+        user.setPositionName(StringUtils.hasText(positionName) ? positionName : "담당자");
+        user.setJobRank(jobRank);
         user.setStatus("PENDING");
         user.setUseYn("Y");
         user.setCreatedAt(now);
@@ -84,6 +91,10 @@ public class AuthService {
                 });
 
         return UserResponse.from(savedUser);
+    }
+
+    private String normalizeOptionalText(String value) {
+        return StringUtils.hasText(value) ? value.trim() : null;
     }
 
     @Transactional
@@ -146,6 +157,19 @@ public class AuthService {
 
         verificationCodeService.consume(verificationCode);
         return new FindLoginIdResponse(user.getLoginId());
+    }
+
+    @Transactional
+    public void resetPassword(PasswordResetRequest request) {
+        User user = userRepository.findFirstByLoginIdAndEmailAndUseYn(
+                        request.loginId(),
+                        request.email(),
+                        "Y"
+                )
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "No matching user information was found."));
+
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        user.setUpdatedAt(LocalDateTime.now());
     }
 
     @Transactional

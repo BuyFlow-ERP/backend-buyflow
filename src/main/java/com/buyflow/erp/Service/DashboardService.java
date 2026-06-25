@@ -4,5 +4,5 @@ import com.buyflow.erp.Dto.DashboardDto;
 
 public interface DashboardService {
 
-    DashboardDto.Response getDashboard();
+    DashboardDto.Response getDashboard(int receiptMonths);
 }

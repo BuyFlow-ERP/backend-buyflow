@@ -27,9 +27,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class SupplierController {
 
     private static final String SUPPLIER_READ_AUTHORITY =
-            "hasRole('ADMIN') or hasAuthority('SUPPLIER_READ') or hasAuthority('SUPPLIER_MANAGE')";
+            "hasRole('ADMIN') or hasAuthority('suppliers.read') or hasAuthority('suppliers.write')";
     private static final String SUPPLIER_MANAGE_AUTHORITY =
-            "hasRole('ADMIN') or hasAuthority('SUPPLIER_MANAGE')";
+            "hasRole('ADMIN') or hasAuthority('suppliers.write')";
 
     private final SupplierService supplierService;
 

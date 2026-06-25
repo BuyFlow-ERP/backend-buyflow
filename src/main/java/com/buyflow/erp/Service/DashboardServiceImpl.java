@@ -32,7 +32,8 @@ public class DashboardServiceImpl implements DashboardService {
             DateTimeFormatter.ofPattern("yyyy-MM");
 
     @Override
-    public DashboardDto.Response getDashboard() {
+    public DashboardDto.Response getDashboard(int receiptMonths) {
+        int safeReceiptMonths = normalizeReceiptMonths(receiptMonths);
         long delayedOrders = countDelayedOrders();
         long pendingApprovals = countPendingApprovals();
         long scheduledReceipt = countScheduledReceipt();
@@ -49,15 +50,24 @@ public class DashboardServiceImpl implements DashboardService {
                         pendingInspections,
                         lowStockTotal
                 ),
-                getMonthlyReceipt(),
+                getMonthlyReceipt(safeReceiptMonths),
                 getStockStatus(),
                 getRecentPurchaseRequests(),
                 recentRequestTotal,
                 getLowStockItems(5),
                 lowStockTotal,
+                getMonthlyReceiptDetails(safeReceiptMonths),
                 getSummaryDetails()
-        );
+);
     }
+
+    private int normalizeReceiptMonths(int months) {
+    if (months == 3 || months == 6 || months == 12) {
+        return months;
+    }
+
+    return 6;
+}
 
     private List<DashboardDto.SummaryItem> buildSummary(
             long delayedOrders,
@@ -364,85 +374,152 @@ public class DashboardServiceImpl implements DashboardService {
 }
 
     @SuppressWarnings("unchecked")
-    private List<DashboardDto.MonthlyReceiptItem> getMonthlyReceipt() {
-        List<Object[]> rows = entityManager.createNativeQuery("""
+    private List<DashboardDto.MonthlyReceiptItem> getMonthlyReceipt(int months) {
+            int monthOffset = -(months - 1);
+
+            Query query = entityManager.createNativeQuery("""
                 SELECT TO_CHAR(r.RECEIPT_DATE, 'YYYY-MM') AS MONTH_KEY,
-                       NVL(SUM(ri.RECEIPT_QTY), 0) AS TOTAL_QTY
-                  FROM RECEIPT r
-                  LEFT JOIN RECEIPT_ITEM ri
+                    COUNT(DISTINCT r.RECEIPT_ID) AS RECEIPT_COUNT,
+                    COUNT(ri.RECEIPT_ITEM_ID) AS ITEM_LINE_COUNT,
+                    NVL(SUM(NVL(ri.RECEIPT_QTY, 0)), 0) AS TOTAL_QTY
+                FROM RECEIPT r
+                LEFT JOIN RECEIPT_ITEM ri
                     ON ri.RECEIPT_ID = r.RECEIPT_ID
-                 WHERE r.RECEIPT_DATE >= ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -5)
-                 GROUP BY TO_CHAR(r.RECEIPT_DATE, 'YYYY-MM')
-                """).getResultList();
+                WHERE r.RECEIPT_DATE >= ADD_MONTHS(TRUNC(SYSDATE, 'MM'), :monthOffset)
+                AND r.RECEIPT_DATE < ADD_MONTHS(TRUNC(SYSDATE, 'MM'), 1)
+                GROUP BY TO_CHAR(r.RECEIPT_DATE, 'YYYY-MM')
+                """);
 
-        Map<String, Long> quantityByMonth = new HashMap<>();
+            query.setParameter("monthOffset", monthOffset);
 
-        for (Object[] row : rows) {
-            quantityByMonth.put(
-                    String.valueOf(row[0]),
-                    toLong(row[1])
-            );
-        }
+            List<Object[]> rows = query.getResultList();
 
-        List<DashboardDto.MonthlyReceiptItem> result = new ArrayList<>();
-        YearMonth start = YearMonth.now().minusMonths(5);
+            Map<String, Object[]> rowByMonth = new HashMap<>();
 
-        for (int i = 0; i < 6; i++) {
-            YearMonth month = start.plusMonths(i);
-            String key = month.format(YEAR_MONTH_FORMATTER);
+            for (Object[] row : rows) {
+                rowByMonth.put(String.valueOf(row[0]), row);
+            }
 
-            result.add(new DashboardDto.MonthlyReceiptItem(
-                    month.getMonthValue() + "월",
-                    quantityByMonth.getOrDefault(key, 0L)
-            ));
-        }
+            List<DashboardDto.MonthlyReceiptItem> result = new ArrayList<>();
+            YearMonth start = YearMonth.now().minusMonths(months - 1);
 
-        return result;
+            for (int i = 0; i < months; i++) {
+                YearMonth month = start.plusMonths(i);
+                String key = month.format(YEAR_MONTH_FORMATTER);
+                Object[] row = rowByMonth.get(key);
+
+                long receiptCount = row == null ? 0L : toLong(row[1]);
+                long itemLineCount = row == null ? 0L : toLong(row[2]);
+                long quantity = row == null ? 0L : toLong(row[3]);
+
+                result.add(new DashboardDto.MonthlyReceiptItem(
+                        key,
+                        month.getMonthValue() + "월",
+                        receiptCount,
+                        itemLineCount,
+                        quantity
+        ));
     }
 
+    return result;
+}
+
+@SuppressWarnings("unchecked")
+private List<DashboardDto.MonthlyReceiptDetailItem> getMonthlyReceiptDetails(int months) {
+int monthOffset = -(months - 1);
+
+Query query = entityManager.createNativeQuery("""
+    SELECT TO_CHAR(r.RECEIPT_DATE, 'YYYY-MM') AS MONTH_KEY,
+           r.RECEIPT_ID,
+           NVL(r.RECEIPT_NO, 'RCP-' || r.RECEIPT_ID) AS RECEIPT_NO,
+           r.RECEIPT_DATE,
+           NVL(w.WAREHOUSE_NAME, r.WAREHOUSE_CODE) AS WAREHOUSE_NAME,
+           NVL(r.RECEIPT_STATUS, '-') AS RECEIPT_STATUS,
+           COUNT(ri.RECEIPT_ITEM_ID) AS ITEM_COUNT,
+           NVL(SUM(NVL(ri.RECEIPT_QTY, 0)), 0) AS RECEIPT_QTY
+      FROM RECEIPT r
+      LEFT JOIN RECEIPT_ITEM ri
+        ON ri.RECEIPT_ID = r.RECEIPT_ID
+      LEFT JOIN WAREHOUSE w
+        ON w.WAREHOUSE_CODE = r.WAREHOUSE_CODE
+     WHERE r.RECEIPT_DATE >= ADD_MONTHS(TRUNC(SYSDATE, 'MM'), :monthOffset)
+       AND r.RECEIPT_DATE < ADD_MONTHS(TRUNC(SYSDATE, 'MM'), 1)
+     GROUP BY TO_CHAR(r.RECEIPT_DATE, 'YYYY-MM'),
+              r.RECEIPT_ID,
+              r.RECEIPT_NO,
+              r.RECEIPT_DATE,
+              w.WAREHOUSE_NAME,
+              r.WAREHOUSE_CODE,
+              r.RECEIPT_STATUS
+     ORDER BY r.RECEIPT_DATE DESC, r.RECEIPT_ID DESC
+    """);
+
+query.setParameter("monthOffset", monthOffset);
+
+List<Object[]> rows = query.getResultList();
+
+return rows.stream()
+        .map(row -> new DashboardDto.MonthlyReceiptDetailItem(
+                stringValue(row[0], ""),
+                toLong(row[1]),
+                stringValue(row[2], "RCP-" + row[1]),
+                formatDate(row[3]),
+                stringValue(row[4], "-"),
+                stringValue(row[5], "-"),
+                toLong(row[6]),
+                toLong(row[7])
+        ))
+        .toList();
+}
     private List<DashboardDto.StockStatusItem> getStockStatus() {
-        Object[] row = (Object[]) entityManager.createNativeQuery("""
-                SELECT COUNT(*) AS TOTAL_COUNT,
-                       SUM(
-                            CASE
-                                WHEN NVL(QUANTITY, 0) <= 0
-                                THEN 1 ELSE 0
-                            END
-                       ) AS OUT_OF_STOCK_COUNT,
-                       SUM(
-                            CASE
-                                WHEN NVL(QUANTITY, 0) > 0
-                                 AND NVL(SAFETY_STOCK, 0) > 0
-                                 AND NVL(QUANTITY, 0) < NVL(SAFETY_STOCK, 0)
-                                THEN 1 ELSE 0
-                            END
-                       ) AS LOW_STOCK_COUNT
-                  FROM STOCK
-                """).getSingleResult();
+    Object[] row = (Object[]) entityManager.createNativeQuery("""
+        SELECT COUNT(*) AS TOTAL_COUNT,
+               SUM(
+                    CASE
+                        WHEN NVL(QUANTITY, 0) <= 0
+                        THEN 1 ELSE 0
+                    END
+               ) AS OUT_OF_STOCK_COUNT,
+               SUM(
+                    CASE
+                        WHEN NVL(QUANTITY, 0) > 0
+                         AND NVL(SAFETY_STOCK, 0) > 0
+                         AND NVL(QUANTITY, 0) < NVL(SAFETY_STOCK, 0)
+                        THEN 1 ELSE 0
+                    END
+               ) AS LOW_STOCK_COUNT
+          FROM STOCK
+        """).getSingleResult();
 
-        long total = toLong(row[0]);
-        long outOfStock = toLong(row[1]);
-        long lowStock = toLong(row[2]);
-        long normal = Math.max(total - outOfStock - lowStock, 0);
+    long total = toLong(row[0]);
+    long outOfStock = toLong(row[1]);
+    long lowStock = toLong(row[2]);
+    long normal = Math.max(total - outOfStock - lowStock, 0);
 
-        return List.of(
-                new DashboardDto.StockStatusItem(
-                        "정상",
-                        toPercent(normal, total),
-                        "#2f80ed"
-                ),
-                new DashboardDto.StockStatusItem(
-                        "안전재고 이하",
-                        toPercent(lowStock, total),
-                        "#ef4444"
-                ),
-                new DashboardDto.StockStatusItem(
-                        "재고 없음",
-                        toPercent(outOfStock, total),
-                        "#111827"
-                )
-        );
-    }
+    return List.of(
+            new DashboardDto.StockStatusItem(
+                    "정상",
+                    "NORMAL",
+                    toPercent(normal, total),
+                    normal,
+                    "#2f80ed"
+            ),
+            new DashboardDto.StockStatusItem(
+                    "안전재고 미만",
+                    "LOW_STOCK",
+                    toPercent(lowStock, total),
+                    lowStock,
+                    "#ef4444"
+            ),
+            new DashboardDto.StockStatusItem(
+                    "재고 없음",
+                    "OUT_OF_STOCK",
+                    toPercent(outOfStock, total),
+                    outOfStock,
+                    "#111827"
+            )
+    );
+}
 
     @SuppressWarnings("unchecked")
     private List<DashboardDto.RecentPurchaseRequestItem> getRecentPurchaseRequests() {
@@ -484,14 +561,15 @@ public class DashboardServiceImpl implements DashboardService {
     private List<DashboardDto.LowStockItem> getLowStockItems(Integer maxResults) {
         Query query = entityManager.createNativeQuery("""
             SELECT s.STOCK_ID,
-                   NVL(p.PRODUCT_NO, 'ITEM-' || s.PRODUCT_ID) AS PRODUCT_NO,
-                   NVL(p.PRODUCT_NAME, '-') AS PRODUCT_NAME,
-                   NVL(w.WAREHOUSE_NAME, s.WAREHOUSE_CODE) AS WAREHOUSE_NAME,
-                   s.WAREHOUSE_CODE,
-                   NVL(s.QUANTITY, 0) AS CURRENT_QTY,
-                   NVL(s.SAFETY_STOCK, 0) AS SAFETY_QTY,
-                   NVL(s.SAFETY_STOCK, 0) - NVL(s.QUANTITY, 0) AS SHORTAGE_QTY
-              FROM STOCK s
+            NVL(p.PRODUCT_NO, 'ITEM-' || s.PRODUCT_ID) AS PRODUCT_NO,
+            NVL(p.PRODUCT_NAME, '-') AS PRODUCT_NAME,
+            NVL(w.WAREHOUSE_NAME, s.WAREHOUSE_CODE) AS WAREHOUSE_NAME,
+            s.WAREHOUSE_CODE,
+            NVL(s.QUANTITY, 0) AS CURRENT_QTY,
+            NVL(s.SAFETY_STOCK, 0) AS SAFETY_QTY,
+            NVL(s.SAFETY_STOCK, 0) - NVL(s.QUANTITY, 0) AS SHORTAGE_QTY,
+            NVL(p.UNIT, 'EA') AS UNIT
+        FROM STOCK s
               LEFT JOIN PRODUCTS p
                 ON p.PRODUCT_ID = s.PRODUCT_ID
               LEFT JOIN WAREHOUSE w
@@ -516,8 +594,9 @@ public class DashboardServiceImpl implements DashboardService {
                 stringValue(row[4], ""),
                 toLong(row[5]),
                 toLong(row[6]),
-                toLong(row[7])
-        ))
+                toLong(row[7]),
+                stringValue(row[8], "EA")
+    ))
         .toList();
 }
 
@@ -630,4 +709,5 @@ public class DashboardServiceImpl implements DashboardService {
             default -> status;
     };
 }
+
 }

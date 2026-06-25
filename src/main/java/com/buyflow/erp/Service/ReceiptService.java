@@ -17,6 +17,7 @@ public interface ReceiptService {
 
     ReceiptDto.PageResponse<ReceiptDto.ListResponse> searchReceipts(
             String activeTab,
+            String cardFilter,
             String orderNumber,
             String supplierKeyword,
             String itemKeyword,
