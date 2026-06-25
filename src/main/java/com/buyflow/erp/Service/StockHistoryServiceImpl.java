@@ -1,24 +1,20 @@
 package com.buyflow.erp.Service;
 
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 
 import com.buyflow.erp.Dto.StockHistoryResponseDto;
+import com.buyflow.erp.Entity.Product;
 import com.buyflow.erp.Entity.Stock;
 import com.buyflow.erp.Entity.StockHistory;
+import com.buyflow.erp.Entity.Warehouse;
 import com.buyflow.erp.Repository.ProductRepository;
 import com.buyflow.erp.Repository.StockHistoryRepository;
 import com.buyflow.erp.Repository.StockRepository;
 import com.buyflow.erp.Repository.WarehouseRepository;
 
 import lombok.RequiredArgsConstructor;
-
-import com.buyflow.erp.Dto.StockHistoryResponseDto;
-import com.buyflow.erp.Entity.Product;
-import com.buyflow.erp.Entity.Stock;
-import com.buyflow.erp.Entity.Warehouse;
 
 @Service
 @RequiredArgsConstructor
