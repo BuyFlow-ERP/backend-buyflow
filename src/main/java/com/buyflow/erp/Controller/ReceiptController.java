@@ -9,12 +9,20 @@ import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.Map;
 
+import java.io.IOException;
+
+import jakarta.servlet.http.HttpServletResponse;
+
+import com.buyflow.erp.Entity.Users;
+import com.buyflow.erp.Service.ExcelService;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping({ "/receipts", "/api/receipts" })
 public class ReceiptController {
 
         private final ReceiptService receiptService;
+        private final ExcelService excelService;
 
         @GetMapping("/test")
         public String test() {
@@ -60,7 +68,6 @@ public class ReceiptController {
                                 receiptService.getFormOptions());
         }
 
-        
         @GetMapping("/summary")
         public ResponseEntity<ReceiptDto.SummaryResponse> getSummary() {
                 return ResponseEntity.ok(
@@ -113,5 +120,17 @@ public class ReceiptController {
                         @RequestBody ReceiptDto.ReceiptCreateRequest request) {
 
                 return ResponseEntity.ok("OK");
+        }
+
+        @GetMapping("/excel")
+        public void exportExcel(HttpServletResponse response) throws IOException {
+
+                Users testUser = new Users();
+                testUser.setUserId(5L);
+
+                excelService.exportExcel(
+                                "receipts",
+                                testUser,
+                                response);
         }
 }
