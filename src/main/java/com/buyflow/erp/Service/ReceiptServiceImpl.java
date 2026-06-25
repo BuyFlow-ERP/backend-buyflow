@@ -174,6 +174,7 @@ public class ReceiptServiceImpl implements ReceiptService {
     @Override
     public ReceiptDto.PageResponse<ReceiptDto.ListResponse> searchReceipts(
             String activeTab,
+            String cardFilter,
             String orderNumber,
             String supplierKeyword,
             String itemKeyword,
@@ -195,6 +196,7 @@ public class ReceiptServiceImpl implements ReceiptService {
         String baseSql = buildListBaseSql();
         String whereSql = buildWhereSql(
                 activeTab,
+                cardFilter,
                 orderNumber,
                 supplierKeyword,
                 itemKeyword,
@@ -292,6 +294,7 @@ public class ReceiptServiceImpl implements ReceiptService {
                 null,
                 null,
                 null,
+                null,
                 1,
                 999)
                 .getItems()
@@ -338,50 +341,52 @@ public class ReceiptServiceImpl implements ReceiptService {
     @Override
     public ReceiptDto.SummaryResponse getSummary() {
         String sql = """
-                SELECT
-                    NVL(SUM(CASE
-                        WHEN x.EXPECTED_RECEIPT_AT = TO_CHAR(TRUNC(SYSDATE), 'YYYY-MM-DD')
-                         AND x.STATUS = 'EXPECTED'
-                        THEN 1 ELSE 0
-                    END), 0) AS TODAY_EXPECTED,
+                                SELECT
+                                    NVL(SUM(CASE
+                                        WHEN x.EXPECTED_RECEIPT_AT = TO_CHAR(TRUNC(SYSDATE), 'YYYY-MM-DD')
+                                         AND x.STATUS = 'EXPECTED'
+                                        THEN 1 ELSE 0
+                                    END), 0) AS TODAY_EXPECTED,
 
-                    0 AS YESTERDAY_DIFFERENCE,
+                                    0 AS YESTERDAY_DIFFERENCE,
 
-                    NVL(SUM(CASE
-                        WHEN x.STATUS = 'DELAYED'
-                        THEN 1 ELSE 0
-                    END), 0) AS DELAYED,
+                                    NVL(SUM(CASE
+                                        WHEN x.STATUS = 'DELAYED'
+                                        THEN 1 ELSE 0
+                                    END), 0) AS DELAYED,
 
-                    NVL(SUM(CASE
-                        WHEN x.STATUS = 'PARTIAL'
-                        THEN 1 ELSE 0
-                    END), 0) AS PARTIAL,
+                                    NVL(SUM(CASE
+                                        WHEN x.STATUS = 'PARTIAL'
+                                        THEN 1 ELSE 0
+                                    END), 0) AS PARTIAL,
 
-                    CASE
-                        WHEN COUNT(*) = 0 THEN 0
-                        ELSE ROUND(
-                            NVL(SUM(CASE WHEN x.STATUS = 'COMPLETED' THEN 1 ELSE 0 END), 0)
-                            * 100 / COUNT(*)
-                        )
-                    END AS PROGRESS_RATE,
+                                    CASE
+                    WHEN COUNT(*) = 0 THEN 0
+                    ELSE ROUND(
+                        NVL(SUM(CASE WHEN x.STATUS = 'COMPLETED' THEN 1 ELSE 0 END), 0)
+                        * 100 / COUNT(*)
+                    )
+                END AS PROGRESS_RATE,
 
-                    NVL(SUM(CASE
-                        WHEN x.STATUS IN ('EXPECTED', 'DELAYED')
-                        THEN 1 ELSE 0
-                    END), 0) AS EXPECTED_COUNT,
+                COUNT(*) AS TOTAL_COUNT,
 
-                    NVL(SUM(CASE
-                        WHEN x.STATUS = 'PARTIAL'
-                        THEN 1 ELSE 0
-                    END), 0) AS PARTIAL_COUNT,
+                NVL(SUM(CASE
+                                        WHEN x.STATUS IN ('EXPECTED', 'DELAYED')
+                                        THEN 1 ELSE 0
+                                    END), 0) AS EXPECTED_COUNT,
 
-                    NVL(SUM(CASE
-                        WHEN x.STATUS = 'COMPLETED'
-                        THEN 1 ELSE 0
-                    END), 0) AS COMPLETED_COUNT
+                                    NVL(SUM(CASE
+                                        WHEN x.STATUS = 'PARTIAL'
+                                        THEN 1 ELSE 0
+                                    END), 0) AS PARTIAL_COUNT,
 
-                FROM (
-                """ + buildListBaseSql() + """
+                                    NVL(SUM(CASE
+                                        WHEN x.STATUS = 'COMPLETED'
+                                        THEN 1 ELSE 0
+                                    END), 0) AS COMPLETED_COUNT
+
+                                FROM (
+                                """ + buildListBaseSql() + """
                 ) x
                 """;
 
@@ -500,6 +505,7 @@ public class ReceiptServiceImpl implements ReceiptService {
 
     private String buildWhereSql(
             String activeTab,
+            String cardFilter,
             String orderNumber,
             String supplierKeyword,
             String itemKeyword,
@@ -511,9 +517,17 @@ public class ReceiptServiceImpl implements ReceiptService {
         StringBuilder sql = new StringBuilder();
 
         if (!isBlank(status) && !"전체 상태".equals(status)) {
+
             sql.append(" AND x.STATUS = :status\n");
             params.put("status", status);
+
+        } else if (!isBlank(cardFilter) && !"ALL".equals(cardFilter)) {
+
+            sql.append(" AND x.STATUS = :cardFilter\n");
+            params.put("cardFilter", cardFilter);
+
         } else {
+
             if ("EXPECTED".equals(activeTab)) {
                 sql.append(" AND x.STATUS IN ('EXPECTED', 'DELAYED')\n");
             } else if ("PARTIAL".equals(activeTab)) {
@@ -521,6 +535,12 @@ public class ReceiptServiceImpl implements ReceiptService {
             } else if ("COMPLETED".equals(activeTab)) {
                 sql.append(" AND x.STATUS = 'COMPLETED'\n");
             }
+
+        }
+
+        if (!isBlank(cardFilter) && !"ALL".equals(cardFilter)) {
+            sql.append(" AND x.STATUS = :cardFilter\n");
+            params.put("cardFilter", cardFilter);
         }
 
         if (!isBlank(orderNumber)) {

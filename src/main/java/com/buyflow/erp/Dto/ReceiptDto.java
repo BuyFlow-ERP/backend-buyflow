@@ -126,6 +126,7 @@ public class ReceiptDto {
         private Long remainingQuantity;
 
         private String unit;
+        
     }
 
     @Getter
