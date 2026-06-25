@@ -66,7 +66,6 @@ public class StockHistoryServiceImpl
                                                 || "전체".equals(movementType)
                                                 || movementType.equals(dto.getMovementType()))
 
-                               
                                 .filter(dto -> warehouseCode == null
                                                 || warehouseCode.isBlank()
                                                 || "전체".equals(warehouseCode)
@@ -103,6 +102,9 @@ public class StockHistoryServiceImpl
                                 history.getCreatedAt() == null
                                                 ? null
                                                 : history.getCreatedAt().toString());
+
+                System.out.println("historyId=" + history.getHistoryId()
+                                + ", historyType=" + history.getHistoryType());
 
                 dto.setMovementType(history.getHistoryType());
 

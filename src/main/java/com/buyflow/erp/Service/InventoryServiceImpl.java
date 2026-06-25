@@ -117,7 +117,7 @@ public class InventoryServiceImpl implements InventoryService {
         history.setAfterQty((long) afterQty);
         history.setChangeQty((long) quantity);
         history.setReason("입고");
-        history.setHistoryType("입고");
+        history.setHistoryType("INBOUND");
         history.setCreatedAt(LocalDateTime.now());
         history.setCreatedBy("SYSTEM");
 
