@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -199,10 +200,18 @@ public class WarehouseServiceImpl implements WarehouseService {
     @Override
     @Transactional
     public void deleteWarehouse(String warehouseCode) {
+    	
+    	System.out.println("삭제하려는 코드: [" + warehouseCode + "]"); 
+        System.out.println("코드 길이: " + (warehouseCode != null ? warehouseCode.length() : 0));
         Warehouse warehouse = warehouseRepository.findById(warehouseCode)
-                .orElseThrow(() -> new RuntimeException("창고 없음."));
-        warehouseRepository.delete(warehouse);
-    }
+                .orElseThrow(() -> new RuntimeException("창고 없음. 입력된 코드: " + warehouseCode));
+	    try {
+	    	warehouseRepository.delete(warehouse);
+	    	warehouseRepository.flush();
+	    } catch (DataIntegrityViolationException e) {
+	    	throw new IllegalStateException("해당 창고를 사용하는 발주 내역이 존재하여 삭제할 수 없습니다.");
+	    }
+    }  
     
     private WarehouseDto.HouseList convertToResponseDto(Warehouse warehouse) {
         WarehouseDto.HouseList rs = new WarehouseDto.HouseList();
