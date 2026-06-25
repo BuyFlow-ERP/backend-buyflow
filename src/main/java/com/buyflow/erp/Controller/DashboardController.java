@@ -16,7 +16,7 @@ public class DashboardController {
 
    @GetMapping("/dashboard")
     public ResponseEntity<DashboardDto.Response> getDashboard(
-            @RequestParam(defaultValue = "6") int receiptMonths
+            @RequestParam(name = "receiptMonths", defaultValue = "6") int receiptMonths
     ) {
         return ResponseEntity.ok(dashboardService.getDashboard(receiptMonths));
 }
