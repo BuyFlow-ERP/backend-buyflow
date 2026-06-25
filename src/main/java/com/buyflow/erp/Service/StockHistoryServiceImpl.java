@@ -70,10 +70,11 @@ public class StockHistoryServiceImpl
                                                 || "전체".equals(movementType)
                                                 || movementType.equals(dto.getMovementType()))
 
+                               
                                 .filter(dto -> warehouseCode == null
                                                 || warehouseCode.isBlank()
                                                 || "전체".equals(warehouseCode)
-                                                || warehouseCode.equals(dto.getWarehouseName()))
+                                                || warehouseCode.equals(dto.getWarehouseCode()))
 
                                 .filter(dto -> itemKeyword == null
                                                 || itemKeyword.isBlank()
@@ -144,6 +145,8 @@ public class StockHistoryServiceImpl
                                 dto.setItemCode(product.getProductNo());
                                 dto.setItemName(product.getProductName());
                         }
+
+                        dto.setWarehouseCode(stock.getWarehouseCode());
 
                         if (warehouse != null) {
                                 dto.setWarehouseName(

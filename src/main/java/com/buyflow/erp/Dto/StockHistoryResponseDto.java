@@ -15,6 +15,7 @@ public class StockHistoryResponseDto {
     private String itemCode;
     private String itemName;
     private String warehouseName;
+    private String warehouseCode;
 
     private Long quantity;
     private Long beforeStock;
