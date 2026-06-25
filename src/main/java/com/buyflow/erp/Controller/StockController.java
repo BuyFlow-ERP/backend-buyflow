@@ -104,7 +104,8 @@ public class StockController {
                                 .collect(Collectors.toList());
 
                 long normal = items.stream()
-                                .filter(item -> item.getCurrentStock() >= item.getSafetyStock())
+                                .filter(item -> item.getCurrentStock() > 0
+                                                && item.getCurrentStock() >= item.getSafetyStock())
                                 .count();
 
                 long low = items.stream()
