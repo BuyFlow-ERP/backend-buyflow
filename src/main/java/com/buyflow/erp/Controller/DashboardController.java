@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 @RequiredArgsConstructor
@@ -13,8 +14,10 @@ public class DashboardController {
 
     private final DashboardService dashboardService;
 
-    @GetMapping("/dashboard")
-    public ResponseEntity<DashboardDto.Response> getDashboard() {
-        return ResponseEntity.ok(dashboardService.getDashboard());
-    }
+   @GetMapping("/dashboard")
+    public ResponseEntity<DashboardDto.Response> getDashboard(
+            @RequestParam(defaultValue = "6") int receiptMonths
+    ) {
+        return ResponseEntity.ok(dashboardService.getDashboard(receiptMonths));
+}
 }

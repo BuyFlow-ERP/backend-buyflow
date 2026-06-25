@@ -5,16 +5,17 @@ import java.util.List;
 public class DashboardDto {
 
     public record Response(
-            String lastUpdated,
-            List<SummaryItem> summary,
-            List<MonthlyReceiptItem> monthlyReceipt,
-            List<StockStatusItem> stockStatus,
-            List<RecentPurchaseRequestItem> recentRequests,
-            long recentRequestTotal,
-            List<LowStockItem> lowStockItems,
-            long lowStockTotal,
-            SummaryDetails summaryDetails
-    ) {
+        String lastUpdated,
+        List<SummaryItem> summary,
+        List<MonthlyReceiptItem> monthlyReceipt,
+        List<StockStatusItem> stockStatus,
+        List<RecentPurchaseRequestItem> recentRequests,
+        long recentRequestTotal,
+        List<LowStockItem> lowStockItems,
+        long lowStockTotal,
+        List<MonthlyReceiptDetailItem> monthlyReceiptDetails,
+        SummaryDetails summaryDetails
+   ) {
     }
 
     public record SummaryItem(
@@ -28,15 +29,20 @@ public class DashboardDto {
     }
 
     public record MonthlyReceiptItem(
-            String month,
-            long quantity
+        String monthKey,
+        String month,
+        long receiptCount,
+        long itemLineCount,
+        long quantity
     ) {
     }
 
     public record StockStatusItem(
-            String name,
-            int value,
-            String fill
+        String name,
+        String statusKey,
+        int value,
+        long count,
+        String fill
     ) {
     }
 
@@ -50,17 +56,30 @@ public class DashboardDto {
     ) {
     }
 
-    public record LowStockItem(
-            long stockId,
-            String code,
-            String name,
-            String warehouse,
-            String warehouseCode,
-            long current,
-            long safety,
-            long shortage
+    public record MonthlyReceiptDetailItem(
+        String monthKey,
+        Long receiptId,
+        String receiptNo,
+        String receiptDate,
+        String warehouseName,
+        String status,
+        long itemCount,
+        long receiptQuantity
     ) {
     }
+
+    public record LowStockItem(
+        long stockId,
+        String code,
+        String name,
+        String warehouse,
+        String warehouseCode,
+        long current,
+        long safety,
+        long shortage,
+        String unit
+     ) {
+     }
 
     public record SummaryDetails(
             List<DelayedOrderItem> delayedOrders,
