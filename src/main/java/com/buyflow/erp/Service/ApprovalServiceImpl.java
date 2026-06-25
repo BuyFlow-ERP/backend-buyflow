@@ -65,23 +65,27 @@ public class ApprovalServiceImpl implements ApprovalService {
             int safeSize = Math.max(size, 1);
 
             Long currentUserId = getCurrentLoginUserId();
+            boolean canViewAllApprovals = canReadAllApprovals(currentUserId);
 
-            List<ApprovalHistoryDto.ListResponse> filtered = approvalHistoryRepository.findAllByOrderByApprovalIdDesc()
-                        .stream()
-                        .filter(approval -> Objects.equals(approval.getApproverId(), currentUserId))
-                        .map(this::toListResponse)
-                        .filter(Objects::nonNull)
-                        .filter(row -> contains(row.requestNumber(), requestNumber))
-                        .filter(row -> contains(row.title(), title))
-                        .filter(row -> contains(row.requester(), requester))
-                        .filter(row -> contains(row.department(), department))
-                        .filter(row -> isBlank(status)
-                                || "전체".equals(status)
-                                || Objects.equals(row.requestStatus(), status)
-                                || Objects.equals(row.requestStatusLabel(), status))
-                        .filter(row -> isSameDate(row.desiredReceiptAt(), desiredReceiptAt))
-                        .toList();
-
+            List<ApprovalHistoryDto.ListResponse> filtered =
+                    approvalHistoryRepository.findAllByOrderByApprovalIdDesc()
+                            .stream()
+                            .filter(approval ->
+                                    canViewAllApprovals
+                                            || Objects.equals(approval.getApproverId(), currentUserId)
+                            )
+                            .map(this::toListResponse)
+                            .filter(Objects::nonNull)
+                            .filter(row -> contains(row.requestNumber(), requestNumber))
+                            .filter(row -> contains(row.title(), title))
+                            .filter(row -> contains(row.requester(), requester))
+                            .filter(row -> contains(row.department(), department))
+                            .filter(row -> isBlank(status)
+                                    || "전체".equals(status)
+                                    || Objects.equals(row.requestStatus(), status)
+                                    || Objects.equals(row.requestStatusLabel(), status))
+                            .filter(row -> isSameDate(row.desiredReceiptAt(), desiredReceiptAt))
+                            .toList();
             long totalElements = filtered.size();
             int totalPages = Math.max(1, (int) Math.ceil((double) totalElements / safeSize));
             int fromIndex = Math.min(safePage * safeSize, filtered.size());
@@ -483,6 +487,11 @@ public class ApprovalServiceImpl implements ApprovalService {
     private boolean canProcessApproval(Long userId) {
         return hasPermission(userId, "approvals.process")
                 || hasAnyRole(userId, "ADMIN", "MANAGER", "APPROVER");
+}
+
+    private boolean canReadAllApprovals(Long userId) {
+        return hasPermission(userId, "approvals.read")
+                || hasAnyRole(userId, "ADMIN", "MANAGER", "TEAM_MANAGER");
 }
 
     private void validateCanReadApproval(ApprovalHistory approval) {

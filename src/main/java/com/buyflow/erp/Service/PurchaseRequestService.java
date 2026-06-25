@@ -18,10 +18,7 @@ public interface PurchaseRequestService {
             String department,
             String status,
             String priority,
-            String requestedFrom,
-            String requestedTo,
-            String desiredReceiptFrom,
-            String desiredReceiptTo,
+            String desiredReceiptAt,
             int page,
             int size
     );
