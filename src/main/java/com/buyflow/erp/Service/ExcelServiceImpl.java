@@ -19,6 +19,7 @@ import com.buyflow.erp.Repository.ExcelExportHistoryRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import com.buyflow.erp.Dto.StockDto;
+import com.buyflow.erp.Dto.StockHistoryResponseDto;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +27,7 @@ public class ExcelServiceImpl implements ExcelService {
 
 	private final PurchaseOrderService purchaseOrderService;
 	private final StockService stockService;
+	private final StockHistoryService stockHistoryService;
 	private final ExcelExportHistoryRepository historyRepository;
 
 	@Override
@@ -48,6 +50,10 @@ public class ExcelServiceImpl implements ExcelService {
 
 					rowCount = drawInventorySheet(workbook);
 
+				} else if ("stock-history".equalsIgnoreCase(target)) {
+
+					rowCount = drawStockHistorySheet(workbook);
+
 				}
 				String fileName;
 
@@ -58,6 +64,10 @@ public class ExcelServiceImpl implements ExcelService {
 				} else if ("inventories".equalsIgnoreCase(target)) {
 
 					fileName = "재고현황.xlsx";
+
+				} else if ("stock-history".equalsIgnoreCase(target)) {
+
+					fileName = "재고이력.xlsx";
 
 				} else {
 
@@ -140,5 +150,64 @@ public class ExcelServiceImpl implements ExcelService {
 		}
 
 		return stocks.size();
+	}
+
+	private long drawStockHistorySheet(Workbook workbook) {
+
+		Sheet sheet = workbook.createSheet("재고 이력");
+
+		List<StockHistoryResponseDto> histories = stockHistoryService.getStockHistory();
+
+		Row headerRow = sheet.createRow(0);
+
+		headerRow.createCell(0).setCellValue("발생일시");
+		headerRow.createCell(1).setCellValue("변경유형");
+		headerRow.createCell(2).setCellValue("품목코드");
+		headerRow.createCell(3).setCellValue("품목명");
+		headerRow.createCell(4).setCellValue("창고");
+		headerRow.createCell(5).setCellValue("변경수량");
+		headerRow.createCell(6).setCellValue("이전재고");
+		headerRow.createCell(7).setCellValue("현재재고");
+		headerRow.createCell(8).setCellValue("사유");
+		headerRow.createCell(9).setCellValue("처리자");
+
+		int rowNum = 1;
+
+		for (StockHistoryResponseDto history : histories) {
+
+			Row row = sheet.createRow(rowNum++);
+
+			row.createCell(0).setCellValue(
+					history.getOccurredAt() != null ? history.getOccurredAt() : "");
+
+			row.createCell(1).setCellValue(
+					history.getMovementType() != null ? history.getMovementType() : "");
+
+			row.createCell(2).setCellValue(
+					history.getItemCode() != null ? history.getItemCode() : "");
+
+			row.createCell(3).setCellValue(
+					history.getItemName() != null ? history.getItemName() : "");
+
+			row.createCell(4).setCellValue(
+					history.getWarehouseName() != null ? history.getWarehouseName() : "");
+
+			row.createCell(5).setCellValue(
+					history.getQuantity() != null ? history.getQuantity() : 0);
+
+			row.createCell(6).setCellValue(
+					history.getBeforeStock() != null ? history.getBeforeStock() : 0);
+
+			row.createCell(7).setCellValue(
+					history.getAfterStock() != null ? history.getAfterStock() : 0);
+
+			row.createCell(8).setCellValue(
+					history.getReason() != null ? history.getReason() : "");
+
+			row.createCell(9).setCellValue(
+					history.getProcessedBy() != null ? history.getProcessedBy() : "");
+		}
+
+		return histories.size();
 	}
 }
