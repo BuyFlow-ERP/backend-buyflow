@@ -311,13 +311,18 @@ public class ReceiptServiceImpl implements ReceiptService {
     @Override
     public ReceiptDto.FilterOptionsResponse getFilterOptions() {
         String warehouseSql = """
-                SELECT '전체 창고' AS WAREHOUSE_NAME
-                FROM DUAL
-                UNION
                 SELECT WAREHOUSE_NAME
-                FROM WAREHOUSE
-                WHERE WAREHOUSE_NAME IS NOT NULL
-                ORDER BY WAREHOUSE_NAME
+                FROM (
+                    SELECT '전체 창고' AS WAREHOUSE_NAME, 0 AS SORT_ORDER
+                    FROM DUAL
+
+                    UNION ALL
+
+                    SELECT WAREHOUSE_NAME, 1 AS SORT_ORDER
+                    FROM WAREHOUSE
+                    WHERE WAREHOUSE_NAME IS NOT NULL
+                )
+                ORDER BY SORT_ORDER, WAREHOUSE_NAME
                 """;
 
         List<String> warehouses = jdbcTemplate.query(
@@ -341,54 +346,55 @@ public class ReceiptServiceImpl implements ReceiptService {
     @Override
     public ReceiptDto.SummaryResponse getSummary() {
         String sql = """
-                                SELECT
-                                    NVL(SUM(CASE
-                                        WHEN x.EXPECTED_RECEIPT_AT = TO_CHAR(TRUNC(SYSDATE), 'YYYY-MM-DD')
-                                         AND x.STATUS = 'EXPECTED'
-                                        THEN 1 ELSE 0
-                                    END), 0) AS TODAY_EXPECTED,
+                                                SELECT
+                                                    NVL(SUM(CASE
+                                                        WHEN x.EXPECTED_RECEIPT_AT = TO_CHAR(TRUNC(SYSDATE), 'YYYY-MM-DD')
+                                                         AND x.STATUS = 'EXPECTED'
+                                                        THEN 1 ELSE 0
+                                                    END), 0) AS TODAY_EXPECTED,
 
-                                    0 AS YESTERDAY_DIFFERENCE,
+                                                    0 AS YESTERDAY_DIFFERENCE,
 
-                                    NVL(SUM(CASE
-                                        WHEN x.STATUS = 'DELAYED'
-                                        THEN 1 ELSE 0
-                                    END), 0) AS DELAYED,
+                                                    NVL(SUM(CASE
+                                                        WHEN x.STATUS = 'DELAYED'
+                                                        THEN 1 ELSE 0
+                                                    END), 0) AS DELAYED,
 
-                                    NVL(SUM(CASE
-                                        WHEN x.STATUS = 'PARTIAL'
-                                        THEN 1 ELSE 0
-                                    END), 0) AS PARTIAL,
+                                                    NVL(SUM(CASE
+                                                        WHEN x.STATUS = 'PARTIAL'
+                                                        THEN 1 ELSE 0
+                                                    END), 0) AS PARTIAL,
 
-                                    CASE
-                    WHEN COUNT(*) = 0 THEN 0
-                    ELSE ROUND(
-                        NVL(SUM(CASE WHEN x.STATUS = 'COMPLETED' THEN 1 ELSE 0 END), 0)
-                        * 100 / COUNT(*)
-                    )
-                END AS PROGRESS_RATE,
+                                                    CASE
+                                    WHEN COUNT(*) = 0 THEN 0
+                                    ELSE ROUND(
+                                        NVL(SUM(CASE WHEN x.STATUS = 'COMPLETED' THEN 1 ELSE 0 END), 0)
+                                        * 100 / COUNT(*)
+                                    )
+                                END AS PROGRESS_RATE,
 
-                COUNT(*) AS TOTAL_COUNT,
+                                COUNT(*) AS TOTAL_COUNT,
 
-                NVL(SUM(CASE
-                                        WHEN x.STATUS IN ('EXPECTED', 'DELAYED')
-                                        THEN 1 ELSE 0
-                                    END), 0) AS EXPECTED_COUNT,
+                                NVL(SUM(CASE
+                    WHEN x.STATUS = 'EXPECTED'
+                    THEN 1 ELSE 0
+                END), 0) AS EXPECTED_COUNT,
 
-                                    NVL(SUM(CASE
-                                        WHEN x.STATUS = 'PARTIAL'
-                                        THEN 1 ELSE 0
-                                    END), 0) AS PARTIAL_COUNT,
+                                                    NVL(SUM(CASE
+                                                        WHEN x.STATUS = 'PARTIAL'
+                                                        THEN 1 ELSE 0
+                                                    END), 0) AS PARTIAL_COUNT,
 
-                                    NVL(SUM(CASE
-                                        WHEN x.STATUS = 'COMPLETED'
-                                        THEN 1 ELSE 0
-                                    END), 0) AS COMPLETED_COUNT
+                                                    NVL(SUM(CASE
+                                                        WHEN x.STATUS = 'COMPLETED'
+                                                        THEN 1 ELSE 0
+                                                    END), 0) AS COMPLETED_COUNT
 
-                                FROM (
-                                """ + buildListBaseSql() + """
-                ) x
-                """;
+                                                FROM (
+                                                """
+                + buildListBaseSql() + """
+                        ) x
+                        """;
 
         Map<String, Object> result = jdbcTemplate.queryForMap(sql, Map.of());
 
