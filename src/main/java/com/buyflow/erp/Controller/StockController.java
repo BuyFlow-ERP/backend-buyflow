@@ -55,94 +55,100 @@ public class StockController {
                                 inventoryService.adjustStock(stockId, request));
         }
 
-        @GetMapping
-        public StockListResponse getInventories(
-                        @RequestParam(name = "itemCode", required = false) String itemCode,
-                        @RequestParam(name = "itemName", required = false) String itemName,
-                        @RequestParam(name = "category", required = false) String category,
-                        @RequestParam(name = "warehouseCode", required = false) String warehouseCode,
-                        @RequestParam(name = "stockStatus", required = false) String stockStatus) {
+       @GetMapping
+public StockListResponse getInventories(
+        @RequestParam(name = "itemCode", required = false) String itemCode,
+        @RequestParam(name = "itemName", required = false) String itemName,
+        @RequestParam(name = "category", required = false) String category,
+        @RequestParam(name = "warehouseCode", required = false) String warehouseCode,
+        @RequestParam(name = "stockStatus", required = false) String stockStatus) {
 
-                List<StockDto> items = stockRepository.findAll()
-                                .stream()
-                                .map(this::convert)
+    // 카드(summary) 계산용 : 검색조건만 적용 (재고상태 제외)
+    List<StockDto> summaryItems = stockRepository.findAll()
+            .stream()
+            .map(this::convert)
 
-                                .filter(item -> itemCode == null
-                                                || itemCode.isBlank()
-                                                || item.getItemCode().contains(itemCode))
+            .filter(item -> itemCode == null
+                    || itemCode.isBlank()
+                    || item.getItemCode().contains(itemCode))
 
-                                .filter(item -> itemName == null
-                                                || itemName.isBlank()
-                                                || item.getItemName().contains(itemName))
+            .filter(item -> itemName == null
+                    || itemName.isBlank()
+                    || item.getItemName().contains(itemName))
 
-                                .filter(item -> category == null
-                                                || category.isBlank()
-                                                || category.equals("전체")
-                                                || category.equals(item.getCategory()))
+            .filter(item -> category == null
+                    || category.isBlank()
+                    || category.equals("전체")
+                    || category.equals(item.getCategory()))
 
-                                .filter(item -> warehouseCode == null
-                                                || warehouseCode.isBlank()
-                                                || warehouseCode.equals("전체")
-                                                || warehouseCode.equals(item.getWarehouseCode()))
+            .filter(item -> warehouseCode == null
+                    || warehouseCode.isBlank()
+                    || warehouseCode.equals("전체")
+                    || warehouseCode.equals(item.getWarehouseCode()))
 
-                                .filter(item -> {
+            .collect(Collectors.toList());
 
-                                        if (stockStatus == null
-                                                        || stockStatus.isBlank()
-                                                        || stockStatus.equals("전체")) {
-                                                return true;
-                                        }
+    // 목록 표시용 : 재고상태 필터까지 적용
+    List<StockDto> items = summaryItems.stream()
 
-                                        if (stockStatus.equals("재고 없음")) {
-                                                return item.getCurrentStock() <= 0;
-                                        }
+            .filter(item -> {
 
-                                        if (stockStatus.equals("안전재고 미만")) {
-                                                return item.getCurrentStock() > 0
-                                                                && item.getCurrentStock() < item.getSafetyStock();
-                                        }
+                if (stockStatus == null
+                        || stockStatus.isBlank()
+                        || stockStatus.equals("전체")) {
+                    return true;
+                }
 
-                                        if (stockStatus.equals("정상")) {
-                                                return item.getCurrentStock() >= item.getSafetyStock();
-                                        }
+                if (stockStatus.equals("재고 없음")) {
+                    return item.getCurrentStock() <= 0;
+                }
 
-                                        return true;
-                                })
+                if (stockStatus.equals("안전재고 미만")) {
+                    return item.getCurrentStock() > 0
+                            && item.getCurrentStock() < item.getSafetyStock();
+                }
 
-                                .collect(Collectors.toList());
+                if (stockStatus.equals("정상")) {
+                    return item.getCurrentStock() >= item.getSafetyStock();
+                }
 
-                long normal = items.stream()
-                                .filter(item -> item.getCurrentStock() > 0
-                                                && item.getCurrentStock() >= item.getSafetyStock())
-                                .count();
+                return true;
+            })
 
-                long low = items.stream()
-                                .filter(item -> item.getCurrentStock() > 0
-                                                && item.getCurrentStock() < item.getSafetyStock())
-                                .count();
+            .collect(Collectors.toList());
 
-                long outOfStock = items.stream()
-                                .filter(item -> item.getCurrentStock() <= 0)
-                                .count();
+    long normal = summaryItems.stream()
+            .filter(item -> item.getCurrentStock() > 0
+                    && item.getCurrentStock() >= item.getSafetyStock())
+            .count();
 
-                return StockListResponse.builder()
-                                .items(items)
-                                .summary(
-                                                StockListResponse.Summary.builder()
-                                                                .total(items.size())
-                                                                .normal((int) normal)
-                                                                .low((int) low)
-                                                                .outOfStock((int) outOfStock)
-                                                                .build())
-                                .pagination(
-                                                StockListResponse.Pagination.builder()
-                                                                .page(1)
-                                                                .size(items.size())
-                                                                .totalElements((long) items.size())
-                                                                .totalPages(1)
-                                                                .build())
-                                .build();
-        }
+    long low = summaryItems.stream()
+            .filter(item -> item.getCurrentStock() > 0
+                    && item.getCurrentStock() < item.getSafetyStock())
+            .count();
+
+    long outOfStock = summaryItems.stream()
+            .filter(item -> item.getCurrentStock() <= 0)
+            .count();
+
+    return StockListResponse.builder()
+            .items(items)
+            .summary(
+                    StockListResponse.Summary.builder()
+                            .total(summaryItems.size())
+                            .normal((int) normal)
+                            .low((int) low)
+                            .outOfStock((int) outOfStock)
+                            .build())
+            .pagination(
+                    StockListResponse.Pagination.builder()
+                            .page(1)
+                            .size(items.size())
+                            .totalElements((long) items.size())
+                            .totalPages(1)
+                            .build())
+            .build();
+}
 
         @GetMapping("/filter-options")
         public Map<String, Object> getFilterOptions() {
