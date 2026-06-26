@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -47,6 +48,7 @@ public class StockController {
         private final ExcelService excelService;
 
         @PostMapping("/{stockId}/adjustments")
+        @PreAuthorize("hasRole('ADMIN') or hasAuthority('stock.adjust')")
         public ResponseEntity<InventoryAdjustmentResponse> adjustStock(
                         @PathVariable(name = "stockId") Long stockId,
                         @RequestBody InventoryAdjustmentRequest request) {
