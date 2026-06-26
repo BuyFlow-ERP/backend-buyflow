@@ -47,7 +47,7 @@ public class ReceiptItemController {
 
     @PutMapping("/{receiptItemId}/cancel")
     public ResponseEntity<String> cancelReceiptItem(
-            @PathVariable Long receiptItemId) {
+            @PathVariable(name = "receiptItemId") Long receiptItemId) {
 
         receiptItemService.cancelReceiptItem(
                 receiptItemId);
@@ -58,7 +58,7 @@ public class ReceiptItemController {
 
     @GetMapping("/status/{receiptItemStatus}")
     public List<ReceiptItem> getReceiptItemsByStatus(
-            @PathVariable String receiptItemStatus) {
+            @PathVariable(name = "receiptItemStatus") String receiptItemStatus) {
 
         return receiptItemService
                 .getReceiptItemsByStatus(

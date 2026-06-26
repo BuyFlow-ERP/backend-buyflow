@@ -39,6 +39,7 @@ public class ReceiptController {
         @GetMapping
         public ResponseEntity<ReceiptDto.PageResponse<ReceiptDto.ListResponse>> getReceipts(
                         @RequestParam(name = "activeTab", required = false) String activeTab,
+                        @RequestParam(name = "cardFilter", required = false) String cardFilter,
                         @RequestParam(name = "orderNumber", required = false) String orderNumber,
                         @RequestParam(name = "supplierKeyword", required = false) String supplierKeyword,
                         @RequestParam(name = "itemKeyword", required = false) String itemKeyword,
@@ -52,6 +53,7 @@ public class ReceiptController {
                 return ResponseEntity.ok(
                                 receiptService.searchReceipts(
                                                 activeTab,
+                                                cardFilter,
                                                 orderNumber,
                                                 supplierKeyword,
                                                 itemKeyword,

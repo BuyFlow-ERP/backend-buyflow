@@ -18,7 +18,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/admin/departments")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasRole('ADMIN') or hasAuthority('roles.write') or hasAuthority('ROLE_MANAGE')")
 public class DepartmentPermissionController {
 
     private final DepartmentPermissionService departmentPermissionService;

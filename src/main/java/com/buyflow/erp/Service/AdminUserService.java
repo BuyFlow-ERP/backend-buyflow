@@ -76,6 +76,7 @@ public class AdminUserService {
             String useYn,
             String jobRank,
             String roleCode,
+            String departmentAuthorized,
             int page,
             int size,
             String currentLoginId
@@ -98,6 +99,7 @@ public class AdminUserService {
                 normalizeText(useYn),
                 normalizeJobRankFilter(jobRank),
                 normalizeRoleCode(roleCode),
+                normalizeDepartmentAuthorized(departmentAuthorized),
                 pageRequest
         ).map(this::toAdminUserResponse));
     }
@@ -467,6 +469,23 @@ public class AdminUserService {
         }
 
         return normalized.replaceFirst("^ROLE_", "").toUpperCase();
+    }
+
+    private String normalizeDepartmentAuthorized(String value) {
+        String normalized = normalizeText(value);
+        if (normalized == null) {
+            return null;
+        }
+
+        if ("Y".equalsIgnoreCase(normalized) || "TRUE".equalsIgnoreCase(normalized)) {
+            return "Y";
+        }
+
+        if ("N".equalsIgnoreCase(normalized) || "FALSE".equalsIgnoreCase(normalized)) {
+            return "N";
+        }
+
+        throw new BusinessException(ErrorCode.INVALID_REQUEST, "부서원 자격 검색값은 Y 또는 N만 사용할 수 있습니다.");
     }
 
     private String normalizeJobRankFilter(String jobRank) {

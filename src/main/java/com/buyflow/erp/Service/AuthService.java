@@ -49,42 +49,54 @@ public class AuthService {
 
     @Transactional
     public UserResponse signup(SignupRequest request) {
-        if (userRepository.existsByLoginId(request.loginId())) {
+        String loginId = request.loginId().trim();
+        String userName = request.userName().trim();
+        String email = request.email().trim().toLowerCase();
+        String phone = normalizeOptionalText(request.phone());
+        String departmentName = request.departmentName().trim();
+        String positionName = normalizeOptionalText(request.positionName());
+        String jobRank = request.jobRank().trim();
+
+        if (userRepository.existsByLoginId(loginId)) {
             throw new BusinessException(ErrorCode.DUPLICATE_LOGIN_ID);
         }
 
         LocalDateTime now = LocalDateTime.now();
 
         User user = new User();
-        user.setLoginId(request.loginId());
+        user.setLoginId(loginId);
         user.setPassword(passwordEncoder.encode(request.password()));
-        user.setUserName(request.userName());
-        user.setEmail(request.email());
-        user.setPhone(request.phone());
-        user.setDepartmentName(request.departmentName());
-        user.setPositionName(
-                StringUtils.hasText(request.positionName()) ? request.positionName() : "담당자");
-        user.setJobRank(
-                StringUtils.hasText(request.jobRank()) ? request.jobRank().trim() : "사원");
-        user.setStatus("PENDING");
+        user.setUserName(userName);
+        user.setEmail(email);
+        user.setPhone(phone);
+        user.setDepartmentName(departmentName);
+        user.setPositionName(StringUtils.hasText(positionName) ? positionName : "담당자");
+        user.setJobRank(jobRank);
+        user.setStatus("ACTIVE");
         user.setUseYn("Y");
         user.setCreatedAt(now);
         user.setUpdatedAt(now);
 
         User savedUser = userRepository.save(user);
-        departmentAuthorizationService.ensureDefaultAuthorization(savedUser);
+        departmentAuthorizationService.setAuthorized(savedUser, false);
 
-        roleRepository.findByRoleCodeAndUseYn("VIEWER", "Y")
-                .map(Role::getRoleId)
-                .ifPresent(roleId -> {
-                    UserRole userRole = new UserRole();
-                    userRole.setUserId(savedUser.getUserId());
-                    userRole.setRoleId(roleId);
-                    userRole.setCreatedAt(now);
-                    userRoleRepository.save(userRole);
-                });
+        Role viewerRole = roleRepository.findByRoleCodeAndUseYn("VIEWER", "Y")
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.INTERNAL_ERROR,
+                        "Default VIEWER role is not configured."
+                ));
+
+        UserRole userRole = new UserRole();
+        userRole.setUserId(savedUser.getUserId());
+        userRole.setRoleId(viewerRole.getRoleId());
+        userRole.setCreatedAt(now);
+        userRoleRepository.save(userRole);
 
         return UserResponse.from(savedUser);
+    }
+
+    private String normalizeOptionalText(String value) {
+        return StringUtils.hasText(value) ? value.trim() : null;
     }
 
     @Transactional
