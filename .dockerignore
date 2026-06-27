@@ -1,0 +1,9 @@
+.git
+.gradle
+build
+out
+*.log
+.env
+.env.local
+Dockerfile
+README.md
