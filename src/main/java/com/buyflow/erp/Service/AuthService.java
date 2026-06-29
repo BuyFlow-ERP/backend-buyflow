@@ -1,9 +1,18 @@
 package com.buyflow.erp.Service;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
 import com.buyflow.erp.Common.BusinessException;
 import com.buyflow.erp.Common.ErrorCode;
 import com.buyflow.erp.Common.VerificationPurpose;
 import com.buyflow.erp.Dto.FindLoginIdCodeRequest;
+import com.buyflow.erp.Dto.FindLoginIdRequest;
 import com.buyflow.erp.Dto.FindLoginIdResponse;
 import com.buyflow.erp.Dto.LoginRequest;
 import com.buyflow.erp.Dto.LoginResponse;
@@ -21,17 +30,12 @@ import com.buyflow.erp.Entity.PasswordResetToken;
 import com.buyflow.erp.Entity.Role;
 import com.buyflow.erp.Entity.User;
 import com.buyflow.erp.Entity.UserRole;
-import com.buyflow.erp.Repository.RoleRepository;
 import com.buyflow.erp.Repository.AuthUserRepository;
+import com.buyflow.erp.Repository.RoleRepository;
 import com.buyflow.erp.Repository.UserRoleRepository;
 import com.buyflow.erp.Security.JwtTokenProvider;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -132,6 +136,25 @@ public class AuthService {
 
         return new MeResponse(UserResponse.from(user), roles, permissions);
     }
+
+    
+
+    // ↓↓↓ 여기에 새 메서드 추가 ↓↓↓
+    @Transactional(readOnly = true)
+    public FindLoginIdResponse findLoginId(FindLoginIdRequest request) {
+        User user = userRepository.findFirstByUserNameAndEmailAndUseYn(
+                        request.userName().trim(),
+                        request.email().trim().toLowerCase(),
+                        "Y"
+                )
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.NOT_FOUND, "일치하는 사용자 정보가 없습니다."));
+
+        return new FindLoginIdResponse(user.getLoginId());
+    }
+    // ↑↑↑ 여기까지 추가 ↑↑↑
+
+    
 
     @Transactional
     public VerificationCodeResponse requestFindLoginIdCode(FindLoginIdCodeRequest request) {

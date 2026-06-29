@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.buyflow.erp.Dto.FindLoginIdRequest;
 
 @RestController
 @RequiredArgsConstructor
@@ -39,6 +40,13 @@ public class AuthController {
     @PostMapping("/login")
     public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ApiResponse.success("Login successful.", authService.login(request));
+    }
+    
+    @PostMapping("/find-login-id")
+public ApiResponse<FindLoginIdResponse> findLoginId(
+        @Valid @RequestBody FindLoginIdRequest request
+    ) {
+    return ApiResponse.success("Login ID found.", authService.findLoginId(request));
     }
 
     @PostMapping("/find-login-id/code")

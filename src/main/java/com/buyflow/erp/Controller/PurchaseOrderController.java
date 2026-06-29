@@ -17,6 +17,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -125,9 +126,11 @@ public class PurchaseOrderController {
         PageResponse<PurchaseOrderDto.Response> response = service.getOrderList(condition);
         return ResponseEntity.ok(response);
     }
-
+    
+    
     // 3. 발주 등록
     @PostMapping
+    @PreAuthorize("hasAuthority('purchase-orders.write')")
     public ResponseEntity<PurchaseOrderDto.Response> createOrder(
     		@RequestPart("data") PurchaseOrderDto.Request request,
     		@RequestPart(value = "file", required = false) MultipartFile file) throws Exception{
@@ -141,9 +144,11 @@ public class PurchaseOrderController {
         PurchaseOrderDto.Response response = service.createOrder(request);
         return ResponseEntity.ok(response);
     }
+    
 
     // 4. 발주 수정
     @PutMapping("/{orderId}")
+    @PreAuthorize("hasAuthority('purchase-orders.write')") 
     public ResponseEntity<PurchaseOrderDto.Response> updateOrder(
             @PathVariable(name = "orderId") Long orderId,
             @RequestPart("data") PurchaseOrderDto.Request request,
@@ -159,6 +164,7 @@ public class PurchaseOrderController {
     }
 
     @PatchMapping("/{orderId}/cancel")
+    @PreAuthorize("hasAuthority('purchase-orders.write')")
     public ResponseEntity<PurchaseOrderDto.Response> cancelOrder(
             @PathVariable(name = "orderId") Long orderId,
             @RequestBody Map<String, String> request) {   // cancelReason 받음
