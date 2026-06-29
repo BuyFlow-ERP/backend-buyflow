@@ -1,9 +1,7 @@
-.git
-.gradle
 build
-out
-*.log
+.gradle
+.git
+.github
 .env
-.env.local
-Dockerfile
+*.log
 README.md
