@@ -197,4 +197,13 @@ public class PurchaseOrderDto {
 		private String unit;            // 단위
 		private Long unitPrice;         // 공급 단가
 	}
+	
+	public record SummaryResponse(
+			long total,
+			long confirmed,
+			long ordered,
+			long canceled
+			
+			) {
+	}
 }
