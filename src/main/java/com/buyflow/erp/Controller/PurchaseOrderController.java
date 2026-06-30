@@ -56,7 +56,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PurchaseOrderController {
 
-    
     private final PurchaseOrderService service;
     private final WarehouseService warehouseService;
     private final PurchaseRequestService purchaseRequestService;
@@ -167,7 +166,7 @@ public class PurchaseOrderController {
     @PreAuthorize("hasAuthority('purchase-orders.write')")
     public ResponseEntity<PurchaseOrderDto.Response> cancelOrder(
             @PathVariable(name = "orderId") Long orderId,
-            @RequestBody Map<String, String> request) {   // cancelReason 받음
+            @RequestBody Map<String, String> request) {
         
         String cancelReason = request.get("cancelReason");
         
@@ -218,4 +217,5 @@ public class PurchaseOrderController {
             return ResponseEntity.internalServerError().build();
         }
     }
+    
 }
