@@ -8,7 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-
+import java.util.List;
 import com.buyflow.erp.Common.BusinessException;
 import com.buyflow.erp.Common.ErrorCode;
 import com.buyflow.erp.Dto.SupplierFilterOptionsResponse;
@@ -65,6 +65,11 @@ public class SupplierService {
         return SupplierResponse.from(findActiveSupplier(supplierId));
     }
 
+    @Transactional(readOnly = true)
+public List<Supplier> findAllForExcel() {
+    return supplierRepository.findByUseYnOrderBySupplierIdDesc("Y");
+    }
+    
     @Transactional(readOnly = true)
     public SupplierFilterOptionsResponse findFilterOptions() {
         return SupplierFilterOptionsResponse.defaults();

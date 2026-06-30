@@ -6,6 +6,7 @@ import com.buyflow.erp.Dto.SupplierPageResponse;
 import com.buyflow.erp.Dto.SupplierRequest;
 import com.buyflow.erp.Dto.SupplierResponse;
 import com.buyflow.erp.Dto.SupplierTradeStatusRequest;
+import com.buyflow.erp.Service.ExcelService;
 import com.buyflow.erp.Service.SupplierService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +21,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import java.io.IOException;
 
+import com.buyflow.erp.Entity.Users;
+import com.buyflow.erp.Service.ExcelService;
+
+import jakarta.servlet.http.HttpServletResponse;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/suppliers")
@@ -32,7 +38,7 @@ public class SupplierController {
             "hasRole('ADMIN') or hasAuthority('suppliers.write')";
 
     private final SupplierService supplierService;
-
+    private final ExcelService excelService;
     @GetMapping
     @PreAuthorize(SUPPLIER_READ_AUTHORITY)
     public ApiResponse<SupplierPageResponse> search(
@@ -65,6 +71,15 @@ public class SupplierController {
                 "Supplier business number duplication checked.",
                 supplierService.existsBusinessNumber(businessNumber, excludeSupplierId)
         );
+    }
+    
+    @GetMapping("/excel")
+    @PreAuthorize(SUPPLIER_READ_AUTHORITY)
+    public void exportExcel(HttpServletResponse response) throws IOException {
+    Users exportUser = new Users();
+    exportUser.setUserId(5L);
+
+    excelService.exportExcel("suppliers", exportUser, response);
     }
 
     @GetMapping("/{supplierId}")

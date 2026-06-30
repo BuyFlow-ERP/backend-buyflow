@@ -7,7 +7,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.core.io.PathResource;
 import org.springframework.core.io.Resource;
@@ -16,6 +15,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -90,6 +90,7 @@ public class PurchaseRequestController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('purchase-requests.write')")
         public ResponseEntity<PurchaseRequestDto.DetailResponse> createPurchaseRequest(
         @RequestPart("data") PurchaseRequestDto.CreateRequest request,
         @RequestPart(value = "file", required = false) MultipartFile file
@@ -102,6 +103,7 @@ public class PurchaseRequestController {
         value = "/{requestId}",
         consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
+    @PreAuthorize("hasAuthority('purchase-requests.write')")
         public ResponseEntity<PurchaseRequestDto.DetailResponse> updatePurchaseRequest(
             @PathVariable(name = "requestId") Long requestId,
             @RequestPart("data") PurchaseRequestDto.UpdateRequest request,
@@ -113,6 +115,7 @@ public class PurchaseRequestController {
 }
 
     @PatchMapping("/{requestId}/cancel")
+    @PreAuthorize("hasAuthority('purchase-requests.write')")
     public ResponseEntity<PurchaseRequestDto.DetailResponse> cancelPurchaseRequest(
         @PathVariable(name = "requestId") Long requestId
     ) {
@@ -122,6 +125,7 @@ public class PurchaseRequestController {
     }
 
     @DeleteMapping("/{requestId}")
+    @PreAuthorize("hasAuthority('purchase-requests.write')")
         public ResponseEntity<Void> deletePurchaseRequest(
             @PathVariable(name = "requestId") Long requestId
     ) {
