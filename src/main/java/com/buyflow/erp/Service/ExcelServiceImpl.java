@@ -15,7 +15,7 @@ import com.buyflow.erp.Entity.ExcelExportHistory;
 import com.buyflow.erp.Entity.PurchaseOrder;
 import com.buyflow.erp.Entity.Users;
 import com.buyflow.erp.Repository.ExcelExportHistoryRepository;
-
+import com.buyflow.erp.Entity.Supplier;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import com.buyflow.erp.Dto.StockDto;
@@ -32,81 +32,91 @@ public class ExcelServiceImpl implements ExcelService {
 	private final StockService stockService;
 	private final StockHistoryService stockHistoryService;
 	private final ExcelExportHistoryRepository historyRepository;
+	private final SupplierService supplierService;
+@Override
+public void exportExcel(String target, Users user, HttpServletResponse response) throws IOException {
+    long rowCount = 0;
+    String status = "SUCCESS";
 
-	@Override
-	public void exportExcel(String target, Users user, HttpServletResponse response) throws IOException {
-		long rowCount = 0;
-		String status = "SUCCESS";
+    try {
+        System.setProperty("javax.xml.parsers.DocumentBuilderFactory",
+                "com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl");
+        System.setProperty("javax.xml.parsers.SAXParserFactory",
+                "com.sun.org.apache.xerces.internal.jaxp.SAXParserFactoryImpl");
 
-		try {
-			System.setProperty("javax.xml.parsers.DocumentBuilderFactory",
-					"com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl");
-			System.setProperty("javax.xml.parsers.SAXParserFactory",
-					"com.sun.org.apache.xerces.internal.jaxp.SAXParserFactoryImpl");
+        try (Workbook workbook = new XSSFWorkbook()) {
+            if ("orders".equalsIgnoreCase(target)) {
 
-			try (Workbook workbook = new XSSFWorkbook()) {
-				if ("orders".equalsIgnoreCase(target)) {
+                rowCount = drawOrderSheet(workbook);
 
-					rowCount = drawOrderSheet(workbook);
+            } else if ("inventories".equalsIgnoreCase(target)) {
 
-				} else if ("inventories".equalsIgnoreCase(target)) {
+                rowCount = drawInventorySheet(workbook);
 
-					rowCount = drawInventorySheet(workbook);
+            } else if ("stock-history".equalsIgnoreCase(target)) {
 
-				} else if ("stock-history".equalsIgnoreCase(target)) {
+                rowCount = drawStockHistorySheet(workbook);
 
-					rowCount = drawStockHistorySheet(workbook);
+            } else if ("receipts".equalsIgnoreCase(target)) {
 
-				} else if ("receipts".equalsIgnoreCase(target)) {
+                rowCount = drawReceiptSheet(workbook);
 
-					rowCount = drawReceiptSheet(workbook);
+            } else if ("suppliers".equalsIgnoreCase(target)) {
 
-				}
-				String fileName;
+                rowCount = drawSupplierSheet(workbook);
 
-				if ("orders".equalsIgnoreCase(target)) {
+            }
 
-					fileName = "발주목록.xlsx";
+            String fileName;
 
-				} else if ("inventories".equalsIgnoreCase(target)) {
+            if ("orders".equalsIgnoreCase(target)) {
 
-					fileName = "재고현황.xlsx";
+                fileName = "발주목록.xlsx";
 
-				} else if ("stock-history".equalsIgnoreCase(target)) {
+            } else if ("inventories".equalsIgnoreCase(target)) {
 
-					fileName = "재고이력.xlsx";
+                fileName = "재고현황.xlsx";
 
-				} else if ("receipts".equalsIgnoreCase(target)) {
+            } else if ("stock-history".equalsIgnoreCase(target)) {
 
-					fileName = "입고관리.xlsx";
+                fileName = "재고이력.xlsx";
 
-				} else {
+            } else if ("receipts".equalsIgnoreCase(target)) {
 
-					fileName = "ExportedData.xlsx";
+                fileName = "입고관리.xlsx";
 
-				}
-				String encodedFileName = java.net.URLEncoder.encode(fileName, StandardCharsets.UTF_8.toString())
-						.replaceAll("\\+", "%20");
+            } else if ("suppliers".equalsIgnoreCase(target)) {
 
-				response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-				response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"");
+                fileName = "공급업체목록.xlsx";
 
-				workbook.write(response.getOutputStream());
-			}
-		} catch (Exception e) {
-			status = "FAILED";
-			throw e;
-		} finally {
-			ExcelExportHistory history = new ExcelExportHistory();
-			history.setExportType(target.toUpperCase());
-			history.setStatus(status);
-			history.setCreatedAt(LocalDateTime.now());
-			history.setDownloadRowCount(rowCount);
-			history.setUser(user);
+            } else {
 
-			historyRepository.save(history);
-		}
-	}
+                fileName = "ExportedData.xlsx";
+
+            }
+
+            String encodedFileName = java.net.URLEncoder.encode(fileName, StandardCharsets.UTF_8.toString())
+                    .replaceAll("\\+", "%20");
+
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"");
+
+            workbook.write(response.getOutputStream());
+        }
+    } catch (Exception e) {
+        status = "FAILED";
+        throw e;
+    } finally {
+        ExcelExportHistory history = new ExcelExportHistory();
+        history.setExportType(target.toUpperCase());
+        history.setStatus(status);
+        history.setCreatedAt(LocalDateTime.now());
+        history.setDownloadRowCount(rowCount);
+        history.setUser(user);
+
+        historyRepository.save(history);
+    }
+}
 
 	private long drawOrderSheet(Workbook workbook) {
 		Sheet sheet = workbook.createSheet("발주 내역");
@@ -274,4 +284,62 @@ public class ExcelServiceImpl implements ExcelService {
 
 		return receipts.size();
 	}
+	private long drawSupplierSheet(Workbook workbook) {
+    Sheet sheet = workbook.createSheet("공급업체 목록");
+
+    List<Supplier> suppliers = supplierService.findAllForExcel();
+
+    Row headerRow = sheet.createRow(0);
+    headerRow.createCell(0).setCellValue("공급업체 코드");
+    headerRow.createCell(1).setCellValue("공급업체명");
+    headerRow.createCell(2).setCellValue("사업자등록번호");
+    headerRow.createCell(3).setCellValue("담당자");
+    headerRow.createCell(4).setCellValue("연락처");
+    headerRow.createCell(5).setCellValue("이메일");
+    headerRow.createCell(6).setCellValue("주소");
+    headerRow.createCell(7).setCellValue("거래상태");
+    headerRow.createCell(8).setCellValue("등록일");
+
+    int rowNum = 1;
+
+    for (Supplier supplier : suppliers) {
+        Row row = sheet.createRow(rowNum++);
+
+        row.createCell(0).setCellValue(valueOrDash(supplier.getSupplierCode()));
+        row.createCell(1).setCellValue(valueOrDash(supplier.getSupplierName()));
+        row.createCell(2).setCellValue(valueOrDash(supplier.getBusinessNumber()));
+        row.createCell(3).setCellValue(valueOrDash(supplier.getManager()));
+        row.createCell(4).setCellValue(valueOrDash(supplier.getContact()));
+        row.createCell(5).setCellValue(valueOrDash(supplier.getEmail()));
+        row.createCell(6).setCellValue(valueOrDash(supplier.getAddress()));
+        row.createCell(7).setCellValue(toTradeStatusLabel(supplier.getTradeStatus()));
+        row.createCell(8).setCellValue(
+                supplier.getCreatedAt() != null
+                        ? supplier.getCreatedAt().toLocalDate().toString()
+                        : "-"
+        );
+    }
+
+    for (int i = 0; i <= 8; i++) {
+        sheet.autoSizeColumn(i);
+    }
+
+    return suppliers.size();
+}
+
+private String valueOrDash(String value) {
+    return value != null && !value.isBlank() ? value : "-";
+}
+
+private String toTradeStatusLabel(String tradeStatus) {
+    if ("ACTIVE".equalsIgnoreCase(tradeStatus)) {
+        return "거래중";
+    }
+
+    if ("STOPPED".equalsIgnoreCase(tradeStatus) || "INACTIVE".equalsIgnoreCase(tradeStatus)) {
+        return "거래중지";
+    }
+
+    return valueOrDash(tradeStatus);
+}
 }

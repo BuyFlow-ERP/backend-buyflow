@@ -7,7 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
+import java.util.List;
 import com.buyflow.erp.Entity.Supplier;
 
 public interface SupplierRepository extends JpaRepository<Supplier, Long> {
@@ -21,7 +21,8 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
     boolean existsByBusinessNumber(String businessNumber);
 
     boolean existsByBusinessNumberAndSupplierIdNot(String businessNumber, Long supplierId);
-
+    
+    List<Supplier> findByUseYnOrderBySupplierIdDesc(String useYn);
     @Query("""
             select supplier
             from Supplier supplier
