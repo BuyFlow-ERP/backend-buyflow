@@ -1,8 +1,16 @@
 package com.buyflow.erp.Controller;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,21 +37,7 @@ import com.buyflow.erp.Service.ExcelService;
 import com.buyflow.erp.Service.ProductService;
 
 import jakarta.servlet.http.HttpServletResponse;
-
 import lombok.RequiredArgsConstructor;
-
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.http.HttpHeaders;
-
-import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-
-import java.util.Map;
 
 
 @CrossOrigin(origins = "http://localhost:3000")
@@ -87,11 +81,7 @@ public class ProductController {
         return ResponseEntity.ok(productService.getFilterOptions());
     }
 
-    @GetMapping("/excel")
-    @PreAuthorize(PRODUCT_READ_AUTHORITY)
-    public void exportExcel(HttpServletResponse response) throws IOException {
-        excelService.exportExcel("products", getCurrentUser(), response);
-    }
+    
 
 
     @GetMapping("/excel")
