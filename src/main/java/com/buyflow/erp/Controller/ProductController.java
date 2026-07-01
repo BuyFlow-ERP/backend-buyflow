@@ -29,7 +29,22 @@ import com.buyflow.erp.Service.ExcelService;
 import com.buyflow.erp.Service.ProductService;
 
 import jakarta.servlet.http.HttpServletResponse;
+
 import lombok.RequiredArgsConstructor;
+
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.http.HttpHeaders;
+
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+import java.util.Map;
+
 
 @CrossOrigin(origins = "http://localhost:3000")
 @RestController
@@ -65,6 +80,7 @@ public class ProductController {
         return ResponseEntity.ok(productService.searchProducts(condition));
     }
 
+
     @GetMapping("/filter-options")
     @PreAuthorize(PRODUCT_READ_AUTHORITY)
     public ResponseEntity<Map<String, Object>> getFilterOptions() {
@@ -76,6 +92,83 @@ public class ProductController {
     public void exportExcel(HttpServletResponse response) throws IOException {
         excelService.exportExcel("products", getCurrentUser(), response);
     }
+
+
+    @GetMapping("/excel")
+    public void downloadProductsExcel(
+        @ModelAttribute ProductDto.SearchCondition condition,
+        HttpServletResponse response
+    ) throws IOException {
+        List<ProductDto.ListResponse> products =
+            productService.getProductsForExcel(condition);
+
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("품목 관리");
+
+            String[] headers = {
+                    "품목 코드",
+                    "품목명",
+                    "카테고리",
+                    "규격",
+                    "단위",
+                    "기준 단가",
+                    "제조사",
+                    "사용 여부",
+                    "등록일",
+                    "수정일"
+            };
+
+            Row headerRow = sheet.createRow(0);
+
+            for (int i = 0; i < headers.length; i++) {
+                headerRow.createCell(i).setCellValue(headers[i]);
+            }
+
+            int rowNum = 1;
+
+            for (ProductDto.ListResponse product : products) {
+                Row row = sheet.createRow(rowNum++);
+
+                row.createCell(0).setCellValue(valueOrDash(product.getProductNo()));
+                row.createCell(1).setCellValue(valueOrDash(product.getProductName()));
+                row.createCell(2).setCellValue(valueOrDash(product.getCategoryName()));
+                row.createCell(3).setCellValue(valueOrDash(product.getSpec()));
+                row.createCell(4).setCellValue(valueOrDash(product.getUnit()));
+                row.createCell(5).setCellValue(
+                        product.getUnitPrice() != null ? product.getUnitPrice() : 0
+                );
+                row.createCell(6).setCellValue(valueOrDash(product.getCompanyName()));
+                row.createCell(7).setCellValue(
+                        "N".equalsIgnoreCase(product.getUseYn()) ? "미사용" : "사용"
+                );
+                row.createCell(8).setCellValue(valueOrDash(product.getCreatedAt()));
+                row.createCell(9).setCellValue(valueOrDash(product.getUpdatedAt()));
+            }
+
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            String fileName = URLEncoder
+                    .encode("품목관리.xlsx", StandardCharsets.UTF_8)
+                    .replaceAll("\\+", "%20");
+
+            response.setContentType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            );
+            response.setHeader(
+                    HttpHeaders.CONTENT_DISPOSITION,
+                    "attachment; filename*=UTF-8''" + fileName
+            );
+
+            workbook.write(response.getOutputStream());
+        }
+    }
+
+    private String valueOrDash(String value) {
+    return value != null && !value.isBlank() ? value : "-";
+}
+
 
     @GetMapping("/{productId}")
     @PreAuthorize(PRODUCT_READ_AUTHORITY)

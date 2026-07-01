@@ -122,6 +122,26 @@ public class ProductServiceImpl implements ProductService {
         return result;
     }
 
+    @Override
+    public List<ProductDto.ListResponse> getProductsForExcel(
+        ProductDto.SearchCondition condition
+    ) {
+        ProductDto.SearchCondition safeCondition =
+            condition == null ? new ProductDto.SearchCondition() : condition;
+
+        String productNo = normalizeText(safeCondition.getItemCode());
+        String productName = normalizeText(safeCondition.getItemName());
+        String categoryName = normalizeSelect(safeCondition.getCategory());
+        String unit = normalizeSelect(safeCondition.getUnit());
+        String useYn = convertActiveStatusToUseYn(safeCondition.getActiveStatus());
+
+        return productRepository
+                .searchProductsForExcel(productNo, productName, categoryName, unit, useYn)
+                .stream()
+                .map(ProductDto.ListResponse::from)
+                .toList();
+}
+
     private void validateProductRequest(Long productId, ProductDto.CreateRequest request) {
         String productNo = firstNotBlank(request.getProductNo(), request.getCode());
         String productName = firstNotBlank(request.getProductName(), request.getName());
