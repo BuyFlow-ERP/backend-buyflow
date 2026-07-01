@@ -23,4 +23,6 @@ public interface ApprovalService {
     ApprovalHistoryDto.DetailResponse reject(Long approvalId, ApprovalHistoryDto.DecisionRequest request);
 
     ApprovalHistoryDto.DetailResponse cancelRequest(Long approvalId);
+
+    ApprovalHistoryDto.SummaryResponse getApprovalSummary();
 }

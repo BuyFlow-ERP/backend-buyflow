@@ -46,4 +46,5 @@ public record UserResponse(
     private static String toAccountType(String jobRank) {
         return "ADMIN".equalsIgnoreCase(jobRank) ? "ADMIN" : "USER";
     }
+
 }

@@ -49,4 +49,8 @@ public class Users {
 	@Column(name = "PHONE")
 	private String phone;
 
+
+	@Column(name = "USE_YN", length = 1)
+	private String useYn = "Y";
+
 }

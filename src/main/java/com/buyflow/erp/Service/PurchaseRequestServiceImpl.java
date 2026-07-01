@@ -128,17 +128,21 @@ BigDecimal calculatedTotalAmount = items.stream()
 
     @Override
     public PurchaseRequestDto.SummaryResponse getPurchaseRequestSummary() {
-        List<PurchaseRequest> requests = purchaseRequestRepository
-            .findActiveRequestsOrderByRequestIdDesc();
+        List<PurchaseRequest> requests =
+            purchaseRequestRepository.findActiveRequestsOrderByRequestIdDesc();
 
         return new PurchaseRequestDto.SummaryResponse(
             requests.size(),
-            countByStatusLabel(requests, "승인 대기"),
-            countByStatusLabel(requests, "승인 완료"),
-            countByStatusLabel(requests, "반려"),
-            countByStatusLabel(requests, "발주 완료"),
+            countByPriorityLabel(requests, "일반"),
+            countByPriorityLabel(requests, "긴급"),
             countByStatusLabel(requests, "요청 취소")
-        );
+    );
+}
+
+    private long countByPriorityLabel(List<PurchaseRequest> requests, String priorityLabel) {
+        return requests.stream()
+                .filter(request -> priorityLabel.equals(resolvePriorityLabel(request)))
+                .count();
     }
 
     @Override
@@ -286,18 +290,18 @@ BigDecimal calculatedTotalAmount = items.stream()
 		    purchaseRequestRepository.save(request);
 		    purchaseRequestItemRepository.saveAll(items);
 		
-		    if ("PENDING_APPROVAL".equals(request.getRequestStatus())) {
-		    ApprovalHistory approvalHistory = new ApprovalHistory();
-		
-		    approvalHistory.setRequestId(requestId);
-		    approvalHistory.setApproverId(resolveApproverId(requestorId));
-		    approvalHistory.setApprovalStatus("PENDING_APPROVAL");
-		    approvalHistory.setCommentText("구매 요청 승인 대기");
-		    approvalHistory.setApprovedAt(null);
-		    approvalHistory.setApprovalStep(1);
-		
-		    approvalHistoryRepository.save(approvalHistory);
-    }
+		    if ("PENDING_APPROVAL".equals(normalizeRequestStatus(request.getRequestStatus()))) {
+            ApprovalHistory approvalHistory = new ApprovalHistory();
+
+            approvalHistory.setRequestId(requestId);
+            approvalHistory.setApproverId(resolveApproverId(dto.approverId(), requestorId));
+            approvalHistory.setApprovalStatus("PENDING_APPROVAL");
+            approvalHistory.setCommentText("구매 요청 승인 대기");
+            approvalHistory.setApprovedAt(null);
+            approvalHistory.setApprovalStep(1);
+
+            approvalHistoryRepository.save(approvalHistory);
+        }
 
         try {
                 if (file != null && !file.isEmpty()) {
@@ -694,13 +698,44 @@ public void deletePurchaseRequest(Long requestId) {
         return LocalDate.parse(value);
 }
 
-    private Long resolveApproverId(Long requestorId) {
-        return userRepository.findFirstApproverId(requestorId)
+    private Long resolveApproverId(Long preferredApproverId, Long requestorId) {
+    if (preferredApproverId != null) {
+        Users approver = userRepository.findById(preferredApproverId)
                 .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "선택한 승인 담당자를 찾을 수 없습니다."
+                ));
+
+        if (Objects.equals(preferredApproverId, requestorId)) {
+            throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "승인자로 지정할 사용자가 없습니다."
-            ));
+                    "요청자는 본인을 승인 담당자로 지정할 수 없습니다."
+            );
+        }
+
+        if (!"Y".equalsIgnoreCase(approver.getUseYn())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "사용 중지된 사용자는 승인 담당자로 지정할 수 없습니다."
+            );
+        }
+
+        if (userRepository.countActiveRoleByUserId(preferredApproverId, "APPROVER") <= 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "선택한 사용자는 승인 담당자 권한이 없습니다."
+            );
+        }
+
+        return preferredApproverId;
     }
+
+    return userRepository.findFirstApproverId(requestorId)
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "승인 담당자를 찾을 수 없습니다."
+            ));
+}
 
     private String createRequestNumber(long requestId) {
         return "PR-" + LocalDate.now().getYear() + "-" + String.format("%04d", requestId);
@@ -813,9 +848,12 @@ private void validateDeletableStatus(PurchaseRequest request) {
     }
     
     @Override
-    public List<PurchaseRequest> getAllRequestsForExcel() {
-    	return purchaseRequestRepository.findAll(Sort.by(Sort.Direction.DESC, "requestId"));
-    }
+    public List<PurchaseRequestDto.ListResponse>    getAllPurchaseRequestRowsForExcel() {
+        return purchaseRequestRepository.findActiveRequestsOrderByRequestIdDesc()
+                .stream()
+                .map(this::toListResponse)
+             .toList();
+        }
 
-}
+    }
 

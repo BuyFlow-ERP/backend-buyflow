@@ -15,9 +15,9 @@ public interface UserRepository extends JpaRepository<Users, Long> {
     @Query(value = """
         SELECT u.USER_ID
         FROM USERS u
-        JOIN USER_ROLES ur 
+        JOIN USER_ROLES ur
           ON u.USER_ID = ur.USER_ID
-        JOIN ROLES r 
+        JOIN ROLES r
           ON ur.ROLE_ID = r.ROLE_ID
         WHERE u.USER_ID <> :requestorId
           AND NVL(u.USE_YN, 'Y') = 'Y'

@@ -5,9 +5,8 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Map;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
 import org.springframework.core.io.PathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
@@ -16,6 +15,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -32,8 +34,10 @@ import org.springframework.web.server.ResponseStatusException;
 import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Dto.PurchaseRequestDto;
 import com.buyflow.erp.Entity.Attachment;
-import com.buyflow.erp.Entity.PurchaseRequest;
+import com.buyflow.erp.Entity.Users;
 import com.buyflow.erp.Repository.AttachmentRepository;
+import com.buyflow.erp.Repository.UserRepository;
+import com.buyflow.erp.Service.ExcelService;
 import com.buyflow.erp.Service.PurchaseRequestService;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -46,6 +50,8 @@ public class PurchaseRequestController {
 
     private final PurchaseRequestService purchaseRequestService;
     private final AttachmentRepository attachmentRepository;
+    private final ExcelService excelService;
+    private final UserRepository userRepository;
 
     @GetMapping
     public ResponseEntity<PageResponse<PurchaseRequestDto.ListResponse>> getPurchaseRequests(
@@ -91,100 +97,125 @@ public class PurchaseRequestController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('purchase-requests.write')")
-        public ResponseEntity<PurchaseRequestDto.DetailResponse> createPurchaseRequest(
-        @RequestPart("data") PurchaseRequestDto.CreateRequest request,
-        @RequestPart(value = "file", required = false) MultipartFile file
+    public ResponseEntity<PurchaseRequestDto.DetailResponse> createPurchaseRequest(
+            @RequestPart("data") PurchaseRequestDto.CreateRequest request,
+            @RequestPart(value = "file", required = false) MultipartFile file
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(purchaseRequestService.createPurchaseRequest(request, file));
-}
+                .body(purchaseRequestService.createPurchaseRequest(request, file));
+    }
 
     @PutMapping(
-        value = "/{requestId}",
-        consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+            value = "/{requestId}",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
     @PreAuthorize("hasAuthority('purchase-requests.write')")
-        public ResponseEntity<PurchaseRequestDto.DetailResponse> updatePurchaseRequest(
+    public ResponseEntity<PurchaseRequestDto.DetailResponse> updatePurchaseRequest(
             @PathVariable(name = "requestId") Long requestId,
             @RequestPart("data") PurchaseRequestDto.UpdateRequest request,
             @RequestPart(value = "file", required = false) MultipartFile file
     ) {
         return ResponseEntity.ok(
-            purchaseRequestService.updatePurchaseRequest(requestId, request, file)
-    );
-}
+                purchaseRequestService.updatePurchaseRequest(requestId, request, file)
+        );
+    }
 
     @PatchMapping("/{requestId}/cancel")
     @PreAuthorize("hasAuthority('purchase-requests.write')")
     public ResponseEntity<PurchaseRequestDto.DetailResponse> cancelPurchaseRequest(
-        @PathVariable(name = "requestId") Long requestId
+            @PathVariable(name = "requestId") Long requestId
     ) {
         return ResponseEntity.ok(
-            purchaseRequestService.cancelPurchaseRequest(requestId)
-            );
+                purchaseRequestService.cancelPurchaseRequest(requestId)
+        );
     }
 
     @DeleteMapping("/{requestId}")
     @PreAuthorize("hasAuthority('purchase-requests.write')")
-        public ResponseEntity<Void> deletePurchaseRequest(
+    public ResponseEntity<Void> deletePurchaseRequest(
             @PathVariable(name = "requestId") Long requestId
     ) {
-            purchaseRequestService.deletePurchaseRequest(requestId);
-            return ResponseEntity.noContent().build();
+        purchaseRequestService.deletePurchaseRequest(requestId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/attachments/{attachmentId}/download")
-        public ResponseEntity<Resource> downloadAttachment(
+    public ResponseEntity<Resource> downloadAttachment(
             @PathVariable(name = "attachmentId") Long attachmentId
-    ) throws Exception {
+    ) {
         Attachment attachment = attachmentRepository.findById(attachmentId)
-            .orElseThrow(() -> new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "첨부파일을 찾을 수 없습니다. attachmentId=" + attachmentId
-            ));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "첨부파일을 찾을 수 없습니다. attachmentId=" + attachmentId
+                ));
 
-    Path path = Path.of(attachment.getFilePath());
+        Path path = Path.of(attachment.getFilePath());
 
         if (!Files.exists(path)) {
             throw new ResponseStatusException(
-                HttpStatus.NOT_FOUND,
-                "첨부파일 실제 파일을 찾을 수 없습니다."
-        );
-    }
+                    HttpStatus.NOT_FOUND,
+                    "첨부파일 실제 파일을 찾을 수 없습니다."
+            );
+        }
 
-    Resource resource = new PathResource(path);
+        Resource resource = new PathResource(path);
 
-    String encodedFileName = URLEncoder.encode(
-            attachment.getOriginalName(),
-            StandardCharsets.UTF_8
-    ).replaceAll("\\+", "%20");
+        String encodedFileName = URLEncoder.encode(
+                attachment.getOriginalName(),
+                StandardCharsets.UTF_8
+        ).replaceAll("\\+", "%20");
 
         return ResponseEntity.ok()
-            .contentType(MediaType.APPLICATION_OCTET_STREAM)
-            .header(
-                    HttpHeaders.CONTENT_DISPOSITION,
-                    ContentDisposition.attachment()
-                            .filename(encodedFileName, StandardCharsets.UTF_8)
-                            .build()
-                            .toString()
-            )
-            .body(resource);
-  }
-    
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(encodedFileName, StandardCharsets.UTF_8)
+                                .build()
+                                .toString()
+                )
+                .body(resource);
+    }
+
     @GetMapping("/excel")
     public void exportExcel(HttpServletResponse response) throws IOException {
-        // 1. 구매요청 목록 데이터 전체 조회 (서비스 호출)
-        List<PurchaseRequest> requests = purchaseRequestService.getAllRequestsForExcel();
-        
-        // 2. Apache POI XSSFWorkbook 생성 및 데이터 채우기 (아까 하셨던 방식과 동일)
-        XSSFWorkbook workbook = new XSSFWorkbook();
-        // ... 생략 ...
-        
-        // 3. 응답 헤더 세팅 및 출력
-        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        response.setHeader("Content-Disposition", "attachment; filename=\"PurchaseRequests.xlsx\"");
-        
-        workbook.write(response.getOutputStream());
-        workbook.close();
+        Users currentUser = getCurrentUser();
+        excelService.exportExcel("purchase-requests", currentUser, response);
+    }
+
+    private Users getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || "anonymousUser".equals(String.valueOf(authentication.getPrincipal()))) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+        }
+
+        Object principal = authentication.getPrincipal();
+
+        if (principal instanceof Users user) {
+            return user;
+        }
+
+        String loginValue = principal instanceof UserDetails userDetails
+                ? userDetails.getUsername()
+                : authentication.getName();
+
+        return userRepository.findByLoginId(loginValue)
+                .orElseGet(() -> {
+                    try {
+                        return userRepository.findById(Long.valueOf(loginValue))
+                                .orElseThrow(() -> new ResponseStatusException(
+                                        HttpStatus.UNAUTHORIZED,
+                                        "현재 로그인 사용자를 찾을 수 없습니다."
+                                ));
+                    } catch (NumberFormatException error) {
+                        throw new ResponseStatusException(
+                                HttpStatus.UNAUTHORIZED,
+                                "현재 로그인 사용자를 찾을 수 없습니다."
+                        );
+                    }
+                });
     }
 }

@@ -20,6 +20,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import com.buyflow.erp.Dto.StockDto;
 import com.buyflow.erp.Dto.StockHistoryResponseDto;
+import com.buyflow.erp.Dto.PurchaseRequestDto;
 
 import com.buyflow.erp.Dto.ReceiptDto;
 
@@ -33,6 +34,7 @@ public class ExcelServiceImpl implements ExcelService {
 	private final StockHistoryService stockHistoryService;
 	private final ExcelExportHistoryRepository historyRepository;
 	private final SupplierService supplierService;
+	private final PurchaseRequestService purchaseRequestService;
 @Override
 public void exportExcel(String target, Users user, HttpServletResponse response) throws IOException {
     long rowCount = 0;
@@ -65,7 +67,10 @@ public void exportExcel(String target, Users user, HttpServletResponse response)
 
                 rowCount = drawSupplierSheet(workbook);
 
-            }
+            } else if ("purchase-requests".equalsIgnoreCase(target)) {
+
+    						rowCount = drawPurchaseRequestSheet(workbook);
+						}
 
             String fileName;
 
@@ -89,7 +94,12 @@ public void exportExcel(String target, Users user, HttpServletResponse response)
 
                 fileName = "공급업체목록.xlsx";
 
-            } else {
+						} else if ("purchase-requests".equalsIgnoreCase(target)) {
+
+    						fileName = "구매요청목록.xlsx";
+						}
+
+             else {
 
                 fileName = "ExportedData.xlsx";
 
@@ -325,6 +335,58 @@ public void exportExcel(String target, Users user, HttpServletResponse response)
     }
 
     return suppliers.size();
+}
+
+  private long drawPurchaseRequestSheet(Workbook workbook) {
+    Sheet sheet = workbook.createSheet("구매요청 목록");
+
+    List<PurchaseRequestDto.ListResponse> requests =
+            purchaseRequestService.getAllPurchaseRequestRowsForExcel();
+
+    String[] headers = {
+            "요청 번호",
+            "요청 제목",
+            "요청자",
+            "요청 부서",
+            "요청일",
+            "수정일",
+            "희망 입고일",
+            "품목 수",
+            "총 요청 금액",
+            "우선순위",
+            "상태"
+    };
+
+    Row headerRow = sheet.createRow(0);
+    for (int i = 0; i < headers.length; i++) {
+        headerRow.createCell(i).setCellValue(headers[i]);
+    }
+
+    int rowNum = 1;
+
+    for (PurchaseRequestDto.ListResponse request : requests) {
+        Row row = sheet.createRow(rowNum++);
+
+        row.createCell(0).setCellValue(valueOrDash(request.requestNumber()));
+        row.createCell(1).setCellValue(valueOrDash(request.title()));
+        row.createCell(2).setCellValue(valueOrDash(request.requester()));
+        row.createCell(3).setCellValue(valueOrDash(request.department()));
+        row.createCell(4).setCellValue(valueOrDash(request.requestedAt()));
+        row.createCell(5).setCellValue(valueOrDash(request.updatedAt()));
+        row.createCell(6).setCellValue(valueOrDash(request.desiredReceiptAt()));
+        row.createCell(7).setCellValue(request.itemCount());
+        row.createCell(8).setCellValue(
+                request.totalAmount() != null ? request.totalAmount().doubleValue() : 0
+        );
+        row.createCell(9).setCellValue(valueOrDash(request.priority()));
+        row.createCell(10).setCellValue(valueOrDash(request.status()));
+    }
+
+    for (int i = 0; i < headers.length; i++) {
+        sheet.autoSizeColumn(i);
+    }
+
+    return requests.size();
 }
 
 private String valueOrDash(String value) {
