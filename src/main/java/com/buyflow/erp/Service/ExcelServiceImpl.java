@@ -33,6 +33,7 @@ public class ExcelServiceImpl implements ExcelService {
 	private final StockHistoryService stockHistoryService;
 	private final ExcelExportHistoryRepository historyRepository;
 	private final SupplierService supplierService;
+	
 @Override
 public void exportExcel(String target, Users user, HttpServletResponse response) throws IOException {
     long rowCount = 0;
