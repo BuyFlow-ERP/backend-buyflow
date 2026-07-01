@@ -71,9 +71,9 @@ public class ApprovalServiceImpl implements ApprovalService {
                     approvalHistoryRepository.findAllByOrderByApprovalIdDesc()
                             .stream()
                             .filter(approval ->
-                                    canViewAllApprovals
-                                            || Objects.equals(approval.getApproverId(), currentUserId)
-                            )
+                            canViewAllApprovals
+                                    || isVisibleApprovalForCurrentUser(approval, currentUserId)
+)
                             .map(this::toListResponse)
                             .filter(Objects::nonNull)
                             .filter(row -> contains(row.requestNumber(), requestNumber))
@@ -209,16 +209,27 @@ public class ApprovalServiceImpl implements ApprovalService {
 );
     }
 
-    private ApprovalHistoryDto.DetailResponse toDetailResponse(ApprovalHistory approval, PurchaseRequest request) {
-        Users requester = request.getRequestorId() == null
+    private ApprovalHistoryDto.DetailResponse toDetailResponse(
+        ApprovalHistory approval,
+        PurchaseRequest request
+) {
+    Users requester = request.getRequestorId() == null
             ? null
             : userRepository.findById(request.getRequestorId()).orElse(null);
 
-        Users approver = approval.getApproverId() == null
+    Users approver = approval.getApproverId() == null
             ? null
             : userRepository.findById(approval.getApproverId()).orElse(null);
 
-        return new ApprovalHistoryDto.DetailResponse(
+    Long currentUserId = getCurrentLoginUserId();
+
+    boolean canProcess = canProcessCurrentApproval(
+            approval,
+            request,
+            currentUserId
+    );
+
+    return new ApprovalHistoryDto.DetailResponse(
             approval.getApprovalId(),
             request.getRequestId(),
             nullToEmpty(request.getRequestNo()),
@@ -228,7 +239,10 @@ public class ApprovalServiceImpl implements ApprovalService {
                     requester != null ? nullToEmpty(requester.getUserName()) : getUserName(request.getRequestorId()),
                     ""
             ),
-            new ApprovalHistoryDto.DepartmentInfo(null, getDepartmentName(request.getRequestorId())),
+            new ApprovalHistoryDto.DepartmentInfo(
+                    null,
+                    getDepartmentName(request.getRequestorId())
+            ),
             formatDate(request.getCreatedAt()),
             formatDate(request.getDueDate()),
             formatDateTime(request.getCreatedAt()),
@@ -237,16 +251,17 @@ public class ApprovalServiceImpl implements ApprovalService {
             toStatusCode(request.getRequestStatus()),
             toRequestStatusLabel(request.getRequestStatus()),
             nullToEmpty(request.getReason()),
+            canProcess,
             getApprovalItemResponses(request.getRequestId()),
             getAttachmentResponses(request.getRequestId()),
             new ApprovalHistoryDto.CurrentStep(
-                createStepLabel(approval),
+                    createStepLabel(approval),
                     new ApprovalHistoryDto.UserInfo(
-                        approver != null ? approver.getUserId() : approval.getApproverId(),
-                        approver != null ? nullToEmpty(approver.getUserName()) : getApproverName(approval.getApproverId()),
-                        ""
-            )
-        ),
+                            approver != null ? approver.getUserId() : approval.getApproverId(),
+                            approver != null ? nullToEmpty(approver.getUserName()) : getApproverName(approval.getApproverId()),
+                            ""
+                    )
+            ),
             getHistoryResponses(request.getRequestId())
     );
 }
@@ -501,15 +516,22 @@ public class ApprovalServiceImpl implements ApprovalService {
         return;
     }
 
+    if (isVisibleApprovalForCurrentUser(approval, currentUserId)) {
+        return;
+    }
+
     validateCurrentApprover(approval, currentUserId);
 }
 
     private void validateCanProcessApproval(ApprovalHistory approval) {
         Long currentUserId = getCurrentLoginUserId();
 
-        if (canProcessApproval(currentUserId)) {
-            return;
-        }
+        if (!canProcessApproval(currentUserId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "승인 처리 권한이 없습니다."
+        );
+    }
 
         validateCurrentApprover(approval, currentUserId);
     }
@@ -640,4 +662,82 @@ public class ApprovalServiceImpl implements ApprovalService {
             ))
                 .toList();
     }
+
+    @Override
+    public ApprovalHistoryDto.SummaryResponse getApprovalSummary() {
+        Long currentUserId = getCurrentLoginUserId();
+        boolean canViewAllApprovals = canReadAllApprovals(currentUserId);
+
+     List<ApprovalHistoryDto.ListResponse> rows =
+            approvalHistoryRepository.findAllByOrderByApprovalIdDesc()
+                    .stream()
+                    .filter(approval ->
+                    canViewAllApprovals
+                            || isVisibleApprovalForCurrentUser(approval, currentUserId)
+)
+                    .map(this::toListResponse)
+                    .filter(Objects::nonNull)
+                    .toList();
+
+     return new ApprovalHistoryDto.SummaryResponse(
+            rows.size(),
+            countApprovalRowsByStatus(rows, "PENDING_APPROVAL"),
+            countApprovalRowsByStatus(rows, "REJECTED"),
+            countApprovalRowsByStatus(rows, "APPROVED")
+    );
+}
+
+    private boolean isVisibleApprovalForCurrentUser(
+        ApprovalHistory approval,
+        Long currentUserId
+) {
+    if (approval == null || currentUserId == null) {
+        return false;
+    }
+
+    // 1. 내가 승인 담당자인 건은 표시
+    if (Objects.equals(approval.getApproverId(), currentUserId)) {
+        return true;
+    }
+
+    // 2. 승인 담당자 권한이 없는 일반 사용자는
+    //    본인이 요청한 건이라도 승인 관리 목록에는 표시하지 않음
+    if (!canProcessApproval(currentUserId)) {
+        return false;
+    }
+
+    // 3. 내가 승인 담당자 권한을 가진 사용자이고,
+    //    해당 구매요청의 요청자가 나이면 표시
+    PurchaseRequest request = purchaseRequestRepository
+            .findById(approval.getRequestId())
+            .orElse(null);
+
+    return request != null
+            && !"Y".equalsIgnoreCase(nullToEmpty(request.getDeletedYn()).trim())
+            && Objects.equals(request.getRequestorId(), currentUserId);
+}
+
+    private long countApprovalRowsByStatus(
+        List<ApprovalHistoryDto.ListResponse> rows,
+        String statusCode
+) {
+     return rows.stream()
+            .filter(row -> statusCode.equals(toStatusCode(row.requestStatus())))
+            .count();
+}
+
+    private boolean canProcessCurrentApproval(
+        ApprovalHistory approval,
+        PurchaseRequest request,
+        Long currentUserId
+) {
+    return approval != null
+            && request != null
+            && currentUserId != null
+            && canProcessApproval(currentUserId)
+            && Objects.equals(approval.getApproverId(), currentUserId)
+            && "PENDING_APPROVAL".equals(toStatusCode(approval.getApprovalStatus()))
+            && "PENDING_APPROVAL".equals(toStatusCode(request.getRequestStatus()));
+}
+
 }

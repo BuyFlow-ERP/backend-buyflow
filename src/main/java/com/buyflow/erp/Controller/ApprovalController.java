@@ -37,6 +37,11 @@ public class ApprovalController {
         ));
     }
 
+    @GetMapping("/summary")
+    public ResponseEntity<ApprovalHistoryDto.SummaryResponse> getApprovalSummary() {
+         return ResponseEntity.ok(approvalService.getApprovalSummary());
+}
+
     @GetMapping("/{approvalId}")
     public ResponseEntity<ApprovalHistoryDto.DetailResponse> getApprovalDetail(
             @PathVariable(name = "approvalId") Long approvalId

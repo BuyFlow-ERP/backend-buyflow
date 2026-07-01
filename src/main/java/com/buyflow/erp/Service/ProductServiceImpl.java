@@ -4,14 +4,16 @@ import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Dto.ProductDto;
 import com.buyflow.erp.Entity.Product;
 import com.buyflow.erp.Repository.ProductRepository;
+
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
@@ -24,6 +26,8 @@ import java.util.Map;
 @Transactional(readOnly = true)
 public class ProductServiceImpl implements ProductService {
 
+    private static final int MAX_PRODUCT_PAGE_SIZE = 20000;
+
     private final ProductRepository productRepository;
 
     @Override
@@ -35,58 +39,29 @@ public class ProductServiceImpl implements ProductService {
         applyRequest(product, request);
 
         productRepository.save(product);
-}
+    }
 
     @Override
     @Transactional
     public void updateProduct(Long productId, ProductDto.CreateRequest request) {
         Product product = productRepository.findById(productId)
-            .orElseThrow(() -> new EntityNotFoundException("품목을 찾을 수 없습니다. productId=" + productId));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "품목을 찾을 수 없습니다. productId=" + productId
+                ));
 
         validateProductRequest(productId, request);
 
         applyRequest(product, request);
-}
-
-    private void validateProductRequest(Long productId, ProductDto.CreateRequest request) {
-        String productNo = firstNotBlank(request.getProductNo(), request.getCode());
-        String productName = firstNotBlank(request.getProductName(), request.getName());
-        String categoryName = firstNotBlank(request.getCategoryName(), request.getCategory());
-        String unit = normalizeText(request.getUnit());
-
-        if (productNo == null) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "품목 코드는 필수입니다.");
     }
-
-        if (productName == null) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "품목명은 필수입니다.");
-    }
-
-        if (categoryName == null) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "카테고리는 필수입니다.");
-    }
-
-        if (unit == null) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "단위는 필수입니다.");
-    }
-
-            boolean duplicated = productId == null
-            ? productRepository.existsByProductNo(productNo)
-            : productRepository.existsByProductNoAndProductIdNot(productNo, productId);
-
-        if (duplicated) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 등록된 품목 코드입니다.");
-    }
-}
 
     @Override
     @Transactional
     public void deleteProduct(Long productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new EntityNotFoundException("품목을 찾을 수 없습니다. productId=" + productId));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "품목을 찾을 수 없습니다. productId=" + productId
+                ));
 
-        // 실제 삭제 대신 미사용 처리.
-        // 구매요청, 발주, 입고, 재고 이력에서 참조 중일 수 있기 때문에 이 방식이 안전함.
         product.setUseYn("N");
     }
 
@@ -98,7 +73,11 @@ public class ProductServiceImpl implements ProductService {
                 condition == null ? new ProductDto.SearchCondition() : condition;
 
         int safePage = Math.max(safeCondition.getPage(), 0);
-        int safeSize = Math.min(Math.max(safeCondition.getSize(), 1), 100);
+
+        int safeSize = Math.min(
+                Math.max(safeCondition.getSize(), 1),
+                MAX_PRODUCT_PAGE_SIZE
+);
 
         Pageable pageable = PageRequest.of(safePage, safeSize);
 
@@ -119,7 +98,9 @@ public class ProductServiceImpl implements ProductService {
     public ProductDto.ListResponse getProduct(Long productId) {
         return productRepository.findById(productId)
                 .map(ProductDto.ListResponse::from)
-                .orElseThrow(() -> new EntityNotFoundException("품목을 찾을 수 없습니다. productId=" + productId));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "품목을 찾을 수 없습니다. productId=" + productId
+                ));
     }
 
     @Override
@@ -139,6 +120,37 @@ public class ProductServiceImpl implements ProductService {
         result.put("activeStatuses", List.of("전체", "사용", "미사용"));
 
         return result;
+    }
+
+    private void validateProductRequest(Long productId, ProductDto.CreateRequest request) {
+        String productNo = firstNotBlank(request.getProductNo(), request.getCode());
+        String productName = firstNotBlank(request.getProductName(), request.getName());
+        String categoryName = firstNotBlank(request.getCategoryName(), request.getCategory());
+        String unit = normalizeText(request.getUnit());
+
+        if (productNo == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "품목 코드는 필수입니다.");
+        }
+
+        if (productName == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "품목명은 필수입니다.");
+        }
+
+        if (categoryName == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "카테고리는 필수입니다.");
+        }
+
+        if (unit == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "단위는 필수입니다.");
+        }
+
+        boolean duplicated = productId == null
+                ? productRepository.existsByProductNo(productNo)
+                : productRepository.existsByProductNoAndProductIdNot(productNo, productId);
+
+        if (duplicated) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 등록된 품목 코드입니다.");
+        }
     }
 
     private void applyRequest(Product product, ProductDto.CreateRequest request) {
@@ -163,7 +175,7 @@ public class ProductServiceImpl implements ProductService {
         product.setValidEndDate(request.getValidEndDate());
 
         product.setUseYn(resolveUseYn(request));
-}
+    }
 
     private String resolveYn(String value) {
         return "Y".equalsIgnoreCase(normalizeText(value)) ? "Y" : "N";
@@ -172,16 +184,16 @@ public class ProductServiceImpl implements ProductService {
     private String resolveUseYn(ProductDto.CreateRequest request) {
         if (request.getIsActive() != null) {
             return Boolean.FALSE.equals(request.getIsActive()) ? "N" : "Y";
-    }
+        }
 
         String useYn = normalizeText(request.getUseYn());
 
         if ("N".equalsIgnoreCase(useYn)) {
             return "N";
-    }
+        }
 
         return "Y";
-}
+    }
 
     private String convertActiveStatusToUseYn(String activeStatus) {
         String value = normalizeSelect(activeStatus);

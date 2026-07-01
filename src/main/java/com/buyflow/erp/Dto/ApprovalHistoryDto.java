@@ -40,6 +40,7 @@ public class ApprovalHistoryDto {
         String requestStatus,
         String requestStatusLabel,
         String reason,
+        boolean canProcess,
         List<ApprovalItemResponse> items,
         List<AttachmentResponse> attachments,
         CurrentStep currentStep,
@@ -104,5 +105,13 @@ public class ApprovalHistoryDto {
     public record DecisionRequest(
             String comment
     ) {
+    }
+
+    public record SummaryResponse(
+        long total,
+        long pending,
+        long rejected,
+        long approved
+    ) {   
     }
 }

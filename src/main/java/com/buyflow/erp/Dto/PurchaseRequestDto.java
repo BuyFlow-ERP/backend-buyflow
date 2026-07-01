@@ -67,10 +67,8 @@ public class PurchaseRequestDto {
 
     public record SummaryResponse(
             long total,
-            long pending,
-            long approved,
-            long rejected,
-            long ordered,
+            long normalPriority,
+            long urgentPriority,
             long canceled
      ) {
       }
@@ -85,6 +83,7 @@ public class PurchaseRequestDto {
             String title,
             String urgency,
             String priority,
+            Long approverId,
             String status,
             String reason,
             List<CreateItemRequest> items

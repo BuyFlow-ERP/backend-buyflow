@@ -48,6 +48,6 @@ public interface PurchaseRequestService {
 
     void deletePurchaseRequest(Long requestId);
     
-	List<PurchaseRequest> getAllRequestsForExcel();
+    List<PurchaseRequestDto.ListResponse> getAllPurchaseRequestRowsForExcel();
 
 }
