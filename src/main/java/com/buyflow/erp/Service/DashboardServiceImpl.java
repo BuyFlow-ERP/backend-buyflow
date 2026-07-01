@@ -458,6 +458,8 @@ query.setParameter("monthOffset", monthOffset);
 
 List<Object[]> rows = query.getResultList();
 
+System.out.println("===== MONTHLY RECEIPT =====");
+
 return rows.stream()
         .map(row -> new DashboardDto.MonthlyReceiptDetailItem(
                 stringValue(row[0], ""),
