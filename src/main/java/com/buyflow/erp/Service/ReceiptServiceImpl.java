@@ -1,23 +1,26 @@
 package com.buyflow.erp.Service;
 
-import com.buyflow.erp.Dto.ReceiptDto;
-import com.buyflow.erp.Entity.Product;
-import com.buyflow.erp.Entity.Receipt;
-import com.buyflow.erp.Entity.ReceiptItem;
-import com.buyflow.erp.Repository.PurchaseOrderItemRepository;
-import com.buyflow.erp.Repository.ReceiptItemRepository;
-import com.buyflow.erp.Repository.ReceiptRepository;
-import lombok.RequiredArgsConstructor;
-import com.buyflow.erp.Entity.PurchaseOrderItem;
-
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.buyflow.erp.Dto.ReceiptDto;
+import com.buyflow.erp.Entity.Product;
+import com.buyflow.erp.Entity.PurchaseOrderItem;
+import com.buyflow.erp.Entity.Receipt;
+import com.buyflow.erp.Entity.ReceiptItem;
+import com.buyflow.erp.Repository.AttachmentRepository;
+import com.buyflow.erp.Repository.PurchaseOrderItemRepository;
+import com.buyflow.erp.Repository.ReceiptItemRepository;
+import com.buyflow.erp.Repository.ReceiptRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +31,8 @@ public class ReceiptServiceImpl implements ReceiptService {
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
     private final ReceiptItemRepository receiptItemRepository;
     private final InventoryService inventoryService;
+    private final FileService fileService;
+    private final AttachmentRepository attachmentRepository;
 
     @Override
     public List<Receipt> getReceipts() {
@@ -93,7 +98,7 @@ public class ReceiptServiceImpl implements ReceiptService {
     }
 
     @Override
-    public void saveReceipt(ReceiptDto.ReceiptCreateRequest request) {
+    public Long saveReceipt(ReceiptDto.ReceiptCreateRequest request, MultipartFile file) {
 
         Receipt receipt = new Receipt();
 
@@ -112,8 +117,10 @@ public class ReceiptServiceImpl implements ReceiptService {
 
         receipt = receiptRepository.save(receipt);
 
+        saveAttachment(file, receipt.getReceiptId(), request.getReceiverName());
+
         if (request.getItems() == null) {
-            return;
+            return receipt.getReceiptId();
         }
 
         for (ReceiptDto.ReceiptCreateItemRequest itemRequest : request.getItems()) {
@@ -163,6 +170,8 @@ public class ReceiptServiceImpl implements ReceiptService {
                     receiptItem.getAcceptedQty().intValue());
 
         }
+
+        return receipt.getReceiptId();
     }
 
     @Override
@@ -678,9 +687,46 @@ public class ReceiptServiceImpl implements ReceiptService {
                             totalQty,
                             memo,
                             "",
-                            new ArrayList<>());
+                            new ArrayList<>(),
+                            getReceiptAttachmentResponses(receipt.getReceiptId()));
 
                 })
                 .toList();
+    }
+
+    private void saveAttachment(MultipartFile file, Long receiptId, String receiverName) {
+        if (file == null || file.isEmpty()) {
+            return;
+        }
+
+        try {
+            fileService.uploadFile(
+                    file,
+                    null,
+                    receiverName,
+                    toReceiptAttachmentRequestId(receiptId));
+        } catch (Exception error) {
+            throw new IllegalStateException("입고 첨부파일 저장에 실패했습니다.", error);
+        }
+    }
+
+    private List<ReceiptDto.AttachmentResponse> getReceiptAttachmentResponses(Long receiptId) {
+        if (receiptId == null) {
+            return List.of();
+        }
+
+        return attachmentRepository
+                .findByRequestIdOrderByAttachmentIdAsc(toReceiptAttachmentRequestId(receiptId))
+                .stream()
+                .map(attachment -> new ReceiptDto.AttachmentResponse(
+                        attachment.getAttachmentId(),
+                        attachment.getOriginalName(),
+                        "/api/receipts/attachments/download/"
+                                + attachment.getAttachmentId()))
+                .toList();
+    }
+
+    private Long toReceiptAttachmentRequestId(Long receiptId) {
+        return receiptId == null ? null : -Math.abs(receiptId);
     }
 }
