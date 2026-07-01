@@ -135,7 +135,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 .purchaseRequest(purchaseRequest)
                 .warehouse(warehouse)
                 .createdAt(LocalDateTime.now()) 
-                .orderStatus(request.getOrderStatus() != null ? request.getOrderStatus() : "PENDING")
+                .orderStatus(request.getOrderStatus() != null ? request.getOrderStatus() : "CONFIRMED")
                 .dueDate(finalDueDate)
                 .expectedReceiptFrom(finalExpectedFrom)
                 .totalAmount(0.0) 
