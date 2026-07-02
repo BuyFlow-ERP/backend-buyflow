@@ -17,7 +17,9 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -41,6 +43,7 @@ import com.buyflow.erp.Entity.Users;
 import com.buyflow.erp.Repository.AttachmentRepository;
 
 import com.buyflow.erp.Repository.SupplierRepository;
+import com.buyflow.erp.Repository.UserRepository;
 import com.buyflow.erp.Service.ExcelService;
 import com.buyflow.erp.Service.FileService;
 import com.buyflow.erp.Service.PurchaseOrderService;
@@ -60,6 +63,7 @@ public class PurchaseOrderController {
     private final WarehouseService warehouseService;
     private final PurchaseRequestService purchaseRequestService;
     private final SupplierRepository supplierRepository;
+    private final UserRepository userRepository;
     private final FileService fileService;
     private final AttachmentRepository attachmentRepository;
     private final ExcelService excelService;
@@ -132,11 +136,17 @@ public class PurchaseOrderController {
     @PreAuthorize("hasAuthority('purchase-orders.write')")
     public ResponseEntity<PurchaseOrderDto.Response> createOrder(
     		@RequestPart("data") PurchaseOrderDto.Request request,
-    		@RequestPart(value = "file", required = false) MultipartFile file) throws Exception{
+    		@RequestPart(value = "file", required = false) MultipartFile file,
+            Authentication authentication) throws Exception{
+        Users currentUser = getCurrentUser(authentication);
+        request.setCreatedBy(currentUser.getUserId());
+        request.setUserName(currentUser.getUserName());
         
     	if (file != null && !file.isEmpty()) {
-    		Attachment savedFile = fileService.uploadFile(file, request.getCreatedBy(), request.getUserName());
-    		request.setAttachmentId(savedFile.getAttachmentId());
+    		Attachment savedFile = fileService.uploadFile(file, currentUser.getUserId(), currentUser.getUserName());
+            if (savedFile != null) {
+    		    request.setAttachmentId(savedFile.getAttachmentId());
+            }
     	}
     	
     	// 서비스 내부에서 변환 작업까지 끝낸 DTO를 받아와 바로 리턴합니다.
@@ -151,11 +161,17 @@ public class PurchaseOrderController {
     public ResponseEntity<PurchaseOrderDto.Response> updateOrder(
             @PathVariable(name = "orderId") Long orderId,
             @RequestPart("data") PurchaseOrderDto.Request request,
-            @RequestPart(value = "file", required = false) MultipartFile file) throws Exception {
+            @RequestPart(value = "file", required = false) MultipartFile file,
+            Authentication authentication) throws Exception {
+        Users currentUser = getCurrentUser(authentication);
+        request.setCreatedBy(currentUser.getUserId());
+        request.setUserName(currentUser.getUserName());
     	
     	if (file != null && !file.isEmpty()) {
-    		Attachment savedFile = fileService.uploadFile(file, request.getCreatedBy(), request.getUserName());
-    		request.setAttachmentId(savedFile.getAttachmentId());
+    		Attachment savedFile = fileService.uploadFile(file, currentUser.getUserId(), currentUser.getUserName());
+            if (savedFile != null) {
+    		    request.setAttachmentId(savedFile.getAttachmentId());
+            }
     	}
 
         PurchaseOrderDto.Response response = service.updateOrder(orderId, request);
@@ -175,11 +191,18 @@ public class PurchaseOrderController {
     }
     
     @GetMapping("/excel")
-    public void exportExcel(HttpServletResponse response) throws IOException {
-    	Users testUser = new Users();
-    	testUser.setUserId(5L);
-    	
-    	excelService.exportExcel("orders", testUser, response);
+    @PreAuthorize("hasAuthority('purchase-orders.read') or hasAuthority('purchase-orders.write')")
+    public void exportExcel(HttpServletResponse response, Authentication authentication) throws IOException {
+    	excelService.exportExcel("orders", getCurrentUser(authentication), response);
+    }
+
+    private Users getCurrentUser(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("권한이 없습니다.");
+        }
+
+        return userRepository.findByLoginId(authentication.getName())
+                .orElseThrow(() -> new AccessDeniedException("권한이 없습니다."));
     }
     
     @GetMapping("/attachments/download/{attachmentId}")
