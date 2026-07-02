@@ -28,7 +28,11 @@ public class JwtTokenProvider {
         this.expirationMinutes = expirationMinutes;
     }
 
-    public String generateAccessToken(User user, List<String> roles, List<String> permissions) {
+    public String generateAccessToken(
+        User user, 
+        List<String> roles, 
+        List<String> permissions
+    ) {
         Instant now = Instant.now();
 
         return Jwts.builder()
