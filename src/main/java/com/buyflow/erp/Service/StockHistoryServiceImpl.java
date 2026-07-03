@@ -61,6 +61,18 @@ public class StockHistoryServiceImpl
                                 .stream()
                                 .map(this::convertToDto)
 
+                                .filter(dto -> fromDate == null
+                                                || fromDate.isBlank()
+                                                || (dto.getOccurredAt() != null
+                                                                && dto.getOccurredAt().substring(0, 10)
+                                                                                .compareTo(fromDate) >= 0))
+
+                                .filter(dto -> toDate == null
+                                                || toDate.isBlank()
+                                                || (dto.getOccurredAt() != null
+                                                                && dto.getOccurredAt().substring(0, 10)
+                                                                                .compareTo(toDate) <= 0))
+
                                 .filter(dto -> movementType == null
                                                 || movementType.isBlank()
                                                 || "전체".equals(movementType)
