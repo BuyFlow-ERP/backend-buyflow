@@ -344,13 +344,11 @@ public class InspectionServiceImpl implements InspectionService {
       boolean hasPendingItem = receiptItems.stream()
         .anyMatch(item -> !inspectionRepository.existsByReceiptItemId(item.getReceiptItemId()));
 
-      if (hasPendingItem) {
-        return "PENDING";
-      }
+      if (hasPendingItem) {return "PENDING";}
 
       boolean hasDefect = receiptItems.stream()
             .anyMatch(item -> item.getDefectQty() != null && item.getDefectQty() > 0);
-
+      
       return hasDefect ? "DEFECT" : "PASS";
     }
 
