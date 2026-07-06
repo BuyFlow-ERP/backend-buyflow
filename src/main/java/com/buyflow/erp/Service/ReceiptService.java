@@ -5,6 +5,8 @@ import com.buyflow.erp.Entity.Receipt;
 
 import java.util.List;
 
+import org.springframework.web.multipart.MultipartFile;
+
 public interface ReceiptService {
 
     List<Receipt> getReceipts();
@@ -13,7 +15,7 @@ public interface ReceiptService {
 
     ReceiptDto.DetailResponse getReceiptByOrderId(Long orderId);
 
-    void saveReceipt(ReceiptDto.ReceiptCreateRequest request);
+    Long saveReceipt(ReceiptDto.ReceiptCreateRequest request, MultipartFile file);
 
     ReceiptDto.PageResponse<ReceiptDto.ListResponse> searchReceipts(
             String activeTab,

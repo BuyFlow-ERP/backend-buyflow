@@ -103,6 +103,21 @@ public class ReceiptDto {
         private String warehouseName;
 
         private List<ReceiptCreateItemRequest> items;
+
+        private List<AttachmentResponse> attachments;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AttachmentResponse {
+
+        private Long id;
+
+        private String fileName;
+
+        private String downloadUrl;
     }
 
     @Getter

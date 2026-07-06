@@ -1,7 +1,17 @@
 package com.buyflow.erp.Controller;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
+import org.springframework.core.io.PathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -9,7 +19,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.buyflow.erp.Dto.ReceiptDto;
 import com.buyflow.erp.Service.ReceiptService;
@@ -20,7 +33,9 @@ import java.io.IOException;
 
 import jakarta.servlet.http.HttpServletResponse;
 
+import com.buyflow.erp.Entity.Attachment;
 import com.buyflow.erp.Entity.Users;
+import com.buyflow.erp.Repository.AttachmentRepository;
 import com.buyflow.erp.Service.ExcelService;
 
 @RestController
@@ -30,6 +45,7 @@ public class ReceiptController {
 
         private final ReceiptService receiptService;
         private final ExcelService excelService;
+        private final AttachmentRepository attachmentRepository;
 
         @GetMapping("/test")
         public String test() {
@@ -99,17 +115,19 @@ public class ReceiptController {
                                 receiptService.getReceiptByOrderId(orderId));
         }
 
-        @PostMapping
+        @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
         public ResponseEntity<Map<String, Object>> saveReceipt(
-                        @RequestBody ReceiptDto.ReceiptCreateRequest request) {
+                        @RequestPart("data") ReceiptDto.ReceiptCreateRequest request,
+                        @RequestPart(value = "file", required = false) MultipartFile file) {
 
                 try {
 
-                        receiptService.saveReceipt(request);
+                        Long receiptId = receiptService.saveReceipt(request, file);
 
                         return ResponseEntity.ok(
                                         Map.of(
                                                         "success", true,
+                                                        "data", Map.of("receiptId", receiptId),
                                                         "message", "저장 완료"));
 
                 } catch (Exception e) {
@@ -129,6 +147,40 @@ public class ReceiptController {
                         @RequestBody ReceiptDto.ReceiptCreateRequest request) {
 
                 return ResponseEntity.ok("OK");
+        }
+
+        @GetMapping("/attachments/download/{attachmentId}")
+        public ResponseEntity<Resource> downloadAttachment(
+                        @PathVariable(name = "attachmentId") Long attachmentId) {
+
+                Attachment attachment = attachmentRepository.findById(attachmentId)
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND,
+                                                "첨부파일을 찾을 수 없습니다. attachmentId=" + attachmentId));
+
+                Path path = Path.of(attachment.getFilePath());
+
+                if (!Files.exists(path)) {
+                        throw new ResponseStatusException(
+                                        HttpStatus.NOT_FOUND,
+                                        "첨부파일 실제 파일을 찾을 수 없습니다.");
+                }
+
+                Resource resource = new PathResource(path);
+                String encodedFileName = URLEncoder.encode(
+                                attachment.getOriginalName(),
+                                StandardCharsets.UTF_8)
+                                .replaceAll("\\+", "%20");
+
+                return ResponseEntity.ok()
+                                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                                .header(
+                                                HttpHeaders.CONTENT_DISPOSITION,
+                                                ContentDisposition.attachment()
+                                                                .filename(encodedFileName, StandardCharsets.UTF_8)
+                                                                .build()
+                                                                .toString())
+                                .body(resource);
         }
 
         @GetMapping("/excel")
