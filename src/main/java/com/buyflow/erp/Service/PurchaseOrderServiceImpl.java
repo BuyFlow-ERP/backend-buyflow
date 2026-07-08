@@ -317,7 +317,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             order.setDueDate(request.getExpectedReceiptTo().atStartOfDay()
 					.plusHours(23)
 					.plusMinutes(59)
-					.plusSeconds(59));   // LocalDateTime
+					.plusSeconds(59)); 
         }
         
         if (request.getMemo() != null) {

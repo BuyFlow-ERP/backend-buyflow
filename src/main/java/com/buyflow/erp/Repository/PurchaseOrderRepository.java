@@ -36,7 +36,7 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
             "AND (:supplierName IS NULL OR s.supplierName LIKE CONCAT('%', CONCAT(:supplierName, '%'))) " +
             "AND (:userName IS NULL OR u.userName LIKE CONCAT('%', CONCAT(:userName, '%'))) " +
             "AND (:status IS NULL OR p.orderStatus = :status) " +
-            "AND p.orderStatus NOT IN ('DRAFT', 'PENDING')" +
+            "AND p.orderStatus NOT IN ('DRAFT')" +
             "ORDER BY p.createdAt DESC, p.orderId DESC")
     Page<PurchaseOrder> searchOrdersAdvanced(
             @Param("orderNo") String orderNo,
