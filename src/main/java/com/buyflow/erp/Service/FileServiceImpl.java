@@ -1,10 +1,13 @@
 package com.buyflow.erp.Service;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,7 +25,8 @@ public class FileServiceImpl implements FileService {
     private final AttachmentRepository attachmentRepository;
     private final UserRepository usersRepository;
 
-    private final String UPLOAD_DIR = "C:/erp/uploads/";
+    @Value("${app.upload-dir:/app/uploads}")
+    private String uploadDir;
 
     @Override
     public Attachment uploadFile(
@@ -44,11 +48,8 @@ public class FileServiceImpl implements FileService {
             return null;
         }
 
-        File dir = new File(UPLOAD_DIR);
-
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
+        Path uploadPath = Paths.get(uploadDir);
+        Files.createDirectories(uploadPath);
 
         String originalName = file.getOriginalFilename();
         String extension = "";
@@ -58,9 +59,9 @@ public class FileServiceImpl implements FileService {
         }
 
         String savedName = UUID.randomUUID() + extension;
-        String filePath = UPLOAD_DIR + savedName;
+        Path savedPath = uploadPath.resolve(savedName);
 
-        file.transferTo(new File(filePath));
+        file.transferTo(savedPath.toFile());
 
         Users user = null;
 
@@ -71,7 +72,7 @@ public class FileServiceImpl implements FileService {
         Attachment attachment = Attachment.builder()
                 .originalName(originalName)
                 .savedName(savedName)
-                .filePath(filePath)
+                .filePath(savedPath.toString())
                 .fileSize(file.getSize())
                 .extension(extension)
                 .uploadedBy(userName)
