@@ -1,5 +1,9 @@
 package com.buyflow.erp.Service;
 
+import com.buyflow.erp.Common.FilterCodes;
+import com.buyflow.erp.Common.PermissionCodes;
+import com.buyflow.erp.Common.PurchaseRequestStatusCodes;
+import com.buyflow.erp.Common.RoleCodes;
 import com.buyflow.erp.Dto.ApprovalHistoryDto;
 import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Entity.ApprovalHistory;
@@ -61,13 +65,13 @@ public class ApprovalServiceImpl implements ApprovalService {
             int page,
             int size
     ) {
-            int safePage = Math.max(page, 0);
-            int safeSize = Math.max(size, 1);
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.max(size, 1);
 
-            Long currentUserId = getCurrentLoginUserId();
-            boolean canViewAllApprovals = canReadAllApprovals(currentUserId);
+        Long currentUserId = getCurrentLoginUserId();
+        boolean canViewAllApprovals = canReadAllApprovals(currentUserId);
 
-            List<ApprovalHistoryDto.ListResponse> filtered =
+        List<ApprovalHistoryDto.ListResponse> filtered =
                     approvalHistoryRepository.findAllByOrderByApprovalIdDesc()
                             .stream()
                             .filter(approval ->
@@ -81,21 +85,21 @@ public class ApprovalServiceImpl implements ApprovalService {
                             .filter(row -> contains(row.requester(), requester))
                             .filter(row -> contains(row.department(), department))
                             .filter(row -> isBlank(status)
-                                    || "전체".equals(status)
-                                    || Objects.equals(row.requestStatus(), status)
-                                    || Objects.equals(row.requestStatusLabel(), status))
-                            .filter(row -> isSameDate(row.desiredReceiptAt(), desiredReceiptAt))
-                            .toList();
-            long totalElements = filtered.size();
-            int totalPages = Math.max(1, (int) Math.ceil((double) totalElements / safeSize));
-            int fromIndex = Math.min(safePage * safeSize, filtered.size());
-            int toIndex = Math.min(fromIndex + safeSize, filtered.size());
+                            || FilterCodes.ALL.equals(status)
+                            || Objects.equals(row.requestStatus(), status)
+                            || Objects.equals(row.requestStatusLabel(), status))
+                                                .filter(row -> isSameDate(row.desiredReceiptAt(), desiredReceiptAt))
+                                                .toList();
+        long totalElements = filtered.size();
+        int totalPages = Math.max(1, (int) Math.ceil((double) totalElements / safeSize));
+        int fromIndex = Math.min(safePage * safeSize, filtered.size());
+        int toIndex = Math.min(fromIndex + safeSize, filtered.size());
 
-            return new PageResponse<>(
-                    filtered.subList(fromIndex, toIndex),
-                    new PageResponse.Pagination(safePage + 1, safeSize, totalElements, totalPages)
-            );
-        }
+        return new PageResponse<>(
+                filtered.subList(fromIndex, toIndex),
+                new PageResponse.Pagination(safePage + 1, safeSize, totalElements, totalPages)
+         );
+    }
 
     @Override
     public ApprovalHistoryDto.DetailResponse getApprovalDetail(Long approvalId) {
@@ -119,11 +123,11 @@ public class ApprovalServiceImpl implements ApprovalService {
 
     validatePendingApproval(approval, request);
 
-    approval.setApprovalStatus("APPROVED");
+    approval.setApprovalStatus(PurchaseRequestStatusCodes.APPROVED);
     approval.setCommentText(dto != null ? dto.comment() : null);
     approval.setApprovedAt(LocalDateTime.now());
 
-    request.setRequestStatus("APPROVED");
+    request.setRequestStatus(PurchaseRequestStatusCodes.APPROVED);
     request.setUpdatedAt(LocalDateTime.now());
 
     approvalHistoryRepository.save(approval);
@@ -144,11 +148,11 @@ public class ApprovalServiceImpl implements ApprovalService {
 
         validatePendingApproval(approval, request);
 
-        approval.setApprovalStatus("REJECTED");
+        approval.setApprovalStatus(PurchaseRequestStatusCodes.REJECTED);
         approval.setCommentText(dto.comment().trim());
         approval.setApprovedAt(LocalDateTime.now());
 
-        request.setRequestStatus("REJECTED");
+        request.setRequestStatus(PurchaseRequestStatusCodes.REJECTED);
         request.setUpdatedAt(LocalDateTime.now());
 
         approvalHistoryRepository.save(approval);
@@ -170,11 +174,11 @@ public class ApprovalServiceImpl implements ApprovalService {
 
         LocalDateTime now = LocalDateTime.now();
 
-        approval.setApprovalStatus("CANCELED");
+        approval.setApprovalStatus(PurchaseRequestStatusCodes.CANCELED);
         approval.setCommentText("요청 취소");
         approval.setApprovedAt(now);
 
-        request.setRequestStatus("CANCELED");
+        request.setRequestStatus(PurchaseRequestStatusCodes.CANCELED);
         request.setUpdatedAt(now);
 
         approvalHistoryRepository.save(approval);
@@ -295,10 +299,10 @@ public class ApprovalServiceImpl implements ApprovalService {
                 product != null ? nullToEmpty(product.getUnit()) : "",
                 unitPrice,
                 unitPrice.multiply(BigDecimal.valueOf(quantity)),
-                "해당 사항 없음",
+                nullToEmpty(item.getRemark()),
                 product != null ? formatDateTime(product.getCreatedAt()) : "",
                 product != null ? formatDateTime(product.getUpdatedAt()) : ""
-        );
+            );
                 })
                 .toList();
     }
@@ -371,44 +375,52 @@ public class ApprovalServiceImpl implements ApprovalService {
 
     private String createHistoryTitle(String status) {
         return switch (toStatusCode(status)) {
-            case "APPROVED" -> "승인 완료";
-            case "REJECTED" -> "승인 반려";
-            case "CANCEL_REQUESTED" -> "요청 취소";
+            case PurchaseRequestStatusCodes.APPROVED -> "승인 완료";
+            case PurchaseRequestStatusCodes.REJECTED -> "승인 반려";
+            case PurchaseRequestStatusCodes.CANCELED -> "요청 취소";
             default -> "승인 검토 중";
         };
     }
 
     private String toHistoryStatus(String status) {
         String code = toStatusCode(status);
-        if ("APPROVED".equals(code) || "REJECTED".equals(code)) {
+
+        if (PurchaseRequestStatusCodes.APPROVED.equals(code)
+                || PurchaseRequestStatusCodes.REJECTED.equals(code)
+                || PurchaseRequestStatusCodes.CANCELED.equals(code)) {
             return "DONE";
         }
+
         return "CURRENT";
     }
 
     private String toStatusCode(String status) {
         if (status == null) {
-            return "PENDING_APPROVAL";
+            return PurchaseRequestStatusCodes.PENDING_APPROVAL;
         }
+
         return switch (status.trim().toUpperCase()) {
-            case "DRAFT" -> "DRAFT";
-            case "PENDING", "PENDING_APPROVAL", "WAITING", "REQUESTED" -> "PENDING_APPROVAL";
-            case "APPROVED" -> "APPROVED";
-            case "REJECTED" -> "REJECTED";
-            case "ORDERED" -> "ORDERED";
-            case "CANCEL_REQUESTED", "CANCELED", "CANCELLED" -> "CANCEL_REQUESTED";
+            case PurchaseRequestStatusCodes.DRAFT -> PurchaseRequestStatusCodes.DRAFT;
+            case "PENDING", PurchaseRequestStatusCodes.PENDING_APPROVAL, "WAITING", "REQUESTED" ->
+                    PurchaseRequestStatusCodes.PENDING_APPROVAL;
+            case PurchaseRequestStatusCodes.APPROVED -> PurchaseRequestStatusCodes.APPROVED;
+            case PurchaseRequestStatusCodes.REJECTED -> PurchaseRequestStatusCodes.REJECTED;
+            case PurchaseRequestStatusCodes.ORDERED -> PurchaseRequestStatusCodes.ORDERED;
+            case PurchaseRequestStatusCodes.CANCEL_REQUESTED,
+                PurchaseRequestStatusCodes.CANCELED,
+                "CANCELLED" -> PurchaseRequestStatusCodes.CANCELED;
             default -> status;
         };
     }
 
     private String toRequestStatusLabel(String status) {
         return switch (toStatusCode(status)) {
-            case "DRAFT" -> "임시 저장";
-            case "PENDING_APPROVAL" -> "승인 대기";
-            case "APPROVED" -> "승인 완료";
-            case "REJECTED" -> "반려";
-            case "ORDERED" -> "발주 완료";
-            case "CANCEL_REQUESTED" -> "요청 취소";
+            case PurchaseRequestStatusCodes.DRAFT -> "임시 저장";
+            case PurchaseRequestStatusCodes.PENDING_APPROVAL -> "승인 대기";
+            case PurchaseRequestStatusCodes.APPROVED -> "승인 완료";
+            case PurchaseRequestStatusCodes.REJECTED -> "반려";
+            case PurchaseRequestStatusCodes.ORDERED -> "발주 완료";
+            case PurchaseRequestStatusCodes.CANCELED -> "요청 취소";
             default -> status == null ? "승인 대기" : status;
         };
     }
@@ -494,34 +506,50 @@ public class ApprovalServiceImpl implements ApprovalService {
     }
 
     private boolean canReadApprovalManagement(Long userId) {
-        return hasPermission(userId, "approvals.read")
-                || hasPermission(userId, "approvals.process")
-                || hasAnyRole(userId, "ADMIN", "MANAGER", "APPROVER", "TEAM_MANAGER");
+        return hasPermission(userId, PermissionCodes.APPROVALS_READ)
+                || hasPermission(userId, PermissionCodes.APPROVALS_PROCESS)
+                || hasAnyRole(
+                        userId,
+                        RoleCodes.ADMIN,
+                        RoleCodes.MANAGER,
+                        RoleCodes.APPROVER,
+                        RoleCodes.TEAM_MANAGER
+                );
     }
 
     private boolean canProcessApproval(Long userId) {
-        return hasPermission(userId, "approvals.process")
-                || hasAnyRole(userId, "ADMIN", "MANAGER", "APPROVER");
-}
+        return hasPermission(userId, PermissionCodes.APPROVALS_PROCESS)
+                || hasAnyRole(
+                        userId,
+                        RoleCodes.ADMIN,
+                        RoleCodes.MANAGER,
+                        RoleCodes.APPROVER
+                );
+    }
 
     private boolean canReadAllApprovals(Long userId) {
-        return hasPermission(userId, "approvals.read")
-                || hasAnyRole(userId, "ADMIN", "MANAGER", "TEAM_MANAGER");
-}
+        return hasPermission(userId, PermissionCodes.APPROVALS_READ)
+                || hasAnyRole(
+                        userId,
+                        RoleCodes.ADMIN,
+                        RoleCodes.MANAGER,
+                        RoleCodes.TEAM_MANAGER
+                );
+    }
 
     private void validateCanReadApproval(ApprovalHistory approval) {
-    Long currentUserId = getCurrentLoginUserId();
+        Long currentUserId = getCurrentLoginUserId();
 
-    if (canReadApprovalManagement(currentUserId)) {
-        return;
+        if (canReadApprovalManagement(currentUserId)) {
+            return;
+        }
+
+        if (isVisibleApprovalForCurrentUser(approval, currentUserId)) {
+            return;
+        }
+
+        validateCurrentApprover(approval, currentUserId);
     }
-
-    if (isVisibleApprovalForCurrentUser(approval, currentUserId)) {
-        return;
-    }
-
-    validateCurrentApprover(approval, currentUserId);
-}
 
     private void validateCanProcessApproval(ApprovalHistory approval) {
         Long currentUserId = getCurrentLoginUserId();
@@ -530,8 +558,8 @@ public class ApprovalServiceImpl implements ApprovalService {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
                     "승인 처리 권한이 없습니다."
-        );
-    }
+            );
+        }
 
         validateCurrentApprover(approval, currentUserId);
     }
@@ -587,37 +615,37 @@ public class ApprovalServiceImpl implements ApprovalService {
     private Long resolveLoginUserId(String value) {
         if (isBlank(value)) {
             throw new ResponseStatusException(
-                HttpStatus.UNAUTHORIZED,
-                "?꾩옱 濡쒓렇???ъ슜???뺣낫瑜??뺤씤?????놁뒿?덈떎."
+                    HttpStatus.UNAUTHORIZED,
+                    "현재 로그인 사용자 정보를 확인할 수 없습니다."
             );
         }
 
         return userRepository.findByLoginId(value.trim())
-            .map(Users::getUserId)
-            .orElseGet(() -> parseUserId(value));
+                .map(Users::getUserId)
+                .orElseGet(() -> parseUserId(value));
     }
     
     private Long parseUserId(String value) {
-    if (isBlank(value)) {
-        throw new ResponseStatusException(
-            HttpStatus.UNAUTHORIZED,
-            "현재 로그인 사용자 정보를 확인할 수 없습니다."
-        );
-    }
-
-    String loginValue = value.trim();
-
-    try {
-        return Long.valueOf(loginValue);
-    } catch (NumberFormatException ignored) {
-        return userRepository.findByLoginId(loginValue)
-            .map(Users::getUserId)
-            .orElseThrow(() -> new ResponseStatusException(
+        if (isBlank(value)) {
+            throw new ResponseStatusException(
                 HttpStatus.UNAUTHORIZED,
-                "현재 로그인 사용자를 찾을 수 없습니다."
-            ));
+                "현재 로그인 사용자 정보를 확인할 수 없습니다."
+            );
+        }
+
+        String loginValue = value.trim();
+
+        try {
+            return Long.valueOf(loginValue);
+        } catch (NumberFormatException ignored) {
+            return userRepository.findByLoginId(loginValue)
+                .map(Users::getUserId)
+                .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "현재 로그인 사용자를 찾을 수 없습니다."
+                ));
+        }
     }
-}
     
     private void validateRejectComment(ApprovalHistoryDto.DecisionRequest dto) {
         if (dto == null || dto.comment() == null || dto.comment().trim().isEmpty()) {
@@ -628,27 +656,27 @@ public class ApprovalServiceImpl implements ApprovalService {
         }
     }
 
-        private void validatePendingApproval(ApprovalHistory approval, PurchaseRequest request) {
-            String requestStatus = toStatusCode(request.getRequestStatus());
+    private void validatePendingApproval(ApprovalHistory approval, PurchaseRequest request) {
+        String requestStatus = toStatusCode(request.getRequestStatus());
 
-            if (!"PENDING_APPROVAL".equals(requestStatus)) {
+            if (!PurchaseRequestStatusCodes.PENDING_APPROVAL.equals(requestStatus)) {
                 throw new ResponseStatusException(
-                HttpStatus.CONFLICT,
-                "승인 대기 상태의 요청만 처리할 수 있습니다. 현재 상태: "
-                        + toRequestStatusLabel(requestStatus)
-            );
-        }
+                        HttpStatus.CONFLICT,
+                        "승인 대기 상태의 요청만 처리할 수 있습니다. 현재 상태: "
+                            + toRequestStatusLabel(requestStatus)
+                );
+            }
 
-        String approvalStatus = toStatusCode(approval.getApprovalStatus());
+            String approvalStatus = toStatusCode(approval.getApprovalStatus());
 
-            if (!"PENDING_APPROVAL".equals(approvalStatus)) {
-                throw new ResponseStatusException(
-                HttpStatus.CONFLICT,
-                "이미 처리된 승인 건입니다. 현재 승인 상태: "
-                        + toRequestStatusLabel(approvalStatus)
-            );
+            if (!PurchaseRequestStatusCodes.PENDING_APPROVAL.equals(approvalStatus)) {
+                    throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                        "이미 처리된 승인 건입니다. 현재 승인 상태: "
+                                + toRequestStatusLabel(approvalStatus)
+                );
+            }
         }
-    }
     
     private List<ApprovalHistoryDto.AttachmentResponse> getAttachmentResponses(Long requestId) {
         return attachmentRepository.findByRequestIdOrderByAttachmentIdAsc(requestId)
@@ -668,76 +696,74 @@ public class ApprovalServiceImpl implements ApprovalService {
         Long currentUserId = getCurrentLoginUserId();
         boolean canViewAllApprovals = canReadAllApprovals(currentUserId);
 
-     List<ApprovalHistoryDto.ListResponse> rows =
-            approvalHistoryRepository.findAllByOrderByApprovalIdDesc()
-                    .stream()
-                    .filter(approval ->
-                    canViewAllApprovals
-                            || isVisibleApprovalForCurrentUser(approval, currentUserId)
-)
-                    .map(this::toListResponse)
-                    .filter(Objects::nonNull)
-                    .toList();
+        List<ApprovalHistoryDto.ListResponse> rows =
+                approvalHistoryRepository.findAllByOrderByApprovalIdDesc()
+                        .stream()
+                        .filter(approval -> canViewAllApprovals
+                                || isVisibleApprovalForCurrentUser(approval, currentUserId))
+                        .map(this::toListResponse)
+                        .filter(Objects::nonNull)
+                        .toList();
 
-     return new ApprovalHistoryDto.SummaryResponse(
-            rows.size(),
-            countApprovalRowsByStatus(rows, "PENDING_APPROVAL"),
-            countApprovalRowsByStatus(rows, "REJECTED"),
-            countApprovalRowsByStatus(rows, "APPROVED")
-    );
-}
+        return new ApprovalHistoryDto.SummaryResponse(
+                rows.size(),
+                countApprovalRowsByStatus(rows, PurchaseRequestStatusCodes.PENDING_APPROVAL),
+                countApprovalRowsByStatus(rows, PurchaseRequestStatusCodes.REJECTED),
+                countApprovalRowsByStatus(rows, PurchaseRequestStatusCodes.APPROVED)
+        );
+    }
 
     private boolean isVisibleApprovalForCurrentUser(
         ApprovalHistory approval,
         Long currentUserId
-) {
-    if (approval == null || currentUserId == null) {
-        return false;
+    ) {
+        if (approval == null || currentUserId == null) {
+            return false;
+        }
+
+        // 1. 내가 승인 담당자인 건은 표시
+        if (Objects.equals(approval.getApproverId(), currentUserId)) {
+            return true;
+        }
+
+        // 2. 승인 담당자 권한이 없는 일반 사용자는
+        //    본인이 요청한 건이라도 승인 관리 목록에는 표시하지 않음
+        if (!canProcessApproval(currentUserId)) {
+            return false;
+        }
+
+        // 3. 내가 승인 담당자 권한을 가진 사용자이고,
+        //    해당 구매요청의 요청자가 나이면 표시
+        PurchaseRequest request = purchaseRequestRepository
+                .findById(approval.getRequestId())
+                .orElse(null);
+
+        return request != null
+                && !"Y".equalsIgnoreCase(nullToEmpty(request.getDeletedYn()).trim())
+                && Objects.equals(request.getRequestorId(), currentUserId);
     }
-
-    // 1. 내가 승인 담당자인 건은 표시
-    if (Objects.equals(approval.getApproverId(), currentUserId)) {
-        return true;
-    }
-
-    // 2. 승인 담당자 권한이 없는 일반 사용자는
-    //    본인이 요청한 건이라도 승인 관리 목록에는 표시하지 않음
-    if (!canProcessApproval(currentUserId)) {
-        return false;
-    }
-
-    // 3. 내가 승인 담당자 권한을 가진 사용자이고,
-    //    해당 구매요청의 요청자가 나이면 표시
-    PurchaseRequest request = purchaseRequestRepository
-            .findById(approval.getRequestId())
-            .orElse(null);
-
-    return request != null
-            && !"Y".equalsIgnoreCase(nullToEmpty(request.getDeletedYn()).trim())
-            && Objects.equals(request.getRequestorId(), currentUserId);
-}
 
     private long countApprovalRowsByStatus(
-        List<ApprovalHistoryDto.ListResponse> rows,
-        String statusCode
-) {
-     return rows.stream()
-            .filter(row -> statusCode.equals(toStatusCode(row.requestStatus())))
-            .count();
-}
+            List<ApprovalHistoryDto.ListResponse> rows,
+            String statusCode
+    ) {
+        return rows.stream()
+                .filter(row -> statusCode.equals(toStatusCode(row.requestStatus())))
+                .count();
+    }
 
     private boolean canProcessCurrentApproval(
-        ApprovalHistory approval,
-        PurchaseRequest request,
-        Long currentUserId
-) {
-    return approval != null
-            && request != null
-            && currentUserId != null
-            && canProcessApproval(currentUserId)
-            && Objects.equals(approval.getApproverId(), currentUserId)
-            && "PENDING_APPROVAL".equals(toStatusCode(approval.getApprovalStatus()))
-            && "PENDING_APPROVAL".equals(toStatusCode(request.getRequestStatus()));
-}
+            ApprovalHistory approval,
+            PurchaseRequest request,
+            Long currentUserId
+    ) {
+        return approval != null
+                && request != null
+                && currentUserId != null
+                && canProcessApproval(currentUserId)
+                && Objects.equals(approval.getApproverId(), currentUserId)
+                && PurchaseRequestStatusCodes.PENDING_APPROVAL.equals(toStatusCode(approval.getApprovalStatus()))
+                && PurchaseRequestStatusCodes.PENDING_APPROVAL.equals(toStatusCode(request.getRequestStatus()));
+    }
 
-}
+    }

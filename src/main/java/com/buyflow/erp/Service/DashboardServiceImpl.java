@@ -4,6 +4,8 @@ import com.buyflow.erp.Dto.DashboardDto;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,8 +21,7 @@ import java.util.*;
 @Transactional(readOnly = true)
 public class DashboardServiceImpl implements DashboardService {
 
-    @PersistenceContext
-    private EntityManager entityManager;
+    private static final Logger log = LoggerFactory.getLogger(DashboardServiceImpl.class);
 
     private static final DateTimeFormatter LAST_UPDATED_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy년 M월 d일 HH:mm");
@@ -30,6 +31,15 @@ public class DashboardServiceImpl implements DashboardService {
 
     private static final DateTimeFormatter YEAR_MONTH_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM");
+
+    private static final String REQUEST_STATUS_PENDING_APPROVAL_LABEL = "승인 대기";
+    private static final String REQUEST_STATUS_APPROVED_LABEL = "승인 완료";
+    private static final String REQUEST_STATUS_REJECTED_LABEL = "반려";
+    private static final String REQUEST_STATUS_ORDERED_LABEL = "발주 완료";
+    private static final String REQUEST_STATUS_CANCELED_LABEL = "요청 취소";
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Override
     public DashboardDto.Response getDashboard(int receiptMonths) {
@@ -458,7 +468,7 @@ query.setParameter("monthOffset", monthOffset);
 
 List<Object[]> rows = query.getResultList();
 
-System.out.println("===== MONTHLY RECEIPT =====");
+log.debug("Monthly receipt detail rows: {}", rows.size());
 
 return rows.stream()
         .map(row -> new DashboardDto.MonthlyReceiptDetailItem(
@@ -682,19 +692,26 @@ return rows.stream()
     }
 
     private String toRequestStatusLabel(String status) {
-        if (status == null || status.isBlank()) {
-            return "승인대기";
-        }
-
-        return switch (status.trim().toUpperCase()) {
-            case "DRAFT", "PENDING", "PENDING_APPROVAL", "WAITING", "REQUESTED" -> "승인대기";
-            case "APPROVED" -> "승인완료";
-            case "REJECTED" -> "반려";
-            case "ORDERED" -> "발주완료";
-            case "CANCELED", "CANCELLED", "CANCEL_REQUESTED" -> "요청취소";
-            default -> status;
-        };
+    if (status == null || status.isBlank()) {
+        return REQUEST_STATUS_PENDING_APPROVAL_LABEL;
     }
+
+    String normalizedStatus = status.trim();
+
+    return switch (normalizedStatus.toUpperCase(Locale.ROOT)) {
+        case "DRAFT", "PENDING", "PENDING_APPROVAL", "WAITING", "REQUESTED", "승인대기", "승인 대기" ->
+                REQUEST_STATUS_PENDING_APPROVAL_LABEL;
+        case "APPROVED", "승인완료", "승인 완료" ->
+                REQUEST_STATUS_APPROVED_LABEL;
+        case "REJECTED", "반려" ->
+                REQUEST_STATUS_REJECTED_LABEL;
+        case "ORDERED", "발주완료", "발주 완료" ->
+                REQUEST_STATUS_ORDERED_LABEL;
+        case "CANCELED", "CANCELLED", "CANCEL_REQUESTED", "요청취소", "요청 취소" ->
+                REQUEST_STATUS_CANCELED_LABEL;
+        default -> normalizedStatus;
+    };
+}
 
      private String toOrderStatusLabel(String status) {
     if (status == null || status.isBlank()) {
