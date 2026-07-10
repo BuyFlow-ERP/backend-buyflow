@@ -14,10 +14,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -32,15 +30,11 @@ import org.springframework.web.server.ResponseStatusException;
 import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Dto.ProductDto;
 import com.buyflow.erp.Entity.Users;
-import com.buyflow.erp.Repository.UserRepository;
-import com.buyflow.erp.Service.ExcelService;
 import com.buyflow.erp.Service.ProductService;
-
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
 
-@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/products")
@@ -53,9 +47,8 @@ public class ProductController {
     private static final String PRODUCT_MANAGE_AUTHORITY =
             "hasRole('ADMIN') or hasAuthority('products.write') or hasAuthority('PRODUCT_WRITE')";
 
+
     private final ProductService productService;
-    private final ExcelService excelService;
-    private final UserRepository userRepository;
 
     @PostMapping
     @PreAuthorize(PRODUCT_MANAGE_AUTHORITY)
@@ -85,6 +78,7 @@ public class ProductController {
 
 
     @GetMapping("/excel")
+    @PreAuthorize(PRODUCT_READ_AUTHORITY)
     public void downloadProductsExcel(
         @ModelAttribute ProductDto.SearchCondition condition,
         HttpServletResponse response
@@ -185,42 +179,5 @@ public class ProductController {
     ) {
         productService.deleteProduct(productId);
         return ResponseEntity.ok("Product deleted");
-    }
-
-    private Users getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null
-                || !authentication.isAuthenticated()
-                || "anonymousUser".equals(String.valueOf(authentication.getPrincipal()))) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login is required");
-        }
-
-        Object principal = authentication.getPrincipal();
-
-        if (principal instanceof Users user && user.getUserId() != null) {
-            return userRepository.findById(user.getUserId())
-                    .orElseThrow(() -> new ResponseStatusException(
-                            HttpStatus.UNAUTHORIZED,
-                            "Current user was not found"));
-        }
-
-        String loginValue = principal instanceof UserDetails userDetails
-                ? userDetails.getUsername()
-                : authentication.getName();
-
-        return userRepository.findByLoginId(loginValue)
-                .orElseGet(() -> {
-                    try {
-                        return userRepository.findById(Long.valueOf(loginValue))
-                                .orElseThrow(() -> new ResponseStatusException(
-                                        HttpStatus.UNAUTHORIZED,
-                                        "Current user was not found"));
-                    } catch (NumberFormatException error) {
-                        throw new ResponseStatusException(
-                                HttpStatus.UNAUTHORIZED,
-                                "Current user was not found");
-                    }
-                });
     }
 }

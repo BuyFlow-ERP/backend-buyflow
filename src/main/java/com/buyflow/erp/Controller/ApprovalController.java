@@ -5,6 +5,7 @@ import com.buyflow.erp.Dto.PageResponse;
 import com.buyflow.erp.Service.ApprovalService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -14,7 +15,14 @@ public class ApprovalController {
 
     private final ApprovalService approvalService;
 
+    private static final String APPROVAL_READ_AUTHORITY =
+            "hasRole('ADMIN') or hasAuthority('approvals.read') or hasAuthority('approvals.process')";
+
+    private static final String APPROVAL_PROCESS_AUTHORITY =
+            "hasRole('ADMIN') or hasAuthority('approvals.process')";
+
     @GetMapping
+    @PreAuthorize(APPROVAL_READ_AUTHORITY)
     public ResponseEntity<PageResponse<ApprovalHistoryDto.ListResponse>> getApprovals(
             @RequestParam(name = "requestNumber", required = false, defaultValue = "") String requestNumber,
             @RequestParam(name = "title", required = false, defaultValue = "") String title,
@@ -38,11 +46,13 @@ public class ApprovalController {
     }
 
     @GetMapping("/summary")
+    @PreAuthorize(APPROVAL_READ_AUTHORITY)
     public ResponseEntity<ApprovalHistoryDto.SummaryResponse> getApprovalSummary() {
-         return ResponseEntity.ok(approvalService.getApprovalSummary());
+        return ResponseEntity.ok(approvalService.getApprovalSummary());
 }
 
     @GetMapping("/{approvalId}")
+    @PreAuthorize(APPROVAL_READ_AUTHORITY)
     public ResponseEntity<ApprovalHistoryDto.DetailResponse> getApprovalDetail(
             @PathVariable(name = "approvalId") Long approvalId
     ) {
@@ -50,6 +60,7 @@ public class ApprovalController {
     }
 
     @PostMapping("/{approvalId}/approve")
+    @PreAuthorize(APPROVAL_PROCESS_AUTHORITY)
     public ResponseEntity<ApprovalHistoryDto.DetailResponse> approve(
             @PathVariable(name = "approvalId") Long approvalId,
             @RequestBody(required = false) ApprovalHistoryDto.DecisionRequest request
@@ -58,6 +69,7 @@ public class ApprovalController {
     }
 
     @PostMapping("/{approvalId}/reject")
+    @PreAuthorize(APPROVAL_PROCESS_AUTHORITY)
     public ResponseEntity<ApprovalHistoryDto.DetailResponse> reject(
             @PathVariable(name = "approvalId") Long approvalId,
             @RequestBody(required = false) ApprovalHistoryDto.DecisionRequest request
@@ -66,6 +78,7 @@ public class ApprovalController {
     }
 
     @PatchMapping("/{approvalId}/cancel-request")
+    @PreAuthorize(APPROVAL_PROCESS_AUTHORITY)
     public ResponseEntity<ApprovalHistoryDto.DetailResponse> cancelRequest(
             @PathVariable(name = "approvalId") Long approvalId
     ) {

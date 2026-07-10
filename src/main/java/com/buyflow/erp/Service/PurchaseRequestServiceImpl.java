@@ -47,8 +47,6 @@ public class PurchaseRequestServiceImpl implements PurchaseRequestService {
     private static final DateTimeFormatter DATE_TIME_FORMATTER =
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    private static final String FIXED_ITEM_REMARK = "해당 사항 없음";
-
     private final PurchaseRequestRepository purchaseRequestRepository;
     private final PurchaseRequestItemRepository purchaseRequestItemRepository;
     private final ProductRepository productRepository;
@@ -281,7 +279,7 @@ BigDecimal calculatedTotalAmount = items.stream()
             item.setProductId(itemDto.productId());
             item.setRequestQuantity(quantity);
             item.setEstimatedUnitPrice(unitPrice);
-            item.setRemark(FIXED_ITEM_REMARK);
+            item.setRemark(normalizeRemark(itemDto.remark()));
             item.setCreatedAt(now);
             item.setUpdatedAt(now);
 
@@ -412,15 +410,15 @@ BigDecimal calculatedTotalAmount = items.stream()
         totalAmount = totalAmount.add(amount);
 
         PurchaseRequestItem item = new PurchaseRequestItem();
-        item.setRequestId(requestId);
-        item.setProductId(itemDto.productId());
-        item.setRequestQuantity(quantity);
-        item.setEstimatedUnitPrice(unitPrice);
-        item.setRemark(FIXED_ITEM_REMARK);
-        item.setCreatedAt(now);
-        item.setUpdatedAt(now);
+            item.setRequestId(requestId);
+            item.setProductId(itemDto.productId());
+            item.setRequestQuantity(quantity);
+            item.setEstimatedUnitPrice(unitPrice);
+            item.setRemark(normalizeRemark(itemDto.remark()));
+            item.setCreatedAt(now);
+            item.setUpdatedAt(now);
 
-        nextItems.add(item);
+            nextItems.add(item);
     }
 
     request.setTotalAmount(totalAmount);
@@ -550,12 +548,14 @@ public void deletePurchaseRequest(Long requestId) {
             .toList();
     }
 
-        private PurchaseRequestDto.ItemResponse toItemResponse(PurchaseRequestItem item, Product product) {
+    private PurchaseRequestDto.ItemResponse toItemResponse(PurchaseRequestItem item, Product product) {
             int quantity = item.getRequestQuantity() != null ? item.getRequestQuantity() : 0;
-        BigDecimal unitPrice = item.getEstimatedUnitPrice() != null
-            ? item.getEstimatedUnitPrice()
-            : BigDecimal.ZERO;
-        BigDecimal estimatedAmount = calculateAmount(quantity, unitPrice);
+
+            BigDecimal unitPrice = item.getEstimatedUnitPrice() != null
+                    ? item.getEstimatedUnitPrice()
+                    : BigDecimal.ZERO;
+
+            BigDecimal estimatedAmount = calculateAmount(quantity, unitPrice);
 
             return new PurchaseRequestDto.ItemResponse(
                     item.getRequestItemId(),
@@ -568,13 +568,13 @@ public void deletePurchaseRequest(Long requestId) {
                     product != null ? nullToEmpty(product.getUnit()) : "",
                     unitPrice,
                     estimatedAmount,
-                    FIXED_ITEM_REMARK,
+                    nullToEmpty(item.getRemark()),
                     product != null ? formatDateTime(product.getCreatedAt()) : "",
                     product != null ? formatDateTime(product.getUpdatedAt()) : ""
             );
         }
 
-        private BigDecimal calculateAmount(int quantity, BigDecimal unitPrice) {
+    private BigDecimal calculateAmount(int quantity, BigDecimal unitPrice) {
             BigDecimal safeUnitPrice = unitPrice != null ? unitPrice : BigDecimal.ZERO;
             return safeUnitPrice.multiply(BigDecimal.valueOf(quantity));
     }
@@ -669,6 +669,10 @@ public void deletePurchaseRequest(Long requestId) {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private String normalizeRemark(String remark) {
+    return isBlank(remark) ? null : remark.trim();
     }
 
     private String formatDate(LocalDateTime value) {
